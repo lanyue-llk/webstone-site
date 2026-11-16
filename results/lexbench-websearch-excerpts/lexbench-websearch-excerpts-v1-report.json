@@ -181,7 +181,11 @@
       "USD 3.00 per 1,000 successful searches, quoted in the linked evaluation report. Not a verified current tariff.": "每千次成功搜索 3.00 美元，按链接报告报价记录，未核验当前价格。",
       "USD 0.75 per 1,000 successful searches, quoted in the linked evaluation report. Not a verified current tariff.": "每千次成功搜索 0.75 美元，按链接报告报价记录，未核验当前价格。",
       "USD 8.99 per 1,000 requests, quoted in the linked evaluation report. Not a verified current tariff.": "每千次请求 8.99 美元，按链接报告报价记录，未核验当前价格。",
-      "USD 5.40 per 1,000 requests, quoted in the linked evaluation report. Not a verified current tariff.": "每千次请求 5.40 美元，按链接报告报价记录，未核验当前价格。"
+      "USD 5.40 per 1,000 requests, quoted in the linked evaluation report. Not a verified current tariff.": "每千次请求 5.40 美元，按链接报告报价记录，未核验当前价格。",
+      "Yuanbao Search standard configuration": "元宝搜索标准配置",
+      "DeepSeek search with supplemental content enabled": "DeepSeek 搜索，开启补充原文",
+      "Bocha AI Search: search results, supplemental text and generated answers": "博查 AI 搜索：搜索列表、补充原文与生成答案",
+      "Bocha Web Search with summary enabled": "博查网页搜索，开启 summary"
     }
   }
 }

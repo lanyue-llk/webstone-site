@@ -191,7 +191,11 @@
       "五款浏览器处理同一批 545 份预先保存的 HTML。": "Five browsers process the same 545 saved HTML pages.",
       "全文、代码、公式、表格内容、表格结构五项评分；综合分取五项平均。": "Full text, code, formulas, table content and table structure are scored; overall is their mean.",
       "输入固定，不测实时网络访问或风控。": "Inputs are frozen; live network retrieval and anti-bot behavior are not measured.",
-      "本来源正文仅披露部分分数，缺失值保持为空，未从图形或排名推算。": "Only disclosed scores are retained. Missing values are not inferred from plots or ranks."
+      "本来源正文仅披露部分分数，缺失值保持为空，未从图形或排名推算。": "Only disclosed scores are retained. Missing values are not inferred from plots or ranks.",
+      "Rust 独立浏览器内核": "Standalone Rust browser core",
+      "Zig 无头浏览器": "Zig headless browser",
+      "Rust / V8 浏览器": "Rust / V8 browser",
+      "Cloudflare 远程浏览器": "Cloudflare remote browser"
     }
   }
 }

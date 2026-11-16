@@ -97,7 +97,8 @@
       "Confidence intervals are the 95% intervals printed in the report. A displayed leader is not a claim of statistical significance.": "置信区间为报告列出的 95% 区间，榜首不等于具有统计显著性。",
       "Retains all collected calls, including factual questions excluded from quality scoring. Methods were collected on different dates and with different concurrency.": "保留全部已采集调用，包括质量评分排除的事实题。各方法采集日期与并发不同。",
       "The report does not disclose the citation or cited-sentence denominator.": "报告未披露引用或被引用语句的评分分母。",
-      "USD 8.99 per 1,000 requests, quoted in the linked evaluation report. Not a verified current tariff.": "每千次请求 8.99 美元，按链接报告报价记录，未核验当前价格。"
+      "USD 8.99 per 1,000 requests, quoted in the linked evaluation report. Not a verified current tariff.": "每千次请求 8.99 美元，按链接报告报价记录，未核验当前价格。",
+      "Bocha AI Search: search results, supplemental text and generated answers": "博查 AI 搜索：搜索列表、补充原文与生成答案"
     }
   }
 }

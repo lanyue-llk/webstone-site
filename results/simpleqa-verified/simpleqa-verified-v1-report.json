@@ -114,7 +114,8 @@
     "zh": {
       "Evaluates 773 factual questions rather than the 831-question edition described by the linked dataset card. The source does not state how the 773-question subset was selected or whether its reference pages match the linked edition.": "评测 773 道事实题，而非数据集卡片说明的 831 题版本。来源未说明子集选择方式，也未说明参考网页是否与链接版本一致。",
       "质量指标来自 773 道事实题。": "质量指标来自 773 道事实题。",
-      "平均响应时间来自两个题库合计 980 次调用，不作为本题库独立计时。": "平均响应时间来自两个题库合计 980 次调用，不作为本题库独立计时。"
+      "平均响应时间来自两个题库合计 980 次调用，不作为本题库独立计时。": "平均响应时间来自两个题库合计 980 次调用，不作为本题库独立计时。",
+      "Lexmount Web Search": "Lexmount 网页搜索"
     },
     "en": {
       "质量指标来自 773 道事实题。": "Quality metrics use 773 factual questions.",
