@@ -34,6 +34,21 @@ test("report directories are discovered and their declared provenance is validat
   assert.equal(summary.benchmarks, 8);
 });
 
+test("external tracks use safe HTTPS links and cannot own local benchmark tables", () => {
+  assert.equal(catalog.tracks.find(track => track.id === "browserarena").url, "https://browserarena.dev.lexmount.net/");
+  for (const url of ["javascript:alert(1)", "http://example.com", "https://user:password@example.com", ""]) {
+    const invalid = structuredClone(catalog);
+    invalid.tracks.find(track => track.id === "browserarena").url = url;
+    assert.throws(() => validateCatalog(invalid), /external track URL/);
+  }
+  const mixed = structuredClone(catalog);
+  mixed.tracks[0].url = "https://example.com/";
+  assert.throws(() => validateCatalog(mixed), /either local benchmarks or an external URL/);
+  const empty = structuredClone(catalog);
+  delete empty.tracks.find(track => track.id === "browserarena").url;
+  assert.throws(() => validateCatalog(empty), /either local benchmarks or an external URL/);
+});
+
 test("every participant has a reusable HTTPS project link outside the result files", () => {
   const ids = new Set(files.flatMap(({ report }) => report.benchmarks.flatMap(benchmark => benchmark.providers.map(provider => provider.id))));
   for (const id of ids) {

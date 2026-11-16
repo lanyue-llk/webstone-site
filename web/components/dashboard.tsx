@@ -146,6 +146,9 @@ export default function Dashboard() {
       <div className="sidebar-label">TRACKS</div>
       <nav aria-label="Tracks">{tracks.map(item => {
         const Icon = TRACK_ICONS[item.id] ?? Layers3;
+        if (item.url) return <a key={item.id} className="nav-item" href={item.url} target="_blank" rel="noopener noreferrer" aria-label={`${item.name} (opens in a new tab)`}>
+          <Icon size={17} aria-hidden="true" /><span className="track-name">{item.name}<span>{item.description}</span></span><ArrowUpRight className="track-external" size={14} aria-hidden="true" />
+        </a>;
         return <button
           key={item.id}
           className={`nav-item ${track?.id === item.id ? "active" : ""}`}

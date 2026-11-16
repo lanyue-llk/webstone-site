@@ -24,6 +24,11 @@ export function validateCatalog(catalog) {
   if (!catalog.providerUrls || typeof catalog.providerUrls !== "object" || Array.isArray(catalog.providerUrls) || !Object.keys(catalog.providerUrls).length || !Object.values(catalog.providerUrls).every(httpsUrl)) throw new Error("Missing or invalid provider project URL");
   uniqueIds(catalog.tracks, "track");
   uniqueIds(catalog.benchmarks, "benchmark");
+  for (const track of catalog.tracks) {
+    if (track.url !== undefined && !httpsUrl(track.url)) throw new Error("Invalid external track URL");
+    const hasBenchmarks = catalog.benchmarks.some(benchmark => benchmark.trackId === track.id);
+    if (track.url ? hasBenchmarks : !hasBenchmarks) throw new Error("A track must have either local benchmarks or an external URL");
+  }
   for (const benchmark of catalog.benchmarks) {
     if (!catalog.tracks.some(track => track.id === benchmark.trackId)) throw new Error("Unknown benchmark track");
     if (![benchmark.name, benchmark.datasetName, benchmark.description, benchmark.providerLabel].every(value => typeof value === "string" && value)) throw new Error("Missing benchmark information");
