@@ -25,16 +25,17 @@ function parsePublicJSON(raw) {
   try { return JSON.parse(raw); } catch { throw new Error("Invalid JSON document"); }
 }
 
+function submissionChanges(changes) {
+  const reports = changes.filter(change => change.path.startsWith("results/"));
+  if (reports.some(change => change.status !== "A")) throw new Error("Published reports are immutable. Add a new version; do not edit, delete or rename an existing report.");
+  if (reports.length > 20) throw new Error("Split submissions into at most 20 report files per pull request.");
+  if (reports.length && changes.some(change => change.path !== "benchmarks/catalog.json" && !reportPattern.test(change.path))) throw new Error("Submit results separately from code, definitions and website changes; invalid result report paths are not allowed.");
+  return reports;
+}
+
 export function checkResultChange(baseCatalog, catalog, changes, publishedPaths) {
-  const resultChanges = changes.filter(change => change.path.startsWith("results/"));
-  for (const change of resultChanges) {
-    if (change.status !== "A") throw new Error("Published reports are immutable. Add a new version; do not edit, delete or rename an existing report.");
-  }
+  const resultChanges = submissionChanges(changes);
   if (!resultChanges.length) return { reports: 0 };
-  if (resultChanges.length > 20) throw new Error("Split submissions into at most 20 report files per pull request.");
-  if (changes.some(change => change.path !== "benchmarks/catalog.json" && !reportPattern.test(change.path))) {
-    throw new Error("Submit results separately from code, definitions and website changes.");
-  }
   const { providerUrls: originalUrls, ...originalDefinitions } = baseCatalog;
   const { providerUrls, ...definitions } = catalog;
   if (!isDeepStrictEqual(originalDefinitions, definitions)) throw new Error("A result submission may only add participant project URLs to the catalog. Definition changes need a separate pull request.");
@@ -79,7 +80,11 @@ export function checkGitChange(base, head) {
   const changes = [];
   for (let index = 0; index < fields.length - 1; index += 2) {
     const [status, file] = fields.slice(index, index + 2);
-    const record = { status, path: file };
+    changes.push({ status, path: file });
+  }
+  submissionChanges(changes);
+  for (const record of changes) {
+    const { status, path: file } = record;
     if (file === "benchmarks/catalog.json") {
       const info = git("ls-tree", head, "--", file).split(/\s+/);
       if (info[0] !== "100644" || info[1] !== "blob") throw new Error("The catalog must remain a regular non-executable JSON file.");
@@ -92,7 +97,6 @@ export function checkGitChange(base, head) {
       record.mode = info[0];
       record.content = read(head, file);
     }
-    changes.push(record);
   }
   return checkResultChange(JSON.parse(read(base, "benchmarks/catalog.json")), parsePublicJSON(read(head, "benchmarks/catalog.json")), changes, git("ls-tree", "-r", "--name-only", "-z", base, "--", "results/").split("\0").filter(Boolean));
 }

@@ -135,6 +135,12 @@ test("the Git boundary rejects symlinks, mixed code changes and invalid paths", 
     git("add", "."); git("commit", "-m", scenario + " published history");
     assert.throws(() => checkGitChangeFrom(directory, base, git("rev-parse", "HEAD")), /immutable/);
   }
+  git("reset", "--hard", base);
+  for (let version = 2; version < 23; version++) {
+    writeFileSync(path.join(directory, addition(version).path), version === 2 ? " ".repeat(1024 * 1024 + 1) : addition(version).content);
+  }
+  git("add", "."); git("commit", "-m", "Too many reports, including an oversized first blob");
+  assert.throws(() => checkGitChangeFrom(directory, base, git("rev-parse", "HEAD")), /at most 20/);
 });
 
 function checkGitChangeFrom(directory, base, head) {
