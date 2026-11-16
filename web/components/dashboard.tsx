@@ -167,7 +167,8 @@ export default function Dashboard() {
             {snapshot && <p className="dataset-difference"><strong>Dataset difference:</strong> {snapshot.datasetDifference}</p>}
             {details && <div className="benchmark-links">
               <a href={details.datasetUrl} target="_blank" rel="noreferrer" title="Dataset home. The evaluated sample scope is recorded in the downloaded report.">Dataset · {details.datasetName}<ArrowUpRight size={13} aria-hidden="true" /></a>
-              <a href={benchmark?.reportUrl ?? details.reportUrl} target="_blank" rel="noreferrer" title={result?.reportUrl ? "Evaluation report for these results." : "Related evaluation report. It may cover a different run or sample scope."}>Evaluation report<ArrowUpRight size={13} aria-hidden="true" /></a>
+              <a href={details.reportUrl} target="_blank" rel="noreferrer" title="Shared Track summary. The downloaded report records the scope of this result version.">Track report<ArrowUpRight size={13} aria-hidden="true" /></a>
+              {result?.reportUrl && result.reportUrl !== details.reportUrl && <a href={result.reportUrl} target="_blank" rel="noreferrer">Version report<ArrowUpRight size={13} aria-hidden="true" /></a>}
             </div>}
           </div>
         </div>
