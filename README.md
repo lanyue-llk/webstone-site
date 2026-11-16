@@ -160,7 +160,7 @@ This path uses Rainbond's own Dockerfile builder and image storage. Gitea, GitHu
 
 To deploy on every update to `main`, the running component must build this repository's `main` branch with the root Dockerfile, and its GitHub push webhook and automatic build/deploy settings must be enabled. Verify the webhook delivery and the deployed commit after a merge. There is no GitHub Actions deployment workflow in this repository. A manual or local-package component will not pick up GitHub changes automatically.
 
-The existing Rainbond webhook also filters commit messages: a push without `deploy` in the message is acknowledged with HTTP 200 but returns `commit message not include deploy` and does not start a build. Use `@deploy` in the final merge commit title when publishing a release. Updating `main` alone is therefore insufficient with the current webhook configuration. Check the webhook response body, not only its HTTP status; a successful delivery is not proof of a successful deployment.
+Configure the running component to fetch the official GitHub repository from `main`, enable automatic builds and disable keyword filtering if every main update should trigger a build. A private repository also requires a repository-read credential in Rainbond's protected source settings. Rainbond workspace membership and GitHub repository access are separate permissions; do not route private repository credentials through a public download proxy. Verify build logs and the active code version after each release: a successful webhook delivery alone is not proof of a completed deployment.
 
 ### Cache behavior
 
