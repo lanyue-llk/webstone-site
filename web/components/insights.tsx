@@ -39,7 +39,7 @@ function Radar({ axes, providers, t }: { axes: Axis[]; providers: Provider[]; t:
       })}
       {providers.map((provider, index) => <g key={provider.id} style={{ color: colors[index] }}>
         <polygon points={axes.map((axis, i) => point(i, axis.value(provider)! * 112).join(",")).join(" ")} className="radar-shape"><title>{provider.name}</title></polygon>
-        {axes.map((axis, i) => { const [x, y] = point(i, axis.value(provider)! * 112); return <circle key={axis.id} cx={x} cy={y} r="3" fill="currentColor"><title>{provider.name} · {axis.label}: {axis.display(provider)}</title></circle>; })}
+        {axes.map((axis, i) => { const [x, y] = point(i, axis.value(provider)! * 112); return <circle key={axis.id} cx={x} cy={y} r="3" fill="currentColor"><title>{`${provider.name} · ${axis.label}: ${axis.display(provider)}`}</title></circle>; })}
       </g>)}
     </svg>
     <table className="sr-only"><caption>{t("Capability profile")}</caption><thead><tr><th>{t("Method")}</th>{axes.map(axis => <th key={axis.id}>{axis.label}</th>)}</tr></thead><tbody>{providers.map(provider => <tr key={provider.id}><th>{provider.name}</th>{axes.map(axis => <td key={axis.id}>{axis.display(provider)}</td>)}</tr>)}</tbody></table>
@@ -78,7 +78,7 @@ function Scatter({ benchmark, selected, t }: Props & { selected: Provider[] }) {
         const index = selected.findIndex(item => item.id === provider.id);
         const interval = provider.confidenceIntervals?.[primary.id];
         const label = `${provider.name} · ${xLabel}: ${formatX(x)} · ${primary.label}: ${formatMetric(y, primary.unit, primary.decimals)}`;
-        return <g key={provider.id}>{interval && <line x1={xPosition(x)} x2={xPosition(x)} y1={260 - interval.lower / yMaximum * 220} y2={260 - interval.upper / yMaximum * 220} stroke={index < 0 ? "#c7cec9" : colors[index]} strokeWidth="2"><title>{interval.level * 100}% CI: {interval.lower}–{interval.upper}</title></line>}<circle cx={xPosition(x)} cy={260 - y / yMaximum * 220} r={index < 0 ? 5 : 9} fill={index < 0 ? "#c7cec9" : colors[index]} stroke="white" strokeWidth="1.5" tabIndex={0} aria-label={label}><title>{label}</title></circle>{index >= 0 && <text x={xPosition(x)} y={264 - y / yMaximum * 220} textAnchor="middle" className="point-number" aria-hidden="true">{index + 1}</text>}</g>;
+        return <g key={provider.id}>{interval && <line x1={xPosition(x)} x2={xPosition(x)} y1={260 - interval.lower / yMaximum * 220} y2={260 - interval.upper / yMaximum * 220} stroke={index < 0 ? "#c7cec9" : colors[index]} strokeWidth="2"><title>{`${interval.level * 100}% CI: ${interval.lower}–${interval.upper}`}</title></line>}<circle cx={xPosition(x)} cy={260 - y / yMaximum * 220} r={index < 0 ? 5 : 9} fill={index < 0 ? "#c7cec9" : colors[index]} stroke="white" strokeWidth="1.5" tabIndex={0} aria-label={label}><title>{label}</title></circle>{index >= 0 && <text x={xPosition(x)} y={264 - y / yMaximum * 220} textAnchor="middle" className="point-number" aria-hidden="true">{index + 1}</text>}</g>;
       })}
     </svg><figcaption>{t(coverage ? "The horizontal axis is the share of evaluated cases with an original source URL. It does not imply causation." : "Observed measurements; methods may use different execution and billing conditions.")}</figcaption></figure>
   </article>;

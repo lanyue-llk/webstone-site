@@ -198,7 +198,7 @@ export default function Dashboard() {
             {details && <p className="benchmark-description">{t(details.description)}</p>}
             {details && <div className="benchmark-links">
               <a href={details.datasetUrl} target="_blank" rel="noreferrer" aria-label={`${t("Dataset")}: ${details.datasetName}`}>{t("Dataset")}<ArrowUpRight size={13} aria-hidden="true" /></a>
-              <a href={details.reportUrl} target="_blank" rel="noreferrer" >{t("Evaluation report")}<ArrowUpRight size={13} aria-hidden="true" /></a>
+              <a href={benchmark?.reportUrl ?? details.reportUrl} target="_blank" rel="noreferrer" >{t("Evaluation report")}<ArrowUpRight size={13} aria-hidden="true" /></a>
             </div>}
           </div>
         </div>
