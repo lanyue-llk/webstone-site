@@ -160,6 +160,8 @@ This path uses Rainbond's own Dockerfile builder and image storage. Gitea, GitHu
 
 To deploy on every update to `main`, the running component must build this repository's `main` branch with the root Dockerfile, and its GitHub push webhook and automatic build/deploy settings must be enabled. Verify the webhook delivery and the deployed commit after a merge. There is no GitHub Actions deployment workflow in this repository. A manual or local-package component will not pick up GitHub changes automatically.
 
+The existing Rainbond webhook also filters commit messages: a push without `deploy` in the message is acknowledged with HTTP 200 but returns `commit message not include deploy` and does not start a build. Use `@deploy` in the final merge commit title when publishing a release. Updating `main` alone is therefore insufficient with the current webhook configuration. Check the webhook response body, not only its HTTP status; a successful delivery is not proof of a successful deployment.
+
 ### Cache behavior
 
 `deploy/nginx.conf` sends `Cache-Control: no-store` for HTML, catalogs and reports. Fingerprinted files under `/_next/static/` use a one-year immutable cache. This policy is included by the Dockerfile; a local-package deployment does not automatically use this Nginx configuration. Any ingress or CDN must preserve these response headers.
