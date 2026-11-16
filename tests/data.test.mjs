@@ -310,3 +310,17 @@ test("version-specific sample notes must be nonempty English", () => {
     assert.throws(() => validateSnapshot(record, entry, catalog), /sample note/);
   }
 });
+
+
+test("benchmarks in each published Track share its summary blog", () => {
+  const reports = {
+    webfetch: "https://yours.lexmount.cn/artifact-site/s/sBygxmqjB5wc",
+    websearch: "https://yours.lexmount.cn/artifact-site/s/-FtUMQm-NmQa",
+    webextract: "https://yours.lexmount.cn/artifact-site/s/-eNSiFI3n7XX",
+  };
+  for (const [trackId, url] of Object.entries(reports)) {
+    const benchmarks = catalog.benchmarks.filter(item => item.trackId === trackId);
+    assert.ok(benchmarks.length >= 2);
+    for (const benchmark of benchmarks) assert.equal(benchmark.reportUrl, url, benchmark.id);
+  }
+});
