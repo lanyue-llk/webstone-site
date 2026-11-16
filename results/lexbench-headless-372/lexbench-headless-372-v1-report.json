@@ -191,7 +191,8 @@
       "评测集为 Lexbench Headless Browser 的 372 题子集，七种 Moli 构建使用同一批任务。": "Seven Moli builds use the same historical 372-task subset.",
       "基线行只实测 1 题，其余 371 题按共同失败关系继承判定；其余行 372 题全部实测。": "The baseline directly measures one task and inherits 371 shared-failure judgments; every other row directly measures 372 tasks.",
       "每题采样 3 次：基线共 3 次，其余各行 1,116 次。": "Three repetitions per task: 3 samples for the baseline and 1,116 for each other row.",
-      "相对值均以基线行为 0；PSS 单位 MiB，耗时单位毫秒，负值表示更低。": "Relative changes use the baseline as zero. PSS uses MiB and latency uses milliseconds; negative values mean lower."
+      "相对值均以基线行为 0；PSS 单位 MiB，耗时单位毫秒，负值表示更低。": "Relative changes use the baseline as zero. PSS uses MiB and latency uses milliseconds; negative values mean lower.",
+      "Docker · Linux · 基线": "Docker · Linux · baseline"
     }
   }
 }

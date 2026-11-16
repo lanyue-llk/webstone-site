@@ -252,7 +252,7 @@ h1 { font-size: 30px; line-height: 1.2; }
 .section-heading a { color: #315f46; font-size: 12px; }
 .provider-cell { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .provider-cell .provider-link { min-width: 0; flex: 1; }
-.method-open { display: inline-flex; justify-content: center; align-items: center; width: 24px; height: 30px; flex-shrink: 0; border: 1px solid #dbe5d9; border-radius: 4px; background: #fff; color: #426149; font-size: 18px; letter-spacing: -1px; }
+.method-open { display: inline-flex; justify-content: center; align-items: center; width: 24px; height: 26px; flex-shrink: 0; border: 1px solid #dbe5d9; border-radius: 4px; background: #fff; color: #426149; font-size: 18px; letter-spacing: -1px; }
 .method-open:hover { background: #eaf3e5; }
 .main-content:has(.search-table) .results-controls, .table-scroll:has(> .search-table) { max-width: none; }
 .search-table { --provider-width: 290px; }
@@ -313,6 +313,7 @@ h1 { font-size: 30px; line-height: 1.2; }
   .summary-strip strong.summary-metric { font-size: 16px; }.summary-strip span { font-size: 10px; }
   .section-heading { align-items: flex-start; flex-direction: column; gap: 10px; }.section-heading h2 { font-size: 21px; }
   .section-heading p { max-width: none; }.insight-card { padding: 16px; }.insights-section, .methodology-section { margin-top: 36px; }
+  .method-open { height: 23px; }
   .search-table { --provider-width: 220px; }.method-dialog { padding: 18px; }.method-metrics { gap: 0 14px; }
   .layer-control button { font-size: 11px; padding: 5px 8px; }.layer-control { gap: 2px; }.topbar-actions { gap: 6px; }
   .comparison-list li { grid-template-columns: minmax(72px, 1fr) minmax(28px, .7fr) minmax(60px, .8fr); gap: 8px; }

@@ -245,6 +245,7 @@ export default function Dashboard() {
             <nav className="section-nav" aria-label={t("Results")}><a href="#results">{t("Results")}</a><a href="#insights">{t("Selected insights")}</a><a href="#methodology">{t("Methodology & scope")}</a></nav>
             <section id="results" className="leaderboard" aria-label={`${t(benchmark.name)} ${t("Leaderboard")}`}>
               <div className="section-heading"><div><span className="eyebrow">01 / {selection.version}</span><h2>{t("Leaderboard")}</h2></div><p>{t("Click a metric to sort. Open a method for its configuration and evidence.")}</p></div>
+              {benchmark.trackId === "websearch" && snapshot?.source.kind === "report-page" && <p className="scope-warning">{t("Different collection dates and concurrency: these timings are not a controlled same-window speed comparison.")}</p>}
               <div className="table-scroll">
                 <table className={tableClass} style={{ "--data-columns": categories.length + benchmark.metrics.length + Number(showPassed) + Number(showPricing) } as React.CSSProperties}>
                   <caption className="sr-only">{t(benchmark.name)} {t("Leaderboard")}</caption>

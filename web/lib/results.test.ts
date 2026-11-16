@@ -2,7 +2,7 @@ import test from "node:test";
 import { initialLanguage, translator } from "./i18n.ts";
 import { shouldReloadRelease } from "./release.ts";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { benchmarkEntries, bestValue, compareVersions, isBestValue, latestEntry, selectEntry, reportEntries, formatMetric, formatPricing, sumCategoryPasses, resolveBenchmark, sortProviders, type Catalog, type Provider, type Snapshot } from "./results.ts";
 
 const catalog: Catalog = JSON.parse(readFileSync(new URL("../../benchmarks/catalog.json", import.meta.url), "utf8"));
@@ -27,6 +27,20 @@ test("release checks reject invalid manifests and prevent repeated reload loops"
   assert.equal(shouldReloadRelease(current, current, null), false);
   assert.equal(shouldReloadRelease(current, next, next), false);
   for (const invalid of [null, undefined, "<html>", "", 42, {}, "b".repeat(63)]) assert.equal(shouldReloadRelease(current, invalid, null), false);
+});
+
+test("English method details and notes never expose untranslated historical source text", () => {
+  for (const benchmark of catalog.benchmarks) {
+    const directory = new URL(`../../results/${benchmark.id}/`, import.meta.url);
+    for (const name of readdirSync(directory)) {
+      const report: Snapshot = JSON.parse(readFileSync(new URL(name, directory), "utf8"));
+      const t = translator("en", catalog, report);
+      const result = report.benchmarks[0];
+      const text = [report.datasetDifference, ...result.notes,
+        ...result.providers.flatMap(provider => [provider.mode, provider.description])].map(t).join("\n");
+      assert.doesNotMatch(text, /\p{Script=Han}/u, `${benchmark.id}/${name}`);
+    }
+  }
 });
 function readSnapshot(file: string) {
   const record: Snapshot = JSON.parse(readFileSync(new URL(`../../results/${file}`, import.meta.url), "utf8"));

@@ -8,11 +8,14 @@ import { shouldReloadRelease } from "../lib/release";
 export default function ReleaseCheck() {
   useEffect(() => {
     let active = true, pending = false;
-    const controller = new AbortController();
+    let request: AbortController | null = null;
     const key = "webstone-release-reload";
     async function check() {
       if (!active || pending || document.visibilityState !== "visible") return;
       pending = true;
+      const controller = new AbortController();
+      request = controller;
+      const timeout = window.setTimeout(() => controller.abort(), 15_000);
       try {
         const response = await fetch(`/release.json?check=${Date.now()}`, { cache: "no-store", signal: controller.signal });
         if (!response.ok) return;
@@ -24,7 +27,7 @@ export default function ReleaseCheck() {
           window.location.reload();
         }
       } catch { /* An unavailable version check must not interrupt reading results. */ }
-      finally { pending = false; }
+      finally { clearTimeout(timeout); pending = false; request = null; }
     }
     const restored = (event: PageTransitionEvent) => { if (event.persisted) void check(); };
     window.addEventListener("pageshow", restored);
@@ -34,7 +37,7 @@ export default function ReleaseCheck() {
     void check();
     return () => {
       active = false;
-      controller.abort();
+      request?.abort();
       clearInterval(timer);
       window.removeEventListener("pageshow", restored);
       window.removeEventListener("focus", check);
