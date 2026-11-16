@@ -8,7 +8,11 @@ const reportPattern = /^results\/([a-z0-9-]+)\/([a-z0-9-]+-v[1-9]\d*-report\.jso
 const maximumBytes = 1024 * 1024;
 
 function rejectCredentials(value) {
-  if (/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|AKIA[A-Z0-9]{16})\b/.test(JSON.stringify(value))) throw new Error("A submission contains a credential-like value. Remove credentials before submitting.");
+  if (typeof value === "string") {
+    if (/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|AKIA[A-Z0-9]{16})\b/.test(value)) throw new Error("A submission contains a credential-like value. Remove credentials before submitting.");
+  } else if (value && typeof value === "object") {
+    for (const [key, child] of Object.entries(value)) { rejectCredentials(key); rejectCredentials(child); }
+  }
 }
 
 export function checkResultChange(baseCatalog, catalog, changes, publishedPaths) {

@@ -64,6 +64,10 @@ test("public submissions reject local evidence, escaped credentials and unused i
   data.benchmarks[0].notes.push("ghp_" + "x".repeat(36));
   const escaped = JSON.stringify(data).replace("ghp_", "\\u0067hp_");
   assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: escaped }], published), /credential-like/);
+  for (const prefix of ["\n", "\t"]) {
+    data.benchmarks[0].notes = [prefix + "ghp_" + "x".repeat(36)];
+    assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: JSON.stringify(data) }], published), /credential-like/);
+  }
   const next = structuredClone(catalog);
   next.providerUrls[data.benchmarks[0].providers[0].id] += "?token=ghp_" + "x".repeat(36);
   assert.throws(() => checkResultChange(next, next, [addition(2)], published), /credential-like/);
@@ -84,10 +88,17 @@ test("the Git boundary rejects symlinks, mixed code changes and invalid paths", 
   writeFileSync(path.join(directory, "benchmarks/catalog.json"), JSON.stringify(catalog));
   writeFileSync(path.join(directory, published[0]), JSON.stringify(original));
   git("add", "."); git("commit", "-m", "Base fixture");
-  const base = git("rev-parse", "HEAD");
+  let base = git("rev-parse", "HEAD");
   const file = path.join(directory, addition(2).path);
   writeFileSync(file, addition(2).content);
   git("add", "."); git("commit", "-m", "Valid new report");
+  assert.deepEqual(checkGitChangeFrom(directory, base, git("rev-parse", "HEAD")), { reports: 1 });
+  const contributor = git("rev-parse", "HEAD");
+  git("checkout", "-b", "advanced-main", base);
+  writeFileSync(path.join(directory, "README.md"), "Unrelated upstream code change");
+  git("add", "."); git("commit", "-m", "Main advanced independently");
+  base = git("rev-parse", "HEAD");
+  git("merge", "--no-edit", contributor);
   assert.deepEqual(checkGitChangeFrom(directory, base, git("rev-parse", "HEAD")), { reports: 1 });
   rmSync(file); symlinkSync("../../benchmarks/catalog.json", file);
   git("add", "."); git("commit", "-m", "Unsafe link");
