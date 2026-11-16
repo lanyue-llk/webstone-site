@@ -1,4 +1,5 @@
 import test from "node:test";
+import { shouldReloadRelease } from "./release.ts";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { benchmarkEntries, bestValue, compareVersions, isBestValue, latestEntry, selectEntry, reportEntries, formatMetric, formatPricing, sumCategoryPasses, resolveBenchmark, sortProviders, type Catalog, type Provider, type Snapshot } from "./results.ts";
@@ -331,4 +332,12 @@ test("search datasets keep their own quality metrics and exact image values", ()
   assert.deepEqual(sortProviders(scene.providers, "responseTime", "asc").map(item => item.id), ["lexmount", "serper", "browserbase", "brightdata"]);
   assert.equal(sortProviders(scene.providers, "ndcg5", "desc")[0].id, "serper");
   assert.equal(sortProviders(qa.providers, "hit5", "desc")[0].id, "serper");
+});
+
+test("release checks reject invalid manifests and prevent repeated reload loops", () => {
+  const current = "a".repeat(64), next = "b".repeat(64);
+  assert.equal(shouldReloadRelease(current, next, null), true);
+  assert.equal(shouldReloadRelease(current, current, null), false);
+  assert.equal(shouldReloadRelease(current, next, next), false);
+  for (const invalid of [null, undefined, "<html>", "", 42, {}, "b".repeat(63)]) assert.equal(shouldReloadRelease(current, invalid, null), false);
 });

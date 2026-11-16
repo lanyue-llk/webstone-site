@@ -5,6 +5,7 @@ import { ArrowDown, ArrowDownToLine, ArrowRight, ArrowUpRight, Bot, FileJson2, G
 import { benchmarkEntries, bestValue, formatMetric, formatPricing, isBestValue, latestEntry, reportEntries, resolveBenchmark, selectEntry, sortProviders, type Catalog, type Entry, type Metric, type Provider, type ReportFile, type Snapshot } from "../lib/results";
 import { providerColors } from "../lib/presentation";
 import InfoTooltip from "./info-tooltip";
+import ReleaseCheck from "./release-check";
 
 const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2 };
 const GITHUB_URL = "https://github.com/lexmount/browser-eval-site";
@@ -139,6 +140,7 @@ export default function Dashboard() {
   }
 
   return <div className="app-shell">
+    <ReleaseCheck />
     <a className="skip-link" href="#main">Skip to results</a>
     {menuOpen && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setMenuOpen(false)} />}
     <aside className={`sidebar ${menuOpen ? "is-open" : ""}`}>

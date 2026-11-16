@@ -10,3 +10,6 @@ web/public/benchmarks
 **/.DS_Store
 .gitea
 .rainbond
+
+web/public/release.json
+web/lib/release.generated.ts
