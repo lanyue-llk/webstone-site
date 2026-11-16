@@ -74,6 +74,8 @@ test("public submissions reject local evidence, escaped credentials and unused i
     data.benchmarks[0].notes = [prefix + "ghp_" + "x".repeat(36)];
     assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: JSON.stringify(data) }], published), /credential-like/);
   }
+  data.benchmarks[0].notes = ["token_ghp_" + "x".repeat(36) + "_"];
+  assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: JSON.stringify(data).replace("ghp_", "\\u0067hp_") }], published), /credential-like/);
   const next = structuredClone(catalog);
   next.providerUrls[data.benchmarks[0].providers[0].id] += "?token=ghp_" + "x".repeat(36);
   assert.throws(() => checkResultChange(next, next, [addition(2)], published), /credential-like/);
@@ -85,6 +87,10 @@ test("public submissions reject local evidence, escaped credentials and unused i
 });
 
 test("the Git boundary rejects symlinks, mixed code changes and invalid paths", t => {
+  const environment = ["GIT_CONFIG_NOSYSTEM", "GIT_CONFIG_GLOBAL"].map(key => [key, process.env[key]]);
+  process.env.GIT_CONFIG_NOSYSTEM = "1";
+  process.env.GIT_CONFIG_GLOBAL = "/dev/null";
+  t.after(() => { for (const [key, value] of environment) { if (value === undefined) delete process.env[key]; else process.env[key] = value; } });
   const directory = mkdtempSync(path.join(tmpdir(), "webstone-submission-git-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const git = (...args) => execFileSync("git", args, { cwd: directory, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();

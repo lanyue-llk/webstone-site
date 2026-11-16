@@ -9,7 +9,7 @@ const maximumBytes = 1024 * 1024;
 
 function rejectCredentials(value) {
   if (typeof value === "string") {
-    if (/-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----|\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|AKIA[A-Z0-9]{16})\b/.test(value)) throw new Error("A submission contains a credential-like value. Remove credentials before submitting.");
+    if (/-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----|(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|AKIA[A-Z0-9]{16})/.test(value)) throw new Error("A submission contains a credential-like value. Remove credentials before submitting.");
   } else if (value && typeof value === "object") {
     for (const [key, child] of Object.entries(value)) { rejectCredentials(key); rejectCredentials(child); }
   }
