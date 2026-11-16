@@ -37,3 +37,7 @@ Thumbs.db
 
 # local Rainbond binding and deployment staging
 .rainbond/
+
+# Generated deployment identity
+web/public/release.json
+web/lib/release.generated.ts
