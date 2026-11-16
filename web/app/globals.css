@@ -22,6 +22,8 @@ button, a { transition: background .15s, color .15s; }
 .nav-item.active { background: #eaf4ee; color: #283b31; font-weight: 600; }
 .nav-item:hover { background: #f1f5f1; }
 .track-name { display: grid; gap: 5px; }
+.nav-item > svg { flex-shrink: 0; }
+.track-external { margin-left: auto; }
 .track-name > span { font-size: 12px; font-weight: 400; color: #52605a; }
 .nav-item.active .track-name > span { color: #496454; }
 .main-shell { margin-left: var(--sidebar); min-height: 100vh; }

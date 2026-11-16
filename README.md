@@ -1,8 +1,8 @@
-# Browser Eval Leaderboard
+# Webstone
 
-The public leaderboard for our browser, search and structured extraction evaluation work. It presents methods side by side in sortable tables.
+The companion website for [Webstone](https://github.com/lexmount/webstone), publishing browser, search and structured extraction benchmark results in sortable tables.
 
-Eight benchmark views across four Tracks are published on this site. The evaluation harness is [lexmount/browser-eval](https://github.com/lexmount/browser-eval).
+Eight local benchmark views across four Tracks are published on this site. A fifth Track, BrowserArena, opens the independently deployed benchmark site in a new tab. The evaluation harness is [lexmount/browser-eval](https://github.com/lexmount/browser-eval).
 
 ## Benchmarks
 
@@ -135,19 +135,6 @@ python3 -m http.server 5173 --bind 127.0.0.1 --directory web/out
 
 Open <http://127.0.0.1:5173>. The output is plain static files and needs no Next.js runtime; do not use `next start`.
 
-## Local static-package deployment
-
-The local Rainbond binding deploys an uploaded static package without fetching GitHub. `rainbond.app.json` records the package component; `.rainbond/local.json` and `.rainbond/staging/` stay git-ignored. Build the current local files and refresh the staging directory before each deployment:
-
-```sh
-npm run build
-mkdir -p .rainbond/staging/web/static-package
-rm -rf .rainbond/staging/web/static-package/dist
-cp -R web/out .rainbond/staging/web/static-package/dist
-```
-
-Use the official Rainbond local-package helper and protected upload command to package `.rainbond/staging/web/static-package`. The ZIP must contain `dist/index.html`, the exported assets and result files. Rainbond serves these files with Nginx on HTTP port 8080. Set runtime resources to 1 CPU core (1000m) and 128MB memory. No Node.js process runs in the deployed component. Local dependencies, Git metadata and credentials are excluded. Future updates require another build, upload and manual deployment.
-
 ## Docker and manual Rainbond deployment
 
 The root `Dockerfile` installs locked dependencies with Node.js 22, runs tests, regenerates the bundled results and exports the static site. The final Nginx image serves only the exported files on HTTP port `8080` using `deploy/nginx.conf`. Generated local build files and environment files are excluded by `.dockerignore`.
@@ -155,8 +142,8 @@ The root `Dockerfile` installs locked dependencies with Node.js 22, runs tests, 
 To build and preview locally with Docker:
 
 ```sh
-docker build -t browser-eval-site:local .
-docker run --rm -p 8080:8080 browser-eval-site:local
+docker build -t webstone-site:local .
+docker run --rm -p 8080:8080 webstone-site:local
 ```
 
 Open <http://127.0.0.1:8080>.
@@ -164,12 +151,30 @@ Open <http://127.0.0.1:8080>.
 For manual Rainbond deployment directly from GitHub:
 
 1. Commit and push the latest code, catalog, result files and these deployment files to the branch Rainbond will build. With a protected `main`, merge the pull request first.
-2. In the target Rainbond application, create a component from source code using `https://github.com/lexmount/browser-eval-site.git` and the published branch, normally `main`. A private repository needs GitHub repository-read authorization configured in Rainbond.
+2. In the target Rainbond application, create a component from source code using `https://github.com/lexmount/webstone-site.git` and the published branch, normally `main`. A private repository needs GitHub repository-read authorization configured in Rainbond.
 3. Select Dockerfile as the build method. Use the repository root (`.`) as the build context and the root `Dockerfile` as the Dockerfile path. Do not use `web/` as the build context: workspace packages, the lockfile, catalog, reports and preparation script live at the root.
 4. Use HTTP port `8080`, enable external access and leave the start command at the image default. No runtime environment variables, database or persistent storage are required.
 5. Build and deploy, then open the component URL and verify the leaderboard and report downloads. An existing component created from an image must have its build source switched to Git source if that option is available; otherwise create a new source component, verify it, and move the domain route before removing the old component.
 
-This path uses Rainbond's own Dockerfile builder and image storage. Gitea, GitHub Actions and an external image registry are not required. Later updates need another build from the updated GitHub branch; automatic deployment only applies after configuring it separately.
+This path uses Rainbond's own Dockerfile builder and image storage. Gitea, GitHub Actions and an external image registry are not required. `rainbond.app.json` declares `main` as the source branch. It is a deployment descriptor, not evidence of the running component's settings, and changing it does not update an existing Rainbond component automatically.
+
+To deploy on every update to `main`, the running component must build this repository's `main` branch with the root Dockerfile, and its GitHub push webhook and automatic build/deploy settings must be enabled. Verify the webhook delivery and the deployed commit after a merge. There is no GitHub Actions deployment workflow in this repository. A manual or local-package component will not pick up GitHub changes automatically.
+
+### Cache behavior
+
+`deploy/nginx.conf` sends `Cache-Control: no-store` for HTML, catalogs and reports. Fingerprinted files under `/_next/static/` use a one-year immutable cache. This policy is included by the Dockerfile; a local-package deployment does not automatically use this Nginx configuration. Any ingress or CDN must preserve these response headers.
+
+Previously cached HTML may remain usable until the browser contacts the server again. After the first deployment of this policy, refresh once (or clear this site's cached files) and purge any upstream cached HTML. Verify the response headers at the public domain; changing data fetch options alone cannot refresh an old HTML/JavaScript shell.
+
+### BrowserArena
+
+The catalog's `browserarena` Track links to <https://browserarena.dev.lexmount.net/> in a new tab. Its lifecycle, proxy, throughput and CAPTCHA views retain their own navigation and history. An external Track has a verified HTTPS `url` and no local benchmark definitions or result files. It is a regular hyperlink; no filesystem symlink, iframe or proxy is involved.
+
+### Public repository scope
+
+Published reports, their source/evidence fields and all linked reports are public-facing material. The current data includes transcribed tables and images, unpinned dataset correspondence, undisclosed execution details and quoted pricing. Preserve these limitations; the published tables do not establish full run reproducibility. Raw evaluation logs and datasets are not included here.
+
+The repository currently has no license file. Public visibility alone does not provide an explicit reuse license. Deployment descriptors also contain environment names; keep credentials and webhook URLs in protected platform settings, never in tracked files.
 
 See the official [Dockerfile deployment guide](https://www.rainbond.com/docs/how-to-guides/app-deploy/source-code/dockefile).
 

@@ -15,7 +15,7 @@
         "kind": "source",
         "git": {
           "remote_url": "https://github.com/lexmount/webstone-site.git",
-          "ref": "deploy-github-dockerfile"
+          "ref": "main"
         }
       }
     }
