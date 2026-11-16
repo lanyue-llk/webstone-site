@@ -1,6 +1,7 @@
 import test from "node:test";
 import { initialLanguage, translator } from "./i18n.ts";
 import { shouldReloadRelease } from "./release.ts";
+import { categoryRate, overviewMetrics, qualityScale } from "./comparisons.ts";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { benchmarkEntries, bestValue, compareVersions, isBestValue, latestEntry, selectEntry, reportEntries, formatMetric, formatPricing, sumCategoryPasses, resolveBenchmark, sortProviders, type Catalog, type Provider, type Snapshot } from "./results.ts";
@@ -13,6 +14,9 @@ test("English is the default and explicit Chinese selection translates reusable 
   assert.equal(initialLanguage("zh"), "zh");
   assert.equal(translator("en", catalog)("Download Report"), "Download Report");
   assert.equal(translator("zh", catalog)("Download Report"), "下载报告");
+  assert.equal(translator("zh", catalog)("Web Fetch"), "Web Fetch");
+  assert.equal(translator("zh", catalog)("Page-hit macro F1"), "Page-hit macro F1");
+  assert.equal(translator("zh", catalog)("LexBench SWDE"), "LexBench SWDE");
   for (const benchmark of catalog.benchmarks) {
     assert.ok(catalog.translations?.zh[benchmark.description], benchmark.id);
     for (const definition of benchmark.definitions) {
@@ -51,6 +55,22 @@ const snapshot = { ...fetchSnapshot, benchmarks: [...fetchSnapshot.benchmarks, .
 const providers = snapshot.benchmarks[0].providers;
 const searchSnapshot = readSnapshot("lexbench-websearch/lexbench-websearch-v1-report.json");
 const search = { ...searchSnapshot, benchmarks: [...searchSnapshot.benchmarks, ...readSnapshot("simpleqa-verified/simpleqa-verified-v1-report.json").benchmarks] };
+
+test("compact tables keep the ranking metric and charts preserve natural scales and missing data", () => {
+  for (const info of catalog.benchmarks) for (const definition of info.definitions) {
+    const metrics = overviewMetrics(definition.metrics, definition.primaryMetric);
+    assert.equal(metrics[0].id, definition.primaryMetric);
+    assert.ok(metrics.length <= 5);
+    assert.equal(new Set(metrics.map(metric => metric.id)).size, metrics.length);
+  }
+  const usefulness = catalog.benchmarks.flatMap(info => info.definitions.flatMap(definition => definition.metrics)).find(metric => metric.id === "usefulness")!;
+  assert.equal(qualityScale(usefulness), 3);
+  assert.equal(qualityScale({ ...usefulness, unit: "ratio", chartRange: undefined }), 1);
+  const fixture = { ...providers[0], categoryPassed: { disclosed: 0 } };
+  assert.equal(categoryRate(fixture, "disclosed", 10), 0);
+  assert.equal(categoryRate(fixture, "missing", 10), null);
+  assert.equal(categoryRate(fixture, "disclosed", 0), null);
+});
 
 test("SWDE keeps eligible denominators, precision and independent quality/latency rankings", () => {
   const benchmark = readSnapshot("lexbench-swde/lexbench-swde-v1-report.json").benchmarks[0];
@@ -285,10 +305,10 @@ test("benchmark titles, dataset names and links follow the public dataset catalo
     webmainbench: { name: "LexBench WebMainBench", datasetName: "LexBench-WebMainBench" },
     "lexbench-websearch": { name: "LexBench Web Search", datasetName: "LexBench-Web-Search" },
     "simpleqa-verified": { name: "LexBench SimpleQA Verified", datasetName: "LexBench-SimpleQA-Verified" },
-    "lexbench-websearch-excerpts": { name: "Scenario Search · Supplemental Text", datasetName: "LexBench-Web-Search" },
-    "simpleqa-verified-excerpts": { name: "SimpleQA Verified · Supplemental Text", datasetName: "LexBench-SimpleQA-Verified" },
-    "lexbench-websearch-answers": { name: "Scenario Search · Generated Answers", datasetName: "LexBench-Web-Search" },
-    "simpleqa-verified-answers": { name: "SimpleQA Verified · Generated Answers", datasetName: "LexBench-SimpleQA-Verified" },
+    "lexbench-websearch-excerpts": { name: "LexBench Web Search", datasetName: "LexBench-Web-Search" },
+    "simpleqa-verified-excerpts": { name: "LexBench SimpleQA Verified", datasetName: "LexBench-SimpleQA-Verified" },
+    "lexbench-websearch-answers": { name: "LexBench Web Search", datasetName: "LexBench-Web-Search" },
+    "simpleqa-verified-answers": { name: "LexBench SimpleQA Verified", datasetName: "LexBench-SimpleQA-Verified" },
     "lexbench-headless-372": { name: "LexBench Headless Browser", datasetName: "LexBench-Headless-Browser" },
     "webarena-verified": { name: "LexBench WebArena Replay", datasetName: "LexBench-WebArena-Replay" },
     "lexbench-swde": { name: "LexBench SWDE", datasetName: "LexBench-SWDE" },

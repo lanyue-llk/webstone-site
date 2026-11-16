@@ -4,11 +4,22 @@ export type Language = "en" | "zh";
 export const LANGUAGE_KEY = "webstone-language";
 
 const chinese: Record<string, string> = {
+  "methods": "个方案", "Table columns": "表格列", "Overview": "主要指标", "All metrics": "全部指标", "Categories": "分类结果",
+  "Compare methods": "方案对比", "Select up to three methods": "最多选择 3 个方案", "Methods to compare": "对比方案", "Incomplete metrics": "指标不完整",
+  "Capability profile": "能力对比", "Quality and resources": "质量与资源", "Source coverage and quality": "来源覆盖与质量", "Original source coverage": "原始来源覆盖率",
+  "Horizontal axis": "横轴指标", "log scale": "对数刻度",
+  "Confidence intervals are available in method details.": "置信区间可在方案详情中查看。",
+  "Category pass rates use each category's own sample count.": "各类别通过率使用各自的样本数。",
+  "Axes show 0–100% of each metric's defined range, without combining them into a score.": "各轴按指标定义范围换算为 0–100%，不合成为总分。",
+  "Observed measurements; methods may use different execution and billing conditions.": "图中为实际测量值，各方案的运行及计费条件可能不同。",
+  "The horizontal axis is the share of evaluated cases with an original source URL. It does not imply causation.": "横轴为原始网址占评测样本的比例，图中关系不代表因果关系。",
   "Skip to results": "跳至评测结果", "Close navigation": "关闭导航", "Open navigation": "打开导航",
   "Webstone home": "Webstone 首页", "Tracks": "评测方向", "TRACKS": "评测方向",
   "The touchstone for your agent's web tools": "智能体网页工具的试金石",
   "Download Report": "下载报告", "View website source on GitHub": "在 GitHub 查看网站源码",
-  "SUBMIT YOUR RESULT": "提交评测结果", "Dataset": "数据集", "Track report": "方向汇总报告",
+  "SUBMIT YOUR RESULT": "提交结果", "Dataset": "数据集", "Evaluation report": "评测报告",
+  "Source report": "结果来源", "Evaluation notes": "评测说明", "Analysis": "分析",
+  "Benchmarks for AI agents' web tools": "面向 AI Agent 的 Web 工具评测",
   "Version report": "版本评测报告", "Benchmarks": "评测基准", "Version": "结果版本",
   "Loading…": "正在加载…", "Retry": "重试", "Unable to load results. Please try again.": "无法加载评测结果，请重试。",
   "No results for this version": "此版本暂无结果", "No results for this benchmark": "此基准暂无结果",
@@ -44,7 +55,13 @@ export function initialLanguage(saved: string | null): Language {
 }
 
 export function translator(language: Language, catalog?: Catalog | null, snapshot?: Snapshot | null) {
+  const names = new Set([
+    "L1 · Search results", "L2 · Supplemental text", "L3 · Generated answers",
+    ...(catalog?.tracks.map(item => item.name) ?? []),
+    ...(catalog?.benchmarks.flatMap(item => [item.name, item.datasetName, ...item.definitions.flatMap(definition => definition.metrics.map(metric => metric.label))]) ?? []),
+  ]);
   return (text: string): string => {
+    if (names.has(text)) return snapshot?.translations?.en?.[text] ?? catalog?.translations?.en?.[text] ?? text;
     if (language === "en") return snapshot?.translations?.en?.[text] ?? catalog?.translations?.en?.[text] ?? text;
     if (/^Software \$[0-9.]+ \+ model$/.test(text)) return text.replace("Software ", "软件 ").replace(" + model", " + 模型费用");
     return snapshot?.translations?.zh?.[text] ?? catalog?.translations?.zh?.[text] ?? chinese[text] ?? text;

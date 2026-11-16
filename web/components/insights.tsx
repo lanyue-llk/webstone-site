@@ -1,79 +1,106 @@
 "use client";
 
 import { useState } from "react";
-import { formatMetric, sortProviders, type Benchmark, type Metric, type Provider } from "../lib/results";
+import { categoryRate, qualityMetrics, qualityScale } from "../lib/comparisons";
+import { formatMetric, sortProviders, type Benchmark, type Provider } from "../lib/results";
 
 type Props = { benchmark: Benchmark; t: (text: string) => string };
+type Axis = { id: string; label: string; value: (provider: Provider) => number | null; display: (provider: Provider) => string };
+const colors = ["#28745b", "#5869b0", "#bc7540"];
 
-function Comparison({ providers, metric, t }: { providers: Provider[]; metric: Metric; t: Props["t"] }) {
-  const rows = sortProviders(providers, metric.id, metric.direction).filter(provider => provider.scores[metric.id] != null);
-  const values = rows.flatMap(provider => [provider.scores[metric.id]!, provider.confidenceIntervals?.[metric.id]?.lower ?? 0, provider.confidenceIntervals?.[metric.id]?.upper ?? 0]);
-  const min = Math.min(0, ...values);
-  const scale = metric.unit === "ratio" ? 1 : metric.unit === "percent" || metric.unit === "score" ? (metric.id === "usefulness" ? 3 : 100) : 0;
-  const max = Math.max(scale, ...values);
-  const position = (value: number) => (value - min) / (max - min || 1) * 100;
-  return <ul className="comparison-list">{rows.map(provider => {
-    const value = provider.scores[metric.id]!;
-    const interval = provider.confidenceIntervals?.[metric.id];
-    return <li key={provider.id}>
-      <span className="chart-name" title={provider.name}>{provider.name}</span>
-      <span className="bar-rail" aria-hidden="true">
-        <span className="bar-fill" style={{ left: `${position(Math.min(0, value))}%`, width: `${Math.abs(position(value) - position(0))}%` }} />
-        {interval && <span className="confidence-range" style={{ left: `${position(interval.lower)}%`, width: `${position(interval.upper) - position(interval.lower)}%` }} />}
-      </span>
-      <span className="chart-value">{formatMetric(value, metric.unit, metric.decimals, metric.signed)}
-        {interval && <small>{t("95% confidence interval")}: {formatMetric(interval.lower, metric.unit, metric.decimals)}–{formatMetric(interval.upper, metric.unit, metric.decimals)}</small>}
-      </span>
-    </li>;
-  })}</ul>;
+function radarAxes(benchmark: Benchmark): Axis[] {
+  if (benchmark.categories.length >= 3) return benchmark.categories.map(category => ({
+    id: category.id, label: category.name,
+    value: provider => categoryRate(provider, category.id, category.total),
+    display: provider => `${provider.categoryPassed?.[category.id] ?? "—"} / ${category.total}`,
+  }));
+  return qualityMetrics(benchmark).map(metric => ({
+    id: metric.id, label: metric.label,
+    value: provider => provider.scores[metric.id] == null ? null : provider.scores[metric.id]! / qualityScale(metric),
+    display: provider => formatMetric(provider.scores[metric.id], metric.unit, metric.decimals),
+  }));
+}
+
+function Radar({ axes, providers, t }: { axes: Axis[]; providers: Provider[]; t: Props["t"] }) {
+  const point = (index: number, radius: number) => {
+    const angle = -Math.PI / 2 + index * Math.PI * 2 / axes.length;
+    return [Math.cos(angle) * radius, Math.sin(angle) * radius];
+  };
+  const polygon = (radius: number) => axes.map((_, index) => point(index, radius).join(",")).join(" ");
+  return <figure className="comparison-figure">
+    <svg viewBox="-250 -180 500 360" role="img" aria-label={t("Capability profile")}>
+      {[.25, .5, .75, 1].map(level => <g key={level}><polygon points={polygon(112 * level)} className="radar-grid" /><text x="5" y={-112 * level - 4} className="axis-tick">{level * 100}</text></g>)}
+      {axes.map((axis, index) => {
+        const [x, y] = point(index, 112), [labelX, labelY] = point(index, 145);
+        const words = axis.label.split(" ");
+        const split = Math.ceil(words.length / 2);
+        const lines = axis.label.length > 17 ? [words.slice(0, split).join(" "), words.slice(split).join(" ")] : [axis.label];
+        return <g key={axis.id}><line x1="0" y1="0" x2={x} y2={y} className="radar-axis" /><text x={labelX} y={labelY} textAnchor={labelX > 10 ? "start" : labelX < -10 ? "end" : "middle"} className="axis-label">{lines.map((line, i) => <tspan key={i} x={labelX} dy={i ? 13 : 0}>{line}</tspan>)}</text></g>;
+      })}
+      {providers.map((provider, index) => <g key={provider.id} style={{ color: colors[index] }}>
+        <polygon points={axes.map((axis, i) => point(i, axis.value(provider)! * 112).join(",")).join(" ")} className="radar-shape"><title>{provider.name}</title></polygon>
+        {axes.map((axis, i) => { const [x, y] = point(i, axis.value(provider)! * 112); return <circle key={axis.id} cx={x} cy={y} r="3" fill="currentColor"><title>{provider.name} · {axis.label}: {axis.display(provider)}</title></circle>; })}
+      </g>)}
+    </svg>
+    <table className="sr-only"><caption>{t("Capability profile")}</caption><thead><tr><th>{t("Method")}</th>{axes.map(axis => <th key={axis.id}>{axis.label}</th>)}</tr></thead><tbody>{providers.map(provider => <tr key={provider.id}><th>{provider.name}</th>{axes.map(axis => <td key={axis.id}>{axis.display(provider)}</td>)}</tr>)}</tbody></table>
+  </figure>;
+}
+
+function Scatter({ benchmark, selected, t }: Props & { selected: Provider[] }) {
+  const primary = benchmark.metrics.find(metric => metric.id === benchmark.primaryMetric)!;
+  const candidates = benchmark.metrics.filter(metric => ["seconds", "ms", "mib"].includes(metric.unit) && metric.highlightBest !== false);
+  const preferred = candidates.find(metric => /p50/i.test(metric.id)) ?? candidates.find(metric => metric.unit === "mib") ?? candidates[0];
+  const [xId, setXId] = useState(preferred?.id);
+  const xMetric = candidates.find(metric => metric.id === xId) ?? preferred;
+  const coverage = Boolean(benchmark.sourceMatches);
+  if (!coverage && !xMetric) return null;
+  const rows = benchmark.providers.flatMap(provider => {
+    const x = coverage ? benchmark.sourceMatches![provider.id].original / benchmark.taskCount * 100 : provider.scores[xMetric!.id];
+    const y = provider.scores[primary.id];
+    return x == null || y == null ? [] : [{ provider, x, y }];
+  });
+  if (rows.length < 2) return null;
+  const minimum = Math.min(...rows.map(row => row.x)), maximum = Math.max(...rows.map(row => row.x));
+  const log = !coverage && minimum > 0 && maximum / minimum > 10;
+  const low = log ? Math.floor(Math.log10(minimum)) : 0;
+  const high = coverage ? 100 : log ? Math.ceil(Math.log10(maximum)) : Math.max(1, maximum * 1.08);
+  const xPosition = (value: number) => 60 + ((log ? Math.log10(value) : value) - low) / (high - low || 1) * 360;
+  const yMaximum = qualityScale(primary);
+  const xLabel = coverage ? t("Original source coverage") : xMetric!.label;
+  const formatX = (value: number) => coverage ? `${value.toFixed(1)}%` : formatMetric(value, xMetric!.unit, xMetric!.decimals);
+  return <article className="insight-card scatter-card">
+    <div className="card-heading"><h3>{t(coverage ? "Source coverage and quality" : "Quality and resources")}</h3>{!coverage && candidates.length > 1 && <select aria-label={t("Horizontal axis")} value={xMetric!.id} onChange={event => setXId(event.target.value)}>{candidates.map(metric => <option key={metric.id} value={metric.id}>{metric.label}</option>)}</select>}</div>
+    <figure className="comparison-figure"><svg viewBox="0 0 480 330" role="img" aria-label={`${primary.label} / ${xLabel}`}>
+      {[0, .25, .5, .75, 1].map(fraction => <g key={fraction}><line x1="60" x2="420" y1={260 - fraction * 220} y2={260 - fraction * 220} className="radar-grid" /><text x="48" y={264 - fraction * 220} textAnchor="end" className="axis-tick">{formatMetric(yMaximum * fraction, primary.unit, primary.decimals)}</text></g>)}
+      {[0, .5, 1].map(fraction => { const value = log ? 10 ** (low + fraction * (high - low)) : high * fraction; return <text key={fraction} x={60 + fraction * 360} y="282" textAnchor="middle" className="axis-tick">{formatX(value)}</text>; })}
+      <text x="60" y="20" className="axis-label">{primary.label}</text><text x="240" y="313" textAnchor="middle" className="axis-label">{xLabel}{log ? ` · ${t("log scale")}` : ""}</text>
+      {rows.map(({ provider, x, y }) => {
+        const index = selected.findIndex(item => item.id === provider.id);
+        const interval = provider.confidenceIntervals?.[primary.id];
+        const label = `${provider.name} · ${xLabel}: ${formatX(x)} · ${primary.label}: ${formatMetric(y, primary.unit, primary.decimals)}`;
+        return <g key={provider.id}>{interval && <line x1={xPosition(x)} x2={xPosition(x)} y1={260 - interval.lower / yMaximum * 220} y2={260 - interval.upper / yMaximum * 220} stroke={index < 0 ? "#c7cec9" : colors[index]} strokeWidth="2"><title>{interval.level * 100}% CI: {interval.lower}–{interval.upper}</title></line>}<circle cx={xPosition(x)} cy={260 - y / yMaximum * 220} r={index < 0 ? 5 : 7} fill={index < 0 ? "#c7cec9" : colors[index]} stroke="white" strokeWidth="1.5" tabIndex={0} aria-label={label}><title>{label}</title></circle>{index >= 0 && <text x={xPosition(x) + (xPosition(x) > 340 ? -10 : 10)} y={252 - y / yMaximum * 220} textAnchor={xPosition(x) > 340 ? "end" : "start"} className="point-label">{provider.name.split(" · ")[0]}</text>}</g>;
+      })}
+    </svg><figcaption>{t(coverage ? "The horizontal axis is the share of evaluated cases with an original source URL. It does not imply causation." : "Observed measurements; methods may use different execution and billing conditions.")}</figcaption></figure>
+  </article>;
 }
 
 export default function Insights({ benchmark, t }: Props) {
-  const [providerId, setProviderId] = useState(benchmark.providers[0]?.id);
-  const provider = benchmark.providers.find(item => item.id === providerId) ?? benchmark.providers[0];
-  const primary = benchmark.metrics.find(item => item.id === benchmark.primaryMetric)!;
-  const hasIntervals = benchmark.providers.some(item => item.confidenceIntervals?.[primary.id]);
-  const p50 = benchmark.metrics.find(item => /p50/i.test(item.id));
-  const p95 = benchmark.metrics.find(item => /p95/i.test(item.id) && item.unit === p50?.unit);
-  const secondMetric = benchmark.metrics.find(item => item.id === "pss");
-  const dimensions = benchmark.id === "webmainbench" ? benchmark.metrics.filter(item => item.id !== primary.id) : [];
-  const sourceKeys = ["original", "equivalent", "replica", "missing"] as const;
-  const sourceLabels = ["Original URL", "Equivalent URL", "Verified copy", "Not found"];
-  const timingMaximum = Math.max(1, ...benchmark.providers.flatMap(item => [p50 ? item.scores[p50.id] ?? 0 : 0, p95 ? item.scores[p95.id] ?? 0 : 0]));
+  const axes = radarAxes(benchmark);
+  const hasRadar = axes.length >= 3;
+  const eligible = benchmark.providers.filter(provider => !hasRadar || axes.every(axis => axis.value(provider) != null));
+  const [ids, setIds] = useState(() => sortProviders(eligible, benchmark.primaryMetric, benchmark.metrics.find(metric => metric.id === benchmark.primaryMetric)!.direction).slice(0, 3).map(provider => provider.id));
+  const selected = ids.flatMap(id => eligible.find(provider => provider.id === id) ?? []);
+  const hasScatter = Boolean(benchmark.sourceMatches) || benchmark.metrics.some(metric => ["seconds", "ms", "mib"].includes(metric.unit) && metric.highlightBest !== false);
+  if (!hasRadar && !hasScatter) return null;
   return <section id="insights" className="insights-section">
-    <div className="section-heading"><div><span className="eyebrow">02 / {t("Selected insights")}</span><h2>{t("Selected insights")}</h2></div><p>{t("Selected charts use only the current benchmark and result version.")}</p></div>
-    <div className="insight-grid">
-      <article className="insight-card">
-        <div className="card-heading"><h3>{t("Quality comparison")}</h3><span>{t(primary.label)} · {t(primary.direction === "desc" ? "Higher is better" : "Lower is better")}</span></div>
-        <Comparison providers={benchmark.providers} metric={primary} t={t} />
-        <p className="chart-note">{t(hasIntervals ? "Intervals are transcribed from the report; point estimates do not establish statistical significance." : "Only disclosed values are shown. No scores are inferred from ranking or chart geometry.")}</p>
-      </article>
-      <article className="insight-card">
-        {benchmark.categories.length > 0 && <>
-          <div className="card-heading"><h3>{t("Category performance")}</h3><span>{t("Passed cases / category total")}</span></div>
-          <label className="chart-select">{t("Choose a method")}<select value={provider.id} onChange={event => setProviderId(event.target.value)}>{benchmark.providers.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <ul className="comparison-list categories-chart">{benchmark.categories.map(category => <li key={category.id}><span className="chart-name">{t(category.name)}</span><span className="bar-rail" aria-hidden="true"><span className="bar-fill" style={{ width: `${category.total ? (provider.categoryPassed?.[category.id] ?? 0) / category.total * 100 : 0}%` }} /></span><span className="chart-value">{provider.categoryPassed?.[category.id] ?? "—"} / {category.total}</span></li>)}</ul>
-        </>}
-        {benchmark.sourceMatches && <>
-          <div className="card-heading"><h3>{t("Annotated source coverage")}</h3><span>{benchmark.taskCount} {t("cases")}</span></div>
-          <div className="chart-legend">{sourceKeys.map((key, index) => <span key={key}><i className={`source-${key}`} />{t(sourceLabels[index])}</span>)}</div>
-          <ul className="source-list">{benchmark.providers.map(item => <li key={item.id}><span className="chart-name">{item.name}</span><span className="stacked-bar">{sourceKeys.map((key, index) => <span key={key} className={`source-${key}`} style={{ width: `${benchmark.sourceMatches![item.id][key] / benchmark.taskCount * 100}%` }} title={`${t(sourceLabels[index])}: ${benchmark.sourceMatches![item.id][key]}`}><span className="sr-only">{t(sourceLabels[index])}: {benchmark.sourceMatches![item.id][key]}. </span></span>)}</span></li>)}</ul>
-          <p className="chart-note">{t("Each bar uses the quality-scoring population, not the timing-call population.")}</p>
-        </>}
-        {!benchmark.categories.length && !benchmark.sourceMatches && p50 && p95 && <>
-          <div className="card-heading"><h3>{t("Latency distribution")}</h3><span>{t(p50.label)} / {t(p95.label)}</span></div>
-          <ul className="timing-list">{benchmark.providers.filter(item => item.scores[p50.id] != null || item.scores[p95.id] != null).map(item => <li key={item.id}><span className="chart-name">{item.name}</span><span className="timing-pair">{[p50, p95].map((m, index) => <span key={m.id} className={`timing-line timing-${index}`}><i aria-hidden="true" style={{ width: `${(item.scores[m.id] ?? 0) / timingMaximum * 100}%` }} /><span>{t(m.label)}: {formatMetric(item.scores[m.id], m.unit, m.decimals)}</span></span>)}</span></li>)}</ul>
-          <p className="chart-note">{t("P50 and P95 are published percentiles, not a reconstructed distribution.")}</p>
-          {benchmark.trackId === "websearch" && <p className="scope-warning">{t("Different collection dates and concurrency: these timings are not a controlled same-window speed comparison.")}</p>}
-        </>}
-        {dimensions.length > 0 && <>
-          <div className="card-heading"><h3>{t("Category performance")}</h3><span>{provider.name}</span></div>
-          <label className="chart-select">{t("Choose a method")}<select value={provider.id} onChange={event => setProviderId(event.target.value)}>{benchmark.providers.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <ul className="comparison-list categories-chart">{dimensions.map(m => <li key={m.id}><span>{t(m.label)}</span><span className="bar-rail" aria-hidden="true"><span className="bar-fill" style={{ width: `${provider.scores[m.id] ?? 0}%` }} /></span><span className="chart-value">{formatMetric(provider.scores[m.id], m.unit, m.decimals)}</span></li>)}</ul>
-        </>}
-        {secondMetric && <><div className="card-heading"><h3>{t(secondMetric.label)}</h3><span>{t(secondMetric.direction === "asc" ? "Lower is better" : "Higher is better")}</span></div><Comparison providers={benchmark.providers} metric={secondMetric} t={t} /></>}
-        {!benchmark.categories.length && !benchmark.sourceMatches && !p50 && !secondMetric && !dimensions.length && <><div className="card-heading"><h3>{t("Methodology & scope")}</h3></div><p className="chart-note">{t("The report does not disclose a comparable second timing metric.")}</p></>}
-      </article>
+    <div className="section-heading"><h2>{t("Compare methods")}</h2><span className="comparison-limit">{t("Select up to three methods")}</span></div>
+    <div className="comparison-methods" role="group" aria-label={t("Methods to compare")}>{benchmark.providers.map(provider => {
+      const index = ids.indexOf(provider.id), available = eligible.includes(provider);
+      return <label key={provider.id} style={{ "--series-color": index < 0 ? "#bdc7bf" : colors[index] } as React.CSSProperties}><input type="checkbox" checked={index >= 0} disabled={!available || (index < 0 && ids.length >= 3)} onChange={() => setIds(current => current.includes(provider.id) ? current.filter(id => id !== provider.id) : [...current, provider.id])} /><span>{provider.name}</span>{!available && <small>{t("Incomplete metrics")}</small>}</label>;
+    })}</div>
+    <div className={`insight-grid ${hasRadar && hasScatter ? "" : "single-chart"}`}>
+      {hasRadar && <article className="insight-card"><div className="card-heading"><h3>{t("Capability profile")}</h3></div><Radar axes={axes} providers={selected} t={t} /><p className="chart-note">{t(benchmark.categories.length >= 3 ? "Category pass rates use each category's own sample count." : "Axes show 0–100% of each metric's defined range, without combining them into a score.")}{benchmark.providers.some(provider => provider.confidenceIntervals) && <> {t("Confidence intervals are available in method details.")}</>}</p></article>}
+      {hasScatter && <Scatter benchmark={benchmark} selected={selected} t={t} />}
     </div>
   </section>;
 }
