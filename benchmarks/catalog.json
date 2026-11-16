@@ -60,6 +60,12 @@
       "id": "webextract",
       "name": "Web Extract",
       "description": "Structured field extraction"
+    },
+    {
+      "id": "browserarena",
+      "name": "BrowserArena",
+      "description": "Browser infrastructure benchmarks",
+      "url": "https://browserarena.dev.lexmount.net/"
     }
   ],
   "benchmarks": [
