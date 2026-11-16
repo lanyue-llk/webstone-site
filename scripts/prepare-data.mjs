@@ -74,7 +74,7 @@ export function validateCatalog(catalog) {
 }
 
 export function parseReportFile(benchmarkId, name) {
-  const match = /^([a-z0-9-]+)-(v[1-9]\d*)-report\.json$/.exec(name);
+  const match = /^([a-z0-9-]+)-(v[1-9]\d*)-report\.json(?![\s\S])/.exec(name);
   if (!match || match[1] !== benchmarkId) throw new Error("Expected <benchmark>-vN-report.json directly inside its benchmark directory");
   return { benchmarkId, version: match[2] };
 }

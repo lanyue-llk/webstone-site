@@ -64,6 +64,8 @@ test("public submissions reject local evidence, escaped credentials and unused i
   data.benchmarks[0].notes.push("ghp_" + "x".repeat(36));
   const escaped = JSON.stringify(data).replace("ghp_", "\\u0067hp_");
   assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: escaped }], published), /credential-like/);
+  const duplicate = addition(2).content.replace('"notes":', '"notes":["ghp_' + "x".repeat(36) + '"],"notes":');
+  assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: duplicate }], published), /credential-like/);
   for (const prefix of ["\n", "\t"]) {
     data.benchmarks[0].notes = [prefix + "ghp_" + "x".repeat(36)];
     assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: JSON.stringify(data) }], published), /credential-like/);
@@ -103,6 +105,22 @@ test("the Git boundary rejects symlinks, mixed code changes and invalid paths", 
   rmSync(file); symlinkSync("../../benchmarks/catalog.json", file);
   git("add", "."); git("commit", "-m", "Unsafe link");
   assert.throws(() => checkGitChangeFrom(directory, base, git("rev-parse", "HEAD")), /symbolic links/);
+  for (const scenario of ["invalid-path", "newline-path", "executable", "oversized", "mixed-code", "catalog-duplicate"]) {
+    git("reset", "--hard", base);
+    let relative = addition(2).path;
+    if (scenario === "invalid-path") relative = "results/lexbench-webfetch/not-a-report.json";
+    if (scenario === "newline-path") relative += "\n";
+    writeFileSync(path.join(directory, relative), scenario === "oversized" ? " ".repeat(1024 * 1024 + 1) : addition(2).content);
+    if (scenario === "mixed-code") writeFileSync(path.join(directory, "README.md"), "Mixed application change");
+    if (scenario === "catalog-duplicate") {
+      const content = JSON.stringify(catalog).replace('"providerUrls":', '"discarded":"ghp_' + "x".repeat(36) + '","discarded":null,"providerUrls":');
+      writeFileSync(path.join(directory, "benchmarks/catalog.json"), content);
+    }
+    git("add", ".");
+    if (scenario === "executable") git("update-index", "--chmod=+x", relative);
+    git("commit", "-m", scenario);
+    assert.throws(() => checkGitChangeFrom(directory, base, git("rev-parse", "HEAD")), /Invalid result report path|symbolic links or executable|exceeds 1 MiB|separately from code|credential-like/);
+  }
 });
 
 function checkGitChangeFrom(directory, base, head) {

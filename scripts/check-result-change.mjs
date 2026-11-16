@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateCatalog, validateSnapshot, parseReportFile, publicEvidenceUrl } from "./prepare-data.mjs";
 
-const reportPattern = /^results\/([a-z0-9-]+)\/([a-z0-9-]+-v[1-9]\d*-report\.json)$/;
+const reportPattern = /^results\/([a-z0-9-]+)\/([a-z0-9-]+-v[1-9]\d*-report\.json)(?![\s\S])/;
 const maximumBytes = 1024 * 1024;
 
 function rejectCredentials(value) {
@@ -13,6 +13,16 @@ function rejectCredentials(value) {
   } else if (value && typeof value === "object") {
     for (const [key, child] of Object.entries(value)) { rejectCredentials(key); rejectCredentials(child); }
   }
+}
+
+function parsePublicJSON(raw) {
+  // Inspect every string token, including values hidden by duplicate JSON keys.
+  for (const [token] of raw.matchAll(/"(?:[^"\\]|\\.)*"/g)) {
+    let value;
+    try { value = JSON.parse(token); } catch { throw new Error("Invalid JSON string"); }
+    rejectCredentials(value);
+  }
+  try { return JSON.parse(raw); } catch { throw new Error("Invalid JSON document"); }
 }
 
 export function checkResultChange(baseCatalog, catalog, changes, publishedPaths) {
@@ -43,7 +53,7 @@ export function checkResultChange(baseCatalog, catalog, changes, publishedPaths)
     if (!match || change.mode !== "100644") throw new Error("Reports must be regular JSON files in a benchmark directory.");
     if (Buffer.byteLength(change.content, "utf8") > maximumBytes) throw new Error("A report exceeds 1 MiB. Keep raw logs and large evidence outside Git.");
     const entry = parseReportFile(match[1], match[2]);
-    const report = JSON.parse(change.content);
+    const report = parsePublicJSON(change.content);
     rejectCredentials(report);
     if (!publicEvidenceUrl(report.source?.url)) throw new Error("New submissions require a public HTTPS source URL with a DNS hostname and no credentials.");
     validateSnapshot(report, entry, catalog);
@@ -80,7 +90,7 @@ export function checkGitChange(base, head) {
     }
     changes.push(record);
   }
-  return checkResultChange(JSON.parse(read(base, "benchmarks/catalog.json")), JSON.parse(read(head, "benchmarks/catalog.json")), changes, git("ls-tree", "-r", "--name-only", base, "--", "results/").trim().split("\n"));
+  return checkResultChange(JSON.parse(read(base, "benchmarks/catalog.json")), parsePublicJSON(read(head, "benchmarks/catalog.json")), changes, git("ls-tree", "-r", "--name-only", "-z", base, "--", "results/").split("\0").filter(Boolean));
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
