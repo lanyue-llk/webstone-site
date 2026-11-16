@@ -66,6 +66,10 @@ test("public submissions reject local evidence, escaped credentials and unused i
   assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: escaped }], published), /credential-like/);
   const duplicate = addition(2).content.replace('"notes":', '"notes":["ghp_' + "x".repeat(36) + '"],"notes":');
   assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: duplicate }], published), /credential-like/);
+  for (const header of ["-----BEGIN DSA PRIVATE KEY-----", "-----BEGIN ENCRYPTED PRIVATE KEY-----"]) {
+    const hidden = addition(2).content.replace('"notes":', '"notes":[' + JSON.stringify(header) + '],"notes":');
+    assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: hidden }], published), /credential-like/);
+  }
   for (const prefix of ["\n", "\t"]) {
     data.benchmarks[0].notes = [prefix + "ghp_" + "x".repeat(36)];
     assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: JSON.stringify(data) }], published), /credential-like/);
@@ -105,7 +109,7 @@ test("the Git boundary rejects symlinks, mixed code changes and invalid paths", 
   rmSync(file); symlinkSync("../../benchmarks/catalog.json", file);
   git("add", "."); git("commit", "-m", "Unsafe link");
   assert.throws(() => checkGitChangeFrom(directory, base, git("rev-parse", "HEAD")), /symbolic links/);
-  for (const scenario of ["invalid-path", "newline-path", "executable", "oversized", "mixed-code", "catalog-duplicate"]) {
+  for (const scenario of ["invalid-path", "newline-path", "executable", "oversized", "mixed-code", "catalog-duplicate", "catalog-mode"]) {
     git("reset", "--hard", base);
     let relative = addition(2).path;
     if (scenario === "invalid-path") relative = "results/lexbench-webfetch/not-a-report.json";
@@ -118,8 +122,18 @@ test("the Git boundary rejects symlinks, mixed code changes and invalid paths", 
     }
     git("add", ".");
     if (scenario === "executable") git("update-index", "--chmod=+x", relative);
+    if (scenario === "catalog-mode") git("update-index", "--chmod=+x", "benchmarks/catalog.json");
     git("commit", "-m", scenario);
-    assert.throws(() => checkGitChangeFrom(directory, base, git("rev-parse", "HEAD")), /Invalid result report path|symbolic links or executable|exceeds 1 MiB|separately from code|credential-like/);
+    assert.throws(() => checkGitChangeFrom(directory, base, git("rev-parse", "HEAD")), /Invalid result report path|symbolic links or executable|exceeds 1 MiB|separately from code|credential-like|non-executable/);
+  }
+  for (const scenario of ["modify", "delete", "rename"]) {
+    git("reset", "--hard", base);
+    const historical = path.join(directory, published[0]);
+    if (scenario === "modify") writeFileSync(historical, JSON.stringify(original) + "\n");
+    if (scenario === "delete") rmSync(historical);
+    if (scenario === "rename") git("mv", published[0], "archived-report.json");
+    git("add", "."); git("commit", "-m", scenario + " published history");
+    assert.throws(() => checkGitChangeFrom(directory, base, git("rev-parse", "HEAD")), /immutable/);
   }
 });
 
