@@ -2,10 +2,14 @@ import { execFileSync } from "node:child_process";
 import { isDeepStrictEqual } from "node:util";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { validateCatalog, validateSnapshot, parseReportFile } from "./prepare-data.mjs";
+import { validateCatalog, validateSnapshot, parseReportFile, publicEvidenceUrl } from "./prepare-data.mjs";
 
 const reportPattern = /^results\/([a-z0-9-]+)\/([a-z0-9-]+-v[1-9]\d*-report\.json)$/;
 const maximumBytes = 1024 * 1024;
+
+function rejectCredentials(value) {
+  if (/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|AKIA[A-Z0-9]{16})\b/.test(JSON.stringify(value))) throw new Error("A submission contains a credential-like value. Remove credentials before submitting.");
+}
 
 export function checkResultChange(baseCatalog, catalog, changes, publishedPaths) {
   const resultChanges = changes.filter(change => change.path.startsWith("results/"));
@@ -22,6 +26,7 @@ export function checkResultChange(baseCatalog, catalog, changes, publishedPaths)
   if (!isDeepStrictEqual(originalDefinitions, definitions)) throw new Error("A result submission may only add participant project URLs to the catalog. Definition changes need a separate pull request.");
   if (Object.entries(originalUrls).some(([id, url]) => providerUrls?.[id] !== url)) throw new Error("Existing participant URLs cannot be changed by a result submission.");
   validateCatalog(catalog);
+  rejectCredentials(providerUrls);
   const latest = new Map();
   for (const published of publishedPaths) {
     const match = reportPattern.exec(published);
@@ -33,18 +38,16 @@ export function checkResultChange(baseCatalog, catalog, changes, publishedPaths)
     const match = reportPattern.exec(change.path);
     if (!match || change.mode !== "100644") throw new Error("Reports must be regular JSON files in a benchmark directory.");
     if (Buffer.byteLength(change.content, "utf8") > maximumBytes) throw new Error("A report exceeds 1 MiB. Keep raw logs and large evidence outside Git.");
-    if (/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|AKIA[A-Z0-9]{16})\b/.test(change.content)) throw new Error("A report contains a credential-like value. Remove credentials before submitting.");
     const entry = parseReportFile(match[1], match[2]);
     const report = JSON.parse(change.content);
-    let source;
-    try { source = new URL(report.source?.url); } catch { /* Checked below. */ }
-    if (!source || source.protocol !== "https:" || source.username || source.password) throw new Error("New submissions require an HTTPS source URL without credentials.");
+    rejectCredentials(report);
+    if (!publicEvidenceUrl(report.source?.url)) throw new Error("New submissions require a public HTTPS source URL with a DNS hostname and no credentials.");
     validateSnapshot(report, entry, catalog);
     return { entry, report };
   }).sort((a, b) => a.entry.benchmarkId.localeCompare(b.entry.benchmarkId) || Number(a.entry.version.slice(1)) - Number(b.entry.version.slice(1)));
   const participants = new Set(reports.flatMap(({ report }) => report.benchmarks[0].providers.map(provider => provider.id)));
   for (const id of Object.keys(providerUrls)) {
-    if (!(id in originalUrls) && !participants.has(id)) throw new Error("Only add project URLs used by this submission.");
+    if (!Object.hasOwn(originalUrls, id) && !participants.has(id)) throw new Error("Only add project URLs used by this submission.");
   }
   for (const { entry } of reports) {
     const next = (latest.get(entry.benchmarkId) ?? 0) + 1;

@@ -19,7 +19,7 @@ Install [GitHub CLI](https://cli.github.com/) if needed. Use your own contributo
 ```sh
 webstone results template --benchmark lexbench-webfetch --definition split-media --output report.json
 # Fill the template with measured values and public evidence.
-webstone results validate report.json
+webstone results validate report.json --provider-url your-method=https://example.com/project
 webstone results submit report.json --provider-url your-method=https://example.com/project --dry-run
 webstone results submit report.json --provider-url your-method=https://example.com/project
 ```

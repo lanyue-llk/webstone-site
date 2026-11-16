@@ -20,6 +20,14 @@ function httpsUrl(value) {
   } catch { return false; }
 }
 
+export function publicEvidenceUrl(value) {
+  if (!httpsUrl(value)) return false;
+  const host = new URL(value).hostname.toLowerCase().replace(/\.$/, "");
+  // Evidence is linked, never fetched by the validator. Reviewers still verify access.
+  return host.includes(".") && !host.includes(":") && !/^\d+\.\d+\.\d+\.\d+$/.test(host) &&
+    !/(^|\.)(localhost|local|internal|test|invalid)$/.test(host);
+}
+
 function record(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -82,8 +90,8 @@ export function validateSnapshot(snapshot, entry, catalog) {
     if (!snapshot.source.method || !snapshot.source.scope) throw new Error("Missing user-provided text provenance");
   } else {
     const source = new URL(snapshot.source.url);
-    if (!httpsUrl(snapshot.source.url)) {
-      throw new Error("Missing or invalid HTTPS source provenance");
+    if (!publicEvidenceUrl(snapshot.source.url)) {
+      throw new Error("Source provenance requires a public HTTPS DNS hostname");
     }
     if (snapshot.source.kind === "user-provided-image") {
       if (!/^[a-f0-9]{64}$/.test(snapshot.source.sha256 ?? "")) throw new Error("Invalid image source provenance");

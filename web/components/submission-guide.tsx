@@ -18,7 +18,7 @@ export default function SubmissionGuide() {
     {
       title: text("Prepare public measurements", "准备公开结果"),
       description: text("Generate a template, then fill actual measurements, configuration, scope and a public evidence URL. Empty template values are placeholders, not scores. Use null for undisclosed metrics.", "生成模板后，填写真实测量值、配置、评测范围及公开证据链接。模板空值只是占位符，不是分数；未披露的指标使用 null。"),
-      command: 'webstone results template --benchmark lexbench-webfetch --definition split-media --output report.json\nwebstone results validate report.json',
+      command: 'webstone results template --benchmark lexbench-webfetch --definition split-media --output report.json\nwebstone results validate report.json --provider-url your-method=https://example.com/project',
     },
     {
       title: text("Preview and submit", "预览并提交"),

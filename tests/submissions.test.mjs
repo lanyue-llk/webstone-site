@@ -54,6 +54,26 @@ test("untrusted result configuration, notes and translations must have display-s
   }
 });
 
+test("public submissions reject local evidence, escaped credentials and unused inherited names", () => {
+  for (const host of ["localhost", "127.0.0.1", "192.168.1.1", "[::1]", "[fd00::1]", "reports.local"]) {
+    const data = report(2);
+    data.source.url = `https://${host}/report`;
+    assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: JSON.stringify(data) }], published), /public HTTPS/);
+  }
+  const data = report(2);
+  data.benchmarks[0].notes.push("ghp_" + "x".repeat(36));
+  const escaped = JSON.stringify(data).replace("ghp_", "\\u0067hp_");
+  assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: escaped }], published), /credential-like/);
+  const next = structuredClone(catalog);
+  next.providerUrls[data.benchmarks[0].providers[0].id] += "?token=ghp_" + "x".repeat(36);
+  assert.throws(() => checkResultChange(next, next, [addition(2)], published), /credential-like/);
+  for (const key of ["constructor", "toString"]) {
+    const extra = structuredClone(catalog);
+    extra.providerUrls[key] = "https://example.com/project";
+    assert.throws(() => checkResultChange(catalog, extra, [addition(2)], published), /Only add project URLs/);
+  }
+});
+
 test("the Git boundary rejects symlinks, mixed code changes and invalid paths", t => {
   const directory = mkdtempSync(path.join(tmpdir(), "webstone-submission-git-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
