@@ -1,6 +1,7 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN apk add --no-cache git
 
 COPY package.json package-lock.json ./
 COPY web/package.json ./web/package.json

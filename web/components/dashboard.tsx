@@ -9,7 +9,8 @@ import Insights from "./insights";
 import MethodDetails from "./method-details";
 import ReleaseCheck from "./release-check";
 import { RELEASE } from "../lib/release.generated";
-import { initialLanguage, LANGUAGE_KEY, translator, type Language } from "../lib/i18n";
+import { translator } from "../lib/i18n";
+import { useLanguage } from "../lib/use-language";
 
 const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2 };
 const GITHUB_URL = "https://github.com/lexmount/browser-eval-site";
@@ -23,16 +24,8 @@ export default function Dashboard() {
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [language, setLanguage] = useState<Language>("en");
+  const [language, chooseLanguage] = useLanguage();
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
-  useEffect(() => {
-    try { setLanguage(initialLanguage(localStorage.getItem(LANGUAGE_KEY))); } catch { /* English remains the default. */ }
-  }, []);
-  useEffect(() => { document.documentElement.lang = language; }, [language]);
-  function chooseLanguage(next: Language) {
-    setLanguage(next);
-    try { localStorage.setItem(LANGUAGE_KEY, next); } catch { /* The current page can still switch. */ }
-  }
 
   useEffect(() => {
     let active = true;
@@ -200,7 +193,8 @@ export default function Dashboard() {
         <div className="topbar-actions">
           <div className="language-control" role="group" aria-label="Language / 语言"><button lang="en" aria-pressed={language === "en"} onClick={() => chooseLanguage("en")}>EN</button><button lang="zh" aria-pressed={language === "zh"} onClick={() => chooseLanguage("zh")}>中文</button></div>
           {entry && <a className="download-link" href={`/results/${entry.file}`} download aria-label={t("Download Report")}><ArrowDownToLine size={17} aria-hidden="true" /><span>{t("Download Report")}</span></a>}
-          <a className="github-square" href={GITHUB_URL} target="_blank" rel="noreferrer" aria-label={t("View website source on GitHub")} title="GitHub"><span className="submit-label">{t("SUBMIT YOUR RESULT")}</span><Github /></a>
+          <a className="submit-result-link" href="/submit">{t("SUBMIT YOUR RESULT")}</a>
+          <a className="github-square" href={GITHUB_URL} target="_blank" rel="noreferrer" aria-label={t("View website source on GitHub")} title="GitHub"><Github /></a>
         </div>
       </header>
 

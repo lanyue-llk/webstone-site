@@ -20,7 +20,18 @@ function httpsUrl(value) {
   } catch { return false; }
 }
 
+function record(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function validateTranslations(value) {
+  if (value === undefined) return;
+  if (!record(value) || Object.entries(value).some(([language, messages]) =>
+    !["en", "zh"].includes(language) || !record(messages) || Object.entries(messages).some(([key, text]) => !key || typeof text !== "string" || !text.trim()))) throw new Error("Invalid display translations");
+}
+
 export function validateCatalog(catalog) {
+  validateTranslations(catalog.translations);
   if (catalog.schemaVersion !== 1) throw new Error("Invalid benchmark catalog");
   if (!catalog.providerUrls || typeof catalog.providerUrls !== "object" || Array.isArray(catalog.providerUrls) || !Object.keys(catalog.providerUrls).length || !Object.values(catalog.providerUrls).every(httpsUrl)) throw new Error("Missing or invalid provider project URL");
   uniqueIds(catalog.tracks, "track");
@@ -61,6 +72,8 @@ export function parseReportFile(benchmarkId, name) {
 }
 
 export function validateSnapshot(snapshot, entry, catalog) {
+  if (!record(snapshot) || !record(snapshot.source) || (snapshot.source.kind !== undefined && (typeof snapshot.source.kind !== "string" || !snapshot.source.kind))) throw new Error("Missing result source provenance");
+  validateTranslations(snapshot.translations);
   if ("schemaVersion" in snapshot || "measuredAt" in snapshot || ("source" in snapshot && "versionId" in snapshot.source)) throw new Error("Results must not contain a format or source version");
   if (typeof snapshot.id !== "string" || !snapshot.id || snapshot.id !== `${entry.benchmarkId}-${entry.version}`) throw new Error("Result identity does not match its filename");
   if (snapshot.version !== entry.version) throw new Error("Result version does not match its filename");
@@ -69,8 +82,8 @@ export function validateSnapshot(snapshot, entry, catalog) {
     if (!snapshot.source.method || !snapshot.source.scope) throw new Error("Missing user-provided text provenance");
   } else {
     const source = new URL(snapshot.source.url);
-    if (source.origin !== "https://yours.lexmount.cn" || !source.pathname.startsWith("/artifact-site/s/")) {
-      throw new Error("Missing or unexpected source provenance");
+    if (!httpsUrl(snapshot.source.url)) {
+      throw new Error("Missing or invalid HTTPS source provenance");
     }
     if (snapshot.source.kind === "user-provided-image") {
       if (!/^[a-f0-9]{64}$/.test(snapshot.source.sha256 ?? "")) throw new Error("Invalid image source provenance");
@@ -80,6 +93,10 @@ export function validateSnapshot(snapshot, entry, catalog) {
   for (const benchmark of snapshot.benchmarks) {
     const allowed = ["id", "definitionId", "taskCount", "categoryTotals", "metricSamples", "otherBest", "notes", "reportUrl", "providers", "sourceMatches"];
     if (Object.keys(benchmark).some(key => !allowed.includes(key))) throw new Error("Unexpected result field; put benchmark and page definitions in the catalog");
+    if (!Array.isArray(benchmark.notes) || benchmark.notes.some(note => typeof note !== "string" || !note.trim())) throw new Error("Invalid result notes");
+    for (const field of ["categoryTotals", "metricSamples", "sourceMatches", "otherBest"]) {
+      if (benchmark[field] !== undefined && !record(benchmark[field])) throw new Error(`Invalid ${field} mapping`);
+    }
     if (entry.benchmarkId !== benchmark.id || !Number.isInteger(benchmark.taskCount) || benchmark.taskCount < 1) {
       throw new Error("Unexpected benchmark or task count");
     }
@@ -105,6 +122,10 @@ export function validateSnapshot(snapshot, entry, catalog) {
       }
     }
     for (const provider of benchmark.providers) {
+      if (![provider.name, provider.description, provider.mode].every(value => typeof value === "string" && value.trim()) || !record(provider.scores)) throw new Error("Missing or invalid method configuration or scores");
+      for (const field of ["counts", "confidenceIntervals", "categoryPassed"]) {
+        if (provider[field] !== undefined && !record(provider[field])) throw new Error(`Invalid method ${field} mapping`);
+      }
       if (!httpsUrl(catalog.providerUrls?.[provider.id])) throw new Error(`Missing or invalid provider project URL: ${provider.id}`);
       if ("color" in provider || "categories" in provider) throw new Error("Unexpected provider presentation field in result file");
       if (Object.keys(provider.scores).some(id => !definition.metrics.some(metric => metric.id === id))) throw new Error("Unknown metric score reference");

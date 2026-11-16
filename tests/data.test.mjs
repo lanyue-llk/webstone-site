@@ -30,8 +30,8 @@ test("result records are versioned files without a hand-maintained index or form
 
 test("report directories are discovered and their declared provenance is validated", async () => {
   const summary = await prepareData({ write: false });
-  assert.equal(summary.files, 14);
-  assert.equal(summary.benchmarks, 12);
+  assert.equal(summary.files, files.length);
+  assert.equal(summary.benchmarks, catalog.benchmarks.length);
 });
 
 test("external tracks use safe HTTPS links and cannot own local benchmark tables", () => {
