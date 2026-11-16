@@ -4,7 +4,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateCatalog, validateSnapshot, parseReportFile, publicEvidenceUrl } from "./prepare-data.mjs";
 
-const reportPattern = /^results\/([a-z0-9-]+)\/([a-z0-9-]+-v[1-9]\d*-report\.json)(?![\s\S])/;
+import { canonicalVersion, compareVersions, isSemanticVersion, nextVersion } from "../web/lib/result-version.mjs";
+
+const reportPattern = /^results\/([a-z0-9-]+)\/([a-z0-9-]+-v[1-9]\d*(?:\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))?-report\.json)(?![\s\S])/;
 const maximumBytes = 1024 * 1024;
 
 function rejectCredentials(value) {
@@ -33,7 +35,7 @@ function submissionChanges(changes) {
   return reports;
 }
 
-export function checkResultChange(baseCatalog, catalog, changes, publishedPaths) {
+export function checkResultChange(baseCatalog, catalog, changes, publishedPaths, publishedReports = new Map()) {
   const resultChanges = submissionChanges(changes);
   if (!resultChanges.length) return { reports: 0 };
   const { providerUrls: originalUrls, ...originalDefinitions } = baseCatalog;
@@ -42,34 +44,65 @@ export function checkResultChange(baseCatalog, catalog, changes, publishedPaths)
   if (Object.entries(originalUrls).some(([id, url]) => providerUrls?.[id] !== url)) throw new Error("Existing participant URLs cannot be changed by a result submission.");
   validateCatalog(catalog);
   rejectCredentials(providerUrls);
+  const reportsByPath = new Map(publishedReports);
   const latest = new Map();
   for (const published of publishedPaths) {
     const match = reportPattern.exec(published);
     if (!match) continue;
     const { version } = parseReportFile(match[1], match[2]);
-    latest.set(match[1], Math.max(latest.get(match[1]) ?? 0, Number(version.slice(1))));
+    if (!latest.has(match[1]) || compareVersions(version, latest.get(match[1]).version) > 0) latest.set(match[1], { version, path: published });
   }
   const reports = resultChanges.map(change => {
     const match = reportPattern.exec(change.path);
     if (!match || change.mode !== "100644") throw new Error("Reports must be regular JSON files in a benchmark directory.");
     if (Buffer.byteLength(change.content, "utf8") > maximumBytes) throw new Error("A report exceeds 1 MiB. Keep raw logs and large evidence outside Git.");
     const entry = parseReportFile(match[1], match[2]);
+    if (!isSemanticVersion(entry.version)) throw new Error("New result submissions must use semantic versions vX.Y.Z.");
     const report = parsePublicJSON(change.content);
     rejectCredentials(report);
     if (!publicEvidenceUrl(report.source?.url)) throw new Error("New submissions require a public HTTPS source URL with a DNS hostname and no credentials.");
     validateSnapshot(report, entry, catalog);
     return { entry, report };
-  }).sort((a, b) => a.entry.benchmarkId.localeCompare(b.entry.benchmarkId) || Number(a.entry.version.slice(1)) - Number(b.entry.version.slice(1)));
+  }).sort((a, b) => a.entry.benchmarkId.localeCompare(b.entry.benchmarkId) || compareVersions(a.entry.version, b.entry.version));
   const participants = new Set(reports.flatMap(({ report }) => report.benchmarks[0].providers.map(provider => provider.id)));
   for (const id of Object.keys(providerUrls)) {
     if (!Object.hasOwn(originalUrls, id) && !participants.has(id)) throw new Error("Only add project URLs used by this submission.");
   }
-  for (const { entry } of reports) {
-    const next = (latest.get(entry.benchmarkId) ?? 0) + 1;
-    if (entry.version !== `v${next}`) throw new Error(`Expected ${entry.benchmarkId} v${next}. Rebase the submission if another version was published first.`);
-    latest.set(entry.benchmarkId, next);
+  for (const { entry, report } of reports) {
+    const previous = latest.get(entry.benchmarkId);
+    const next = nextVersion(previous?.version, report.release.kind);
+    if (entry.version !== next) throw new Error(`Expected ${entry.benchmarkId} ${next}. Rebase the submission if another version was published first.`);
+    if ((previous ? canonicalVersion(previous.version) : null) !== (report.release.previous === null ? null : canonicalVersion(report.release.previous))) throw new Error("The release must identify the latest previous result version.");
+    const prior = previous && reportsByPath.get(previous.path);
+    if (previous && !prior) throw new Error("The previous published result must be inspected before releasing an update.");
+    if (prior) {
+      if (prior.release?.date && report.release.date < prior.release.date) throw new Error("A result release cannot predate its previous release.");
+      validateReleaseChange(prior, report);
+    }
+    latest.set(entry.benchmarkId, { version: entry.version, path: `${entry.benchmarkId}/${entry.version}` });
+    reportsByPath.set(`${entry.benchmarkId}/${entry.version}`, report);
   }
   return { reports: reports.length };
+}
+
+function population(benchmark) {
+  return {
+    definitionId: benchmark.definitionId, taskCount: benchmark.taskCount,
+    categoryTotals: benchmark.categoryTotals,
+    metricSamples: Object.fromEntries(Object.entries(benchmark.metricSamples ?? {}).map(([id, { note, ...sample }]) => [id, sample])),
+  };
+}
+
+function measurements(benchmark) {
+  const { notes, reportUrl, metricSamples, ...data } = benchmark;
+  return { ...data, metricSamples: population(benchmark).metricSamples,
+    providers: data.providers.map(({ description, billingDescription, ...provider }) => provider) };
+}
+
+export function validateReleaseChange(previous, report) {
+  const prior = previous.benchmarks[0], next = report.benchmarks[0];
+  if (report.release.kind !== "protocol" && !isDeepStrictEqual(population(prior), population(next))) throw new Error("Population or evaluation definition changes require a protocol release.");
+  if (report.release.kind === "metadata" && !isDeepStrictEqual(measurements(prior), measurements(next))) throw new Error("Metadata releases cannot change measurements or method configurations; use a results release.");
 }
 
 export function checkGitChange(base, head) {
@@ -98,7 +131,18 @@ export function checkGitChange(base, head) {
       record.content = read(head, file);
     }
   }
-  return checkResultChange(JSON.parse(read(base, "benchmarks/catalog.json")), parsePublicJSON(read(head, "benchmarks/catalog.json")), changes, git("ls-tree", "-r", "--name-only", "-z", base, "--", "results/").split("\0").filter(Boolean));
+  const publishedPaths = git("ls-tree", "-r", "--name-only", "-z", base, "--", "results/").split("\0").filter(Boolean);
+  const relevant = new Set(changes.filter(item => item.path.startsWith("results/")).map(item => reportPattern.exec(item.path)?.[1]));
+  const previousPaths = new Map();
+  for (const file of publishedPaths) {
+    const match = reportPattern.exec(file);
+    if (!match || !relevant.has(match[1])) continue;
+    const entry = parseReportFile(match[1], match[2]);
+    const current = previousPaths.get(match[1]);
+    if (!current || compareVersions(entry.version, current.version) > 0) previousPaths.set(match[1], { version: entry.version, path: file });
+  }
+  const prior = new Map([...previousPaths.values()].map(entry => [entry.path, JSON.parse(read(base, entry.path))]));
+  return checkResultChange(JSON.parse(read(base, "benchmarks/catalog.json")), parsePublicJSON(read(head, "benchmarks/catalog.json")), changes, publishedPaths, prior);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

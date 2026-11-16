@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { createHash } from "node:crypto";
 
+import { canonicalVersion, isSemanticVersion, versionParts } from "../web/lib/result-version.mjs";
+
 const root = fileURLToPath(new URL("../", import.meta.url));
 const catalogPath = path.join(root, "benchmarks/catalog.json");
 const resultRoot = path.join(root, "results");
@@ -75,8 +77,8 @@ export function validateCatalog(catalog) {
 }
 
 export function parseReportFile(benchmarkId, name) {
-  const match = /^([a-z0-9-]+)-(v[1-9]\d*)-report\.json(?![\s\S])/.exec(name);
-  if (!match || match[1] !== benchmarkId) throw new Error("Expected <benchmark>-vN-report.json directly inside its benchmark directory");
+  const match = /^([a-z0-9-]+)-(v[1-9]\d*(?:\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))?)-report\.json(?![\s\S])/.exec(name);
+  if (!match || match[1] !== benchmarkId) throw new Error("Expected <benchmark>-vX.Y.Z-report.json (or historical vN) directly inside its benchmark directory");
   return { benchmarkId, version: match[2] };
 }
 
@@ -86,6 +88,12 @@ export function validateSnapshot(snapshot, entry, catalog) {
   if ("schemaVersion" in snapshot || "measuredAt" in snapshot || ("source" in snapshot && "versionId" in snapshot.source)) throw new Error("Results must not contain a format or source version");
   if (typeof snapshot.id !== "string" || !snapshot.id || snapshot.id !== `${entry.benchmarkId}-${entry.version}`) throw new Error("Result identity does not match its filename");
   if (snapshot.version !== entry.version) throw new Error("Result version does not match its filename");
+  if (isSemanticVersion(snapshot.version) || snapshot.release !== undefined) {
+    const release = snapshot.release;
+    if (!record(release) || !["protocol", "results", "metadata"].includes(release.kind) || typeof release.summary !== "string" || !release.summary.trim() || !/[A-Za-z]/.test(release.summary) || /\p{Script=Han}/u.test(release.summary)) throw new Error("A semantic result version requires an English release summary and kind");
+    if (typeof release.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(release.date) || !Number.isFinite(Date.parse(release.date)) || new Date(release.date).toISOString().slice(0, 10) !== release.date || release.date > new Date().toISOString().slice(0, 10)) throw new Error("Invalid result release date; use an actual UTC calendar date, not a future date");
+    if (release.previous !== null) versionParts(release.previous);
+  }
   if (typeof snapshot.datasetDifference !== "string" || !snapshot.datasetDifference.trim() || !/[A-Za-z]/.test(snapshot.datasetDifference) || /\p{Script=Han}/u.test(snapshot.datasetDifference)) throw new Error("Missing or non-English dataset difference");
   if (snapshot.source.kind === "user-provided-text") {
     if (!snapshot.source.method || !snapshot.source.scope) throw new Error("Missing user-provided text provenance");
@@ -198,8 +206,9 @@ export async function discoverResults(inputRoot, catalog) {
       const entry = parseReportFile(directory, name);
       const report = JSON.parse(await readFile(input, "utf8"));
       validateSnapshot(report, entry, catalog);
-      if (ids.has(report.id)) throw new Error("Duplicate result id");
-      ids.add(report.id);
+      const identity = `${directory}-${canonicalVersion(report.version)}`;
+      if (ids.has(identity)) throw new Error("Duplicate result id or equivalent version");
+      ids.add(identity);
       files.push({ file: `${directory}/${name}`, report });
     }
   }

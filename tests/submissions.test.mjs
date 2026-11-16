@@ -4,25 +4,32 @@ import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSyn
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { checkResultChange, checkGitChange } from "../scripts/check-result-change.mjs";
+import { checkResultChange as checkResultChangeRaw, checkGitChange, validateReleaseChange } from "../scripts/check-result-change.mjs";
 
 const catalog = JSON.parse(readFileSync(new URL("../benchmarks/catalog.json", import.meta.url), "utf8"));
 const original = JSON.parse(readFileSync(new URL("../results/lexbench-webfetch/lexbench-webfetch-v1-report.json", import.meta.url), "utf8"));
 const published = ["results/lexbench-webfetch/lexbench-webfetch-v1-report.json"];
-const report = version => ({ ...structuredClone(original), source: { ...original.source, url: "https://example.com/evaluation" }, id: `lexbench-webfetch-v${version}`, version: `v${version}` });
-const addition = version => ({ path: `results/lexbench-webfetch/lexbench-webfetch-v${version}-report.json`, status: "A", mode: "100644", content: JSON.stringify(report(version)) });
+const versionName = version => typeof version === "number" ? `v1.${version - 1}.0` : version;
+const report = version => ({ ...structuredClone(original), source: { ...original.source, url: "https://example.com/evaluation" }, id: `lexbench-webfetch-${versionName(version)}`, version: versionName(version), release: { date: "2026-11-16", kind: "results", previous: typeof version === "number" && version > 2 ? `v1.${version - 2}.0` : "v1.0.0", summary: "Publish evaluation results." } });
+const addition = version => ({ path: `results/lexbench-webfetch/lexbench-webfetch-${versionName(version)}-report.json`, status: "A", mode: "100644", content: JSON.stringify(report(version)) });
+const checkResultChange = (before, after, changes, paths, prior = new Map([[published[0], original]])) => checkResultChangeRaw(before, after, changes, paths, prior);
 
 test("result submissions add the next version without changing definitions or history", () => {
   assert.deepEqual(checkResultChange(catalog, catalog, [addition(2)], published), { reports: 1 });
   assert.deepEqual(checkResultChange(catalog, catalog, [{ path: "README.md", status: "M" }], published), { reports: 0 });
   for (const status of ["M", "D", "T"]) assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), status }], published), /immutable/);
-  assert.throws(() => checkResultChange(catalog, catalog, [addition(3)], published), /Expected lexbench-webfetch v2/);
+  assert.throws(() => checkResultChange(catalog, catalog, [addition(3)], published), /Expected lexbench-webfetch v1.1.0/);
   assert.throws(() => checkResultChange(catalog, catalog, [addition(2), { path: "web/app/page.tsx", status: "M" }], published), /separately from code/);
   const changed = structuredClone(catalog);
   changed.benchmarks[0].description = "Changed definition";
   assert.throws(() => checkResultChange(catalog, changed, [addition(2)], published), /separate pull request/);
-  const paths = Array.from({ length: 9 }, (_, i) => `results/lexbench-webfetch/lexbench-webfetch-v${i + 1}-report.json`);
-  assert.deepEqual(checkResultChange(catalog, catalog, [addition(11), addition(10)], paths), { reports: 2 });
+  const previous = report("v10.9.0");
+  const paths = ["results/lexbench-webfetch/lexbench-webfetch-v10.9.0-report.json"];
+  const changes = ["v10.11.0", "v10.10.0"].map((version, index) => {
+    const data = report(version); data.release.previous = index ? "v10.9.0" : "v10.10.0";
+    return { ...addition(version), content: JSON.stringify(data) };
+  });
+  assert.deepEqual(checkResultChange(catalog, catalog, changes, paths, new Map([[paths[0], previous]])), { reports: 2 });
 });
 
 test("external submissions can add their own public project and evidence URLs", () => {
@@ -154,3 +161,21 @@ function checkGitChangeFrom(directory, base, head) {
   try { process.chdir(directory); return checkGitChange(base, head); }
   finally { process.chdir(previous); }
 }
+
+test("semantic releases enforce major/minor/patch changes and immutable history", () => {
+  const metadata = report("v1.0.1");
+  metadata.release.kind = "metadata";
+  metadata.benchmarks[0].notes.push("Clarify the published evidence.");
+  assert.deepEqual(checkResultChange(catalog, catalog, [{ ...addition("v1.0.1"), content: JSON.stringify(metadata) }], published), { reports: 1 });
+  metadata.benchmarks[0].providers[0].scores.passRate = 1;
+  assert.throws(() => validateReleaseChange(original, metadata), /cannot change measurements/);
+  const results = report(2);
+  results.benchmarks[0].taskCount++;
+  assert.throws(() => validateReleaseChange(original, results), /protocol release/);
+  results.release.kind = "protocol";
+  assert.doesNotThrow(() => validateReleaseChange(original, results));
+  const mismatch = report(2);
+  mismatch.release.previous = "v2.0.0";
+  assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: JSON.stringify(mismatch) }], published), /latest previous/);
+  assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), path: published[0], content: JSON.stringify(original) }], published), /semantic versions/);
+});

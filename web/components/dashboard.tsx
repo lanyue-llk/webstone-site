@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowDownToLine, ArrowRight, ArrowUpRight, Bot, FileJson2, Globe2, Layers3, Menu, Search } from "lucide-react";
-import { benchmarkEntries, bestValue, formatMetric, formatPricing, isBestValue, latestEntry, reportEntries, resolveBenchmark, selectEntry, sortProviders, type Catalog, type Entry, type Metric, type Provider, type ReportFile, type Snapshot } from "../lib/results";
+import { canonicalVersion, benchmarkEntries, bestValue, formatMetric, formatPricing, isBestValue, latestEntry, reportEntries, resolveBenchmark, selectEntry, sortProviders, type Catalog, type Entry, type Metric, type Provider, type ReportFile, type Snapshot } from "../lib/results";
 import { providerColors } from "../lib/presentation";
 import InfoTooltip from "./info-tooltip";
 import Insights from "./insights";
@@ -50,7 +50,7 @@ export default function Dashboard() {
         const selectedEntry = requestedVersion
           ? selectEntry(resultEntries, requestedVersion, benchmark)
           : latestEntry(resultEntries, benchmark);
-        const version = requestedVersion ?? selectedEntry?.version ?? "";
+        const version = selectedEntry ? canonicalVersion(selectedEntry.version) : requestedVersion ?? "";
         const selectedResult = records.find(record => record.id === selectedEntry?.id)?.benchmarks.find(item => item.id === benchmark);
         const selectedBenchmark = selectedResult ? resolveBenchmark(benchmarkCatalog, selectedResult) : null;
         const selectedMetric = selectedBenchmark?.metrics.find(item => item.id === params.get("metric")) ?? selectedBenchmark?.metrics.find(item => item.id === selectedBenchmark.primaryMetric);
@@ -85,7 +85,8 @@ export default function Dashboard() {
   const tracks = catalog?.tracks.map(item => ({ ...item, benchmarks: catalog.benchmarks.filter(bench => bench.trackId === item.id) })) ?? [];
   const track = tracks.find(item => item.id === details?.trackId);
   const metric = benchmark?.metrics.find(item => item.id === selection.metric) ?? benchmark?.metrics.find(item => item.id === benchmark.primaryMetric) ?? benchmark?.metrics[0];
-  const versions = entries ? benchmarkEntries(entries, selection.benchmark).map(item => item.version) : [];
+  const versionEntries = entries ? benchmarkEntries(entries, selection.benchmark) : [];
+  const versions = versionEntries.map(item => canonicalVersion(item.version));
   const providers = benchmark && metric ? sortProviders(benchmark.providers, metric.id, direction) : [];
   const categories = columnView === "overview" ? [] : benchmark?.categories ?? [];
   const primaryMetric = benchmark?.metrics.find(item => item.id === benchmark.primaryMetric);
@@ -112,7 +113,7 @@ export default function Dashboard() {
   function chooseBenchmark(id: string) {
     setColumnView("overview");
     const latest = entries ? latestEntry(entries, id) : null;
-    const version = latest?.version ?? "";
+    const version = latest ? canonicalVersion(latest.version) : "";
     const selectedResult = snapshots.find(record => record.id === latest?.id)?.benchmarks.find(item => item.id === id);
     const selected = catalog && selectedResult ? resolveBenchmark(catalog, selectedResult) : null;
     const primary = selected?.metrics.find(item => item.id === selected.primaryMetric);
@@ -225,7 +226,7 @@ export default function Dashboard() {
               <label htmlFor="result-version">{t("Version")}</label>
               <select id="result-version" value={selection.version} onChange={event => chooseVersion(event.target.value)}>
                 {selection.version && !versions.includes(selection.version) && <option value={selection.version}>{selection.version} ({t("no results")})</option>}
-                {[...versions].reverse().map(version => <option key={version} value={version}>{version}</option>)}
+                {[...versionEntries].reverse().map(item => <option key={item.version} value={canonicalVersion(item.version)}>{canonicalVersion(item.version)}{item.date ? ` · ${item.date} (${t(item.dateKind === "released" ? "Released" : "Imported")})` : ` · ${t("Date unrecorded")}`}</option>)}
               </select>
             </div>}
           </div>
@@ -272,6 +273,9 @@ export default function Dashboard() {
               </div>
               <details className="evaluation-notes"><summary>{t("Evaluation notes")}</summary>
                 {snapshot && <p>{t(snapshot.datasetDifference)}</p>}
+                {snapshot?.release && <p><strong>{canonicalVersion(snapshot.version)}</strong> · {snapshot.release.date} · {t(snapshot.release.summary)}</p>}
+                {!snapshot?.release && <p>{t("Historical publication date was not recorded; the version selector shows its import date.")}</p>}
+                <a href="/versioning">{t("Result versioning")}</a>
                 <ul>{benchmark.notes.map((note, index) => <li key={index}>{t(note)}</li>)}</ul>
                 {result?.reportUrl && result.reportUrl !== details?.reportUrl && <a href={result.reportUrl} target="_blank" rel="noreferrer">{t("Source report")} ↗</a>}
               </details>

@@ -370,3 +370,12 @@ test("confidence intervals and source coverage reject invented or inconsistent v
   invalid.benchmarks[0].sourceMatches.lexmount.missing++;
   assert.throws(() => validateSnapshot(invalid, entry, catalog), /source match population/);
 });
+
+test("semantic result versions require an honest release date and summary", () => {
+  const semantic = { ...structuredClone(snapshot), id: "lexbench-webfetch-v1.1.0", version: "v1.1.0", release: { date: "2026-11-16", kind: "results", previous: "v1.0.0", summary: "Publish updated measurements." } };
+  const nextEntry = parseReportFile("lexbench-webfetch", "lexbench-webfetch-v1.1.0-report.json");
+  assert.doesNotThrow(() => validateSnapshot(semantic, nextEntry, catalog));
+  for (const date of ["2026-02-30", "2026-13-01", "2099-01-01", "2026-1-1", ""]) assert.throws(() => validateSnapshot({ ...semantic, release: { ...semantic.release, date } }, nextEntry, catalog), /release date/);
+  assert.throws(() => validateSnapshot({ ...semantic, release: undefined }, nextEntry, catalog), /release summary/);
+  for (const version of ["v1.01.0", "v0.1.0", "v1.0", "v1.0.0-beta", "v1.0.0\n"]) assert.throws(() => parseReportFile("lexbench-webfetch", `lexbench-webfetch-${version}-report.json`), /Expected/);
+});

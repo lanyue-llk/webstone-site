@@ -57,3 +57,7 @@ All submitted data, including pending PRs, is public. Submit only non-sensitive 
 ## Repository settings
 
 Protect main with at least one reviewer approval and the `Result submission contract` and `Website build` checks. Dismiss stale approvals after updates and disallow direct pushes, force pushes and deletion. These are repository settings; committing a workflow or this document alone does not enable them. The required result check runs the trusted base-branch validator on Git blobs from the candidate, not code supplied by a result contributor. PR jobs have read-only permissions and no deployment credentials.
+
+## Result edition and date
+
+Use semantic result versions and fill `release.summary`; choose `release.kind` from `results`, `protocol` or `metadata`. The CLI allocates the version and previous edition; a blank date proposes the current UTC publication date for reviewer confirmation. See [Result versioning](result-versioning.md). Historical vN files remain immutable.

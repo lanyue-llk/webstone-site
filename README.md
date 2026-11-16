@@ -221,3 +221,5 @@ Tokens are only ever used outside this repository and are never stored in data, 
 ## Reviewed result submissions
 
 Use the [submission guide](docs/submitting-results.md) or the site's Submit your result page. Internal and external contributors use `webstone results` from the Webstone CLI/SDK, personal-fork PRs, trusted data checks and maintainer approval. Published files are immutable; corrections add the next per-benchmark version. The CLI assigns publication identity without changing measured values. No website login or submission database is introduced. Protect main with the required review and check settings described in the guide; workflows alone do not enable that policy.
+
+Result editions use independent semantic versions and explicit publication/import dates. See [Result versioning](docs/result-versioning.md).
