@@ -22,7 +22,7 @@ export type BenchmarkInfo = {
 export type Catalog = {
   schemaVersion: number;
   providerUrls: Record<string, string>;
-  tracks: { id: string; name: string; description: string }[];
+  tracks: { id: string; name: string; description: string; url?: string }[];
   benchmarks: BenchmarkInfo[];
 };
 export type BenchmarkResult = {
