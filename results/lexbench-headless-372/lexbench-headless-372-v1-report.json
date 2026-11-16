@@ -174,5 +174,24 @@
       "section": "用户提供的 372 题子集汇总表",
       "text": "七行的通过数、成功率、相对基线差值、PSS 与平均耗时均由用户逐格提供；未提供逐题证据链接，页面不展示“查看逐题证据”入口。"
     }
-  ]
+  ],
+  "translations": {
+    "zh": {
+      "Uses the historical 372-task protocol referenced by the linked dataset card, not its current 1,928-task executable catalog. The baseline row measures one task directly and inherits the remaining 371 from shared failure relations; other rows measure all 372 tasks.": "使用数据集卡片提到的历史 372 题协议，而非当前 1,928 题可执行目录。基线仅直接实测 1 题，其余 371 题按共同失败关系继承；其他方案实测全部 372 题。",
+      "评测集为 Lexbench Headless Browser 的 372 题子集，七种 Moli 构建使用同一批任务。": "使用 Lexbench Headless Browser 的 372 题子集，七种 Moli 构建使用同一批任务。",
+      "基线行只实测 1 题，其余 371 题按共同失败关系继承判定；其余行 372 题全部实测。": "基线仅实测 1 题，其余 371 题按共同失败关系继承判定；其他行实测全部 372 题。",
+      "每题采样 3 次：基线共 3 次，其余各行 1,116 次。": "每题采样 3 次：基线共 3 次，其余各行 1,116 次。",
+      "相对值均以基线行为 0；PSS 单位 MiB，耗时单位毫秒，负值表示更低。": "相对变化均以基线为 0；PSS 单位 MiB，耗时单位毫秒，负值表示更低。",
+      "0 / 372; 1 task measured (3 samples), with 371 tasks inherited from shared failure relationships.": "七类已公布通过数之和：",
+      "1 / 372 (372 tasks measured, 1,116 samples)": "七类已公布通过数之和：",
+      "255 / 372 (372 tasks measured, 1,116 samples)": "七类已公布通过数之和：",
+      "360 / 372 (372 tasks measured, 1,116 samples)": "七类已公布通过数之和："
+    },
+    "en": {
+      "评测集为 Lexbench Headless Browser 的 372 题子集，七种 Moli 构建使用同一批任务。": "Seven Moli builds use the same historical 372-task subset.",
+      "基线行只实测 1 题，其余 371 题按共同失败关系继承判定；其余行 372 题全部实测。": "The baseline directly measures one task and inherits 371 shared-failure judgments; every other row directly measures 372 tasks.",
+      "每题采样 3 次：基线共 3 次，其余各行 1,116 次。": "Three repetitions per task: 3 samples for the baseline and 1,116 for each other row.",
+      "相对值均以基线行为 0；PSS 单位 MiB，耗时单位毫秒，负值表示更低。": "Relative changes use the baseline as zero. PSS uses MiB and latency uses milliseconds; negative values mean lower."
+    }
+  }
 }

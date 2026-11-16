@@ -30,8 +30,8 @@ test("result records are versioned files without a hand-maintained index or form
 
 test("report directories are discovered and their declared provenance is validated", async () => {
   const summary = await prepareData({ write: false });
-  assert.equal(summary.files, 8);
-  assert.equal(summary.benchmarks, 8);
+  assert.equal(summary.files, 14);
+  assert.equal(summary.benchmarks, 12);
 });
 
 test("external tracks use safe HTTPS links and cannot own local benchmark tables", () => {
@@ -323,4 +323,50 @@ test("benchmarks in each published Track share its summary blog", () => {
     assert.ok(benchmarks.length >= 2);
     for (const benchmark of benchmarks) assert.equal(benchmark.reportUrl, url, benchmark.id);
   }
+});
+
+test("updated search layers preserve published scores and independent populations", () => {
+  const get = id => files.find(item => item.report.id === id).report;
+  const scenarios = get("lexbench-websearch-v2").benchmarks[0];
+  const facts = get("simpleqa-verified-v2").benchmarks[0];
+  assert.equal(scenarios.taskCount, 149);
+  assert.equal(facts.taskCount, 773);
+  assert.deepEqual(scenarios.providers.map(p => [p.id, p.scores.ndcg5, p.scores.precision5, p.scores.success5]), [
+    ["yuanbao-standard", 56, 64.4, 63.8], ["yuanbao-lite", 55.5, 63.1, 63.1], ["serper", 51.8, 69.9, 50.3],
+    ["lexmount", 49.7, 58.4, 59.7], ["deepseek-content", 48.3, 62.6, 51.7], ["browserbase", 39.9, 57, 14.1],
+    ["bocha-ai", 29.3, 44.7, 17.4], ["brightdata", 21.8, 26.4, 20.8], ["bocha-summary", 17.7, 20.9, 12.8],
+  ]);
+  assert.deepEqual(facts.providers.map(p => [p.id, p.scores.mrr5, p.scores.hit5, p.scores.answerMatch5]), [
+    ["serper", .723, 80.5, 68.8], ["lexmount", .658, 79.3, 71.4], ["browserbase", .547, 80.1, 20.4],
+    ["brightdata", .268, 30.1, 27.7], ["yuanbao-lite", .180, 26, 64.6], ["deepseek-content", .173, 27.3, 73.1],
+    ["yuanbao-standard", .151, 24.5, 64.6], ["bocha-ai", .117, 19.5, 15.7], ["bocha-summary", .004, .5, 3.6],
+  ]);
+  assert.equal(facts.metricSamples.mrr5.sampleCount, 773);
+  assert.equal(facts.metricSamples.meanTime.sampleCount, 831);
+  assert.match(get("simpleqa-verified-v2").datasetDifference, /58 questions with defective reference/);
+  assert.deepEqual(facts.sourceMatches.lexmount, { original: 603, equivalent: 9, replica: 1, missing: 160 });
+  assert.deepEqual(scenarios.providers[0].confidenceIntervals.ndcg5, { lower: 50.3, upper: 61.5, level: .95 });
+  assert.equal(scenarios.providers[0].scores.meanChars, 3742.75);
+  assert.equal(scenarios.providers[0].scores.meanTime, 702.91);
+  assert.equal(scenarios.providers[0].scores.p95Time, 1049.71);
+  assert.deepEqual(get("lexbench-websearch-excerpts-v1").benchmarks[0].providers.map(p => p.scores.ndcg5), [61.4, 58.5, 52.3, 24.4]);
+  assert.deepEqual(get("simpleqa-verified-excerpts-v1").benchmarks[0].providers.map(p => p.scores.excerptMatch5), [73.4, 69.9, 51.2, 11.3]);
+  assert.equal(get("lexbench-websearch-answers-v1").benchmarks[0].providers[0].scores.usefulness, 2.62);
+  assert.equal(get("simpleqa-verified-answers-v1").benchmarks[0].providers[0].scores.answerAccuracy, 49.4);
+  assert.equal(get("simpleqa-verified-answers-v1").benchmarks[0].metricSamples.citationSupport.sampleCount, undefined);
+  assert.match(scenarios.providers[0].billingDescription, /successful searches/);
+  assert.match(scenarios.providers.find(p => p.id === "lexmount").billingDescription, /requests/);
+});
+
+test("confidence intervals and source coverage reject invented or inconsistent values", () => {
+  const report = files.find(item => item.report.id === "simpleqa-verified-v2").report;
+  const entry = { benchmarkId: "simpleqa-verified", version: "v2" };
+  for (const interval of [{ lower: .8, upper: .9, level: .95 }, { lower: 0, upper: 1.1, level: .95 }, { lower: 0, upper: 1, level: 1 }]) {
+    const invalid = structuredClone(report);
+    invalid.benchmarks[0].providers[0].confidenceIntervals.mrr5 = interval;
+    assert.throws(() => validateSnapshot(invalid, entry, catalog), /confidence interval/);
+  }
+  const invalid = structuredClone(report);
+  invalid.benchmarks[0].sourceMatches.lexmount.missing++;
+  assert.throws(() => validateSnapshot(invalid, entry, catalog), /source match population/);
 });

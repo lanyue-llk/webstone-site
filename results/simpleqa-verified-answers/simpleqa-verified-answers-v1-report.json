@@ -1,0 +1,103 @@
+{
+  "id": "simpleqa-verified-answers-v1",
+  "version": "v1",
+  "datasetDifference": "Scores 773 valid factual questions from 831 collected questions; 58 questions with defective reference information are excluded from quality scoring. Latency retains all 831 factual calls. Annotated-source matching includes equivalent URLs and verified copies of the same page. Exact correspondence to a pinned dataset revision remains unverified.",
+  "source": {
+    "kind": "report-page",
+    "url": "https://yours.lexmount.cn/artifact-site/s/XEDGrWHPjAbu",
+    "title": "Web Search retrieval evaluation: result lists, supplemental text and generated answers",
+    "importedAt": "2026-11-16T09:22:48.899792Z",
+    "method": "Transcribed from the user-linked report, displayed artifact revision v16, overview tables and methodology. No evaluation was executed.",
+    "scope": "L3 / facts: the values and 95% intervals displayed in artifact revision v16. The report identifies Webstone v0.6.0. Collection batches span October and November 2026.",
+    "dateNote": "importedAt records transcription, not the date of a shared evaluation run. Report revisions and website result versions are independent."
+  },
+  "benchmarks": [
+    {
+      "id": "simpleqa-verified-answers",
+      "definitionId": "generated-answer",
+      "taskCount": 773,
+      "metricSamples": {
+        "answerAccuracy": {
+          "sampleCount": 773,
+          "scope": "valid-quality-questions"
+        },
+        "citationSupport": {
+          "scope": "citations",
+          "note": "The report does not disclose the citation or cited-sentence denominator."
+        },
+        "citationMembership": {
+          "scope": "citations",
+          "note": "The report does not disclose the citation or cited-sentence denominator."
+        },
+        "meanTime": {
+          "sampleCount": 831,
+          "scope": "recorded-api-calls",
+          "note": "Retains all collected calls, including factual questions excluded from quality scoring. Methods were collected on different dates and with different concurrency."
+        },
+        "p50Time": {
+          "sampleCount": 831,
+          "scope": "recorded-api-calls",
+          "note": "Retains all collected calls, including factual questions excluded from quality scoring. Methods were collected on different dates and with different concurrency."
+        },
+        "p95Time": {
+          "sampleCount": 831,
+          "scope": "recorded-api-calls",
+          "note": "Retains all collected calls, including factual questions excluded from quality scoring. Methods were collected on different dates and with different concurrency."
+        }
+      },
+      "notes": [
+        "Layers are scored independently; L1, L2 and L3 scores are not added together.",
+        "Methods were collected in separate batches on different dates. Bocha AI Search used concurrency 4; the other methods used concurrency 1. Latencies are observed batch measurements, not a controlled same-window speed comparison.",
+        "L2 and L3 reuse the latency of the underlying API call rather than measuring a separate layer execution.",
+        "Quoted prices use different billing units: per request or per successful search. They are not realized total evaluation costs.",
+        "Confidence intervals are the 95% intervals printed in the report. A displayed leader is not a claim of statistical significance."
+      ],
+      "reportUrl": "https://yours.lexmount.cn/artifact-site/s/XEDGrWHPjAbu",
+      "providers": [
+        {
+          "id": "bocha-ai",
+          "name": "Bocha AI Search",
+          "description": "Bocha AI Search: search results, supplemental text and generated answers",
+          "mode": "L3 · Search API",
+          "scores": {
+            "answerAccuracy": 49.4,
+            "citationSupport": 69.9,
+            "citationMembership": 99.9,
+            "meanTime": 14624.48,
+            "p50Time": 12383.23,
+            "p95Time": 30132.83,
+            "pricePerThousand": 8.99
+          },
+          "passed": null,
+          "confidenceIntervals": {},
+          "billingDescription": "USD 8.99 per 1,000 requests, quoted in the linked evaluation report. Not a verified current tariff."
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "overview-table",
+      "section": "Artifact v16 overview / L3 / facts",
+      "text": "Published rows: [[\"bocha-ai\", [49.4, 69.9, 99.9, 14624.48, 12383.23, 30132.83]]]. The first three numbers in L1/L2 rows are the primary score and the lower/upper 95% interval; all other fields follow the displayed table order. L3 has no published interval."
+    },
+    {
+      "id": "methodology",
+      "section": "Methodology and dataset scope",
+      "text": "149 scenario questions; 831 collected factual questions, of which 773 have valid reference information. Different collection dates and concurrency are retained. Full-page bodies are not part of the scoring input."
+    }
+  ],
+  "translations": {
+    "zh": {
+      "Scores 773 valid factual questions from 831 collected questions; 58 questions with defective reference information are excluded from quality scoring. Latency retains all 831 factual calls. Annotated-source matching includes equivalent URLs and verified copies of the same page. Exact correspondence to a pinned dataset revision remains unverified.": "831 道已采集事实题中，58 道参考信息存在缺陷，质量评分排除这些题，采用 773 道有效题；延迟仍统计全部 831 次调用。来源匹配计入等价网址和已核验同页副本。尚未核实与固定数据集修订版本的逐条对应关系。",
+      "Layers are scored independently; L1, L2 and L3 scores are not added together.": "各层独立评分，L1、L2、L3 分数不相加。",
+      "Methods were collected in separate batches on different dates. Bocha AI Search used concurrency 4; the other methods used concurrency 1. Latencies are observed batch measurements, not a controlled same-window speed comparison.": "各方法在不同日期分批采集。博查 AI 搜索并发为 4，其他方法为 1。延迟是各自批次的观测值，并非同一时间窗口的受控速度对比。",
+      "L2 and L3 reuse the latency of the underlying API call rather than measuring a separate layer execution.": "L2 和 L3 沿用底层 API 调用耗时，不表示单独执行该层的时间。",
+      "Quoted prices use different billing units: per request or per successful search. They are not realized total evaluation costs.": "报价分别按请求或成功检索计费，不是本轮评测实际总成本。",
+      "Confidence intervals are the 95% intervals printed in the report. A displayed leader is not a claim of statistical significance.": "置信区间为报告列出的 95% 区间，榜首不等于具有统计显著性。",
+      "Retains all collected calls, including factual questions excluded from quality scoring. Methods were collected on different dates and with different concurrency.": "保留全部已采集调用，包括质量评分排除的事实题。各方法采集日期与并发不同。",
+      "The report does not disclose the citation or cited-sentence denominator.": "报告未披露引用或被引用语句的评分分母。",
+      "USD 8.99 per 1,000 requests, quoted in the linked evaluation report. Not a verified current tariff.": "每千次请求 8.99 美元，按链接报告报价记录，未核验当前价格。"
+    }
+  }
+}

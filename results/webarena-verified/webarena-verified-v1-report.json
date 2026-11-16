@@ -166,5 +166,25 @@
       "section": "用户提供的 WebArena-Verified 汇总表",
       "text": "六种执行方案的通过数、任务成功率、端到端耗时与动作耗时均由用户逐格提供；未披露的项不外推。原表用“优”标注的最低动作耗时未在页面保留标记，改由排序体现。"
     }
-  ]
+  ],
+  "translations": {
+    "zh": {
+      "Evaluates the full 812-task population matching the linked full-812-v1 edition. The source does not state whether portable trajectories or direct action records were replayed, so edition-level identity with the pinned dataset revision is not verified.": "评测与 full-812-v1 版本数量一致的全部 812 道题。来源未说明回放的是可移植轨迹还是直接动作记录，因此无法确认与固定数据集修订版完全一致。",
+      "812 个 WebArena-Verified 任务，六种执行方案面对同一任务集。": "812 个 WebArena-Verified 任务，六种执行方案使用同一任务集。",
+      "任务成功率为通过数除以 812；端到端耗时按任务统计，每个方案 812 个样本，缺失 0。": "任务成功率为通过数除以 812；端到端耗时按任务统计，各方案 812 个样本，无缺失。",
+      "动作耗时为单次动作耗时，样本数为该方案执行的动作次数，因此各方案样本数不同。": "动作耗时按单次动作统计，样本量取各方案执行的动作数，因此方案间样本量不同。",
+      "均值为算术平均，P50、P95 为分位数；耗时类指标越低越好。": "均值为算术平均，P50、P95 为分位数；耗时越低越好。",
+      "812 / 812 tasks passed": "七类已公布通过数之和：",
+      "624 / 812 tasks passed": "七类已公布通过数之和：",
+      "330 / 812 tasks passed": "七类已公布通过数之和：",
+      "386 / 812 tasks passed": "七类已公布通过数之和：",
+      "441 / 812 tasks passed": "七类已公布通过数之和："
+    },
+    "en": {
+      "812 个 WebArena-Verified 任务，六种执行方案面对同一任务集。": "Six execution configurations use the same 812 WebArena-Verified tasks.",
+      "任务成功率为通过数除以 812；端到端耗时按任务统计，每个方案 812 个样本，缺失 0。": "Task success divides passed tasks by 812. Each configuration has 812 task timing samples, with none missing.",
+      "动作耗时为单次动作耗时，样本数为该方案执行的动作次数，因此各方案样本数不同。": "Action timing sample counts depend on the number of actions executed by each configuration.",
+      "均值为算术平均，P50、P95 为分位数；耗时类指标越低越好。": "Means are arithmetic means; P50 and P95 are percentiles. Lower latency is better."
+    }
+  }
 }

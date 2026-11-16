@@ -109,5 +109,16 @@
       "section": "用户提供的结果总览图",
       "text": "四款服务：Lexmount、Serper、Browserbase、Bright Data。速度和价格越低越好；各质量指标越高越好。149 道场景题、773 道事实题与 980 次调用分别记录，不混用分母。"
     }
-  ]
+  ],
+  "translations": {
+    "zh": {
+      "Evaluates 773 factual questions rather than the 831-question edition described by the linked dataset card. The source does not state how the 773-question subset was selected or whether its reference pages match the linked edition.": "评测 773 道事实题，而非数据集卡片说明的 831 题版本。来源未说明子集选择方式，也未说明参考网页是否与链接版本一致。",
+      "质量指标来自 773 道事实题。": "质量指标来自 773 道事实题。",
+      "平均响应时间来自两个题库合计 980 次调用，不作为本题库独立计时。": "平均响应时间来自两个题库合计 980 次调用，不作为本题库独立计时。"
+    },
+    "en": {
+      "质量指标来自 773 道事实题。": "Quality metrics use 773 factual questions.",
+      "平均响应时间来自两个题库合计 980 次调用，不作为本题库独立计时。": "Mean response time uses 980 calls across both query sets, not an independent timing sample for this set."
+    }
+  }
 }

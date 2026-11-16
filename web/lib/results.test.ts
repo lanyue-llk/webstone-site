@@ -1,10 +1,33 @@
 import test from "node:test";
+import { initialLanguage, translator } from "./i18n.ts";
 import { shouldReloadRelease } from "./release.ts";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { benchmarkEntries, bestValue, compareVersions, isBestValue, latestEntry, selectEntry, reportEntries, formatMetric, formatPricing, sumCategoryPasses, resolveBenchmark, sortProviders, type Catalog, type Provider, type Snapshot } from "./results.ts";
 
 const catalog: Catalog = JSON.parse(readFileSync(new URL("../../benchmarks/catalog.json", import.meta.url), "utf8"));
+
+test("English is the default and explicit Chinese selection translates reusable content", () => {
+  assert.equal(initialLanguage(null), "en");
+  assert.equal(initialLanguage("fr"), "en");
+  assert.equal(initialLanguage("zh"), "zh");
+  assert.equal(translator("en", catalog)("Download Report"), "Download Report");
+  assert.equal(translator("zh", catalog)("Download Report"), "下载报告");
+  for (const benchmark of catalog.benchmarks) {
+    assert.ok(catalog.translations?.zh[benchmark.description], benchmark.id);
+    for (const definition of benchmark.definitions) {
+      for (const metric of definition.metrics) assert.ok(catalog.translations?.zh[metric.description!], metric.id);
+    }
+  }
+});
+
+test("release checks reject invalid manifests and prevent repeated reload loops", () => {
+  const current = "a".repeat(64), next = "b".repeat(64);
+  assert.equal(shouldReloadRelease(current, next, null), true);
+  assert.equal(shouldReloadRelease(current, current, null), false);
+  assert.equal(shouldReloadRelease(current, next, next), false);
+  for (const invalid of [null, undefined, "<html>", "", 42, {}, "b".repeat(63)]) assert.equal(shouldReloadRelease(current, invalid, null), false);
+});
 function readSnapshot(file: string) {
   const record: Snapshot = JSON.parse(readFileSync(new URL(`../../results/${file}`, import.meta.url), "utf8"));
   return { ...record, benchmarks: record.benchmarks.map(result => resolveBenchmark(catalog, result)) };
@@ -248,6 +271,10 @@ test("benchmark titles, dataset names and links follow the public dataset catalo
     webmainbench: { name: "LexBench WebMainBench", datasetName: "LexBench-WebMainBench" },
     "lexbench-websearch": { name: "LexBench Web Search", datasetName: "LexBench-Web-Search" },
     "simpleqa-verified": { name: "LexBench SimpleQA Verified", datasetName: "LexBench-SimpleQA-Verified" },
+    "lexbench-websearch-excerpts": { name: "Scenario Search · Supplemental Text", datasetName: "LexBench-Web-Search" },
+    "simpleqa-verified-excerpts": { name: "SimpleQA Verified · Supplemental Text", datasetName: "LexBench-SimpleQA-Verified" },
+    "lexbench-websearch-answers": { name: "Scenario Search · Generated Answers", datasetName: "LexBench-Web-Search" },
+    "simpleqa-verified-answers": { name: "SimpleQA Verified · Generated Answers", datasetName: "LexBench-SimpleQA-Verified" },
     "lexbench-headless-372": { name: "LexBench Headless Browser", datasetName: "LexBench-Headless-Browser" },
     "webarena-verified": { name: "LexBench WebArena Replay", datasetName: "LexBench-WebArena-Replay" },
     "lexbench-swde": { name: "LexBench SWDE", datasetName: "LexBench-SWDE" },
@@ -332,12 +359,4 @@ test("search datasets keep their own quality metrics and exact image values", ()
   assert.deepEqual(sortProviders(scene.providers, "responseTime", "asc").map(item => item.id), ["lexmount", "serper", "browserbase", "brightdata"]);
   assert.equal(sortProviders(scene.providers, "ndcg5", "desc")[0].id, "serper");
   assert.equal(sortProviders(qa.providers, "hit5", "desc")[0].id, "serper");
-});
-
-test("release checks reject invalid manifests and prevent repeated reload loops", () => {
-  const current = "a".repeat(64), next = "b".repeat(64);
-  assert.equal(shouldReloadRelease(current, next, null), true);
-  assert.equal(shouldReloadRelease(current, current, null), false);
-  assert.equal(shouldReloadRelease(current, next, next), false);
-  for (const invalid of [null, undefined, "<html>", "", 42, {}, "b".repeat(63)]) assert.equal(shouldReloadRelease(current, invalid, null), false);
 });

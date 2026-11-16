@@ -2,7 +2,7 @@
 
 The companion website for [Webstone](https://github.com/lexmount/webstone), publishing browser, search and structured extraction benchmark results in sortable tables.
 
-Eight local benchmark views across four Tracks are published on this site. A fifth Track, BrowserArena, opens the independently deployed benchmark site in a new tab. The evaluation harness is [lexmount/browser-eval](https://github.com/lexmount/browser-eval).
+Twelve local benchmark views across four Tracks are published on this site. A fifth Track, BrowserArena, opens the independently deployed benchmark site in a new tab. The evaluation harness is [lexmount/browser-eval](https://github.com/lexmount/browser-eval).
 
 ## Benchmarks
 
@@ -32,11 +32,11 @@ Browsers covered: Moli, Chromium, Lightpanda, Obscura and Kitesurf.
 
 ### LexBench Web Search
 
-149 scenario queries. The table compares Lexmount, Serper, Browserbase and Bright Data using nDCG@5, Precision@5 and Success@5.
+149 scenario queries. Latest results compare nine methods at L1 (titles and primary snippets), four at L2 (supplemental excerpts) and one at L3 (generated answers). Each layer has an independent scoring input and candidate pool. L1/L2 rank by nDCG@5 × 100; L3 reports answer usefulness and citation support.
 
 ### LexBench SimpleQA Verified
 
-773 factual queries. The same four services are compared using Hit@5, MRR@5 and Answer Match@5. MRR remains on its original 0–1 scale.
+Latest quality results use 773 valid factual queries out of 831 collected questions; 58 with defective references are excluded. Timing retains all 831 factual calls. L1 ranks by MRR@5 on its 0–1 scale; L2 ranks by excerpt answer-text matching; L3 reports official SimpleQA answer accuracy. These are separate views, not interchangeable scores. Historical v1 remains available with its original definition and numbers.
 
 ### LexBench Headless Browser
 
@@ -79,7 +79,7 @@ Page titles use natural English, while Dataset links reproduce the official Hugg
 
 Each published version records a `datasetDifference` paragraph describing how its task population, selection, reference answers or scoring differ from the linked Dataset. Known differences include Web Fetch using the 430-task edition rather than the current 550-task edition, SimpleQA Verified using 773 questions rather than 831, and Headless Browser using the historical 372-task protocol rather than the current 1,928-task catalog.
 
-The search results were transcribed from the user-provided overview image, with its SHA256 recorded in the result file. The average response times describe 980 calls across both query sets; they are shared measurements, not separate timings for either benchmark. Prices are USD per 1,000 calls. Timing and price columns sort from low to high by default; quality columns sort from high to low. The linked blog is a related report, not a verified version binding for the supplied image.
+Historical search v1 results were transcribed from the user-provided overview image, with its SHA256 recorded in the result file. The average response times describe 980 calls across both query sets; they are shared measurements, not separate timings for either benchmark. Prices are USD per 1,000 calls. Timing and price columns sort from low to high by default; quality columns sort from high to low. The linked blog is a related report, not a verified version binding for the supplied image.
 
 ## Results
 
@@ -109,7 +109,7 @@ Optional provider `counts` records a metric's numerator and denominator, validat
 
 ## Table behavior
 
-The default ranking metric is the first numeric column after the provider. Task success leads Web Fetch, Overall leads WebMainBench, nDCG@5 leads Web Search, Hit@5 leads SimpleQA Verified, and task success leads both agent benchmarks. Clicking another header sorts by it without moving the column.
+The default ranking metric is the first numeric column after the provider. Task success leads Web Fetch, Overall leads WebMainBench, nDCG@5 leads Web Search, MRR@5 leads the latest SimpleQA Verified L1 (historical v1 uses Hit@5), and task success leads both agent benchmarks. Clicking another header sorts by it without moving the column.
 
 Every numeric column computes its own best value from the metric direction. Ties are all highlighted; undisclosed values and columns with fewer than two disclosed values have no winner. The currently sorted header is highlighted separately.
 
@@ -164,9 +164,17 @@ Configure the running component to fetch the official GitHub repository from `ma
 
 ### Cache behavior
 
-`deploy/nginx.conf` sends `Cache-Control: no-store` for HTML, catalogs and reports. Fingerprinted files under `/_next/static/` use a one-year immutable cache. This policy is included by the Dockerfile; a local-package deployment does not automatically use this Nginx configuration. Any ingress or CDN must preserve these response headers.
+`deploy/nginx.conf` sends `Cache-Control: no-store, max-age=0` for HTML, catalogs and reports. Fingerprinted files under `/_next/static/` use a one-year immutable cache. This policy is included by the Dockerfile; a local-package deployment does not automatically use this Nginx configuration. Any ingress or CDN must preserve these response headers.
 
 Previously cached HTML may remain usable until the browser contacts the server again. After the first deployment of this policy, refresh once (or clear this site's cached files) and purge any upstream cached HTML. Verify the response headers at the public domain; changing data fetch options alone cannot refresh an old HTML/JavaScript shell.
+
+`prepare:data` fingerprints page source, catalog and published results into a generated `release.json` and a compiled release constant. A visible page checks that manifest on mount, focus, history restoration and once per minute. A different release triggers one reload per release per tab; invalid or unavailable manifests leave the current page usable. This covers already-open pages, which HTTP response headers alone cannot update. A page predating this mechanism must first load the new client once. The manifest and data requests bypass HTTP caches; ingress/CDN caches must preserve the no-store policy.
+
+## Languages and selected insights
+
+English is the first-visit default. An explicit EN / 中文 selection persists locally and updates document language. The catalog owns translations of reusable names, descriptions and metric definitions; each report owns translations of its version-specific scope and notes. Original source quotations and provenance are preserved, including historical non-English notes with a separate English display translation.
+
+The dashboard keeps one leaderboard per benchmark and adds a compact scope summary, method details and two selected charts. Charts use only disclosed values from the selected result version: quality with published confidence intervals, category pass counts, source-match composition or timing percentiles. Missing values stay missing, timing units stay distinct, and confidence intervals do not establish statistical significance. Search collection dates/concurrency and request-versus-successful-search billing bases are disclosed. The shared Track blog stays visible alongside any version-specific source report.
 
 ### BrowserArena
 
@@ -176,7 +184,7 @@ The catalog's `browserarena` Track links to <https://browserarena.dev.lexmount.n
 
 Published reports, their source/evidence fields and all linked reports are public-facing material. The current data includes transcribed tables and images, unpinned dataset correspondence, undisclosed execution details and quoted pricing. Preserve these limitations; the published tables do not establish full run reproducibility. Raw evaluation logs and datasets are not included here.
 
-The repository currently has no license file. Public visibility alone does not provide an explicit reuse license. Deployment descriptors also contain environment names; keep credentials and webhook URLs in protected platform settings, never in tracked files.
+The repository currently has no license file. Public visibility alone does not provide an explicit reuse license. The deployment descriptor uses placeholder environment names; keep credentials and webhook URLs in protected platform settings, never in tracked files.
 
 See the official [Dockerfile deployment guide](https://www.rainbond.com/docs/how-to-guides/app-deploy/source-code/dockefile).
 
@@ -203,8 +211,8 @@ stored as `datasetName`, `datasetUrl` and `reportUrl` in `benchmarks/catalog.jso
 Dataset links point to the official Hugging Face exports. Catalog reports are
 related, independently updated pages and may cover a different run or sample
 population. A result may supply its own `reportUrl` only when that report is
-known to describe those results; otherwise it stays `null` and the page shows
-the related catalog link. The result file's `source` records the provenance of
+known to describe those results; otherwise it stays `null`. The shared Track link is always visible; a supplied
+version-specific report is shown as a separate Version report. The result file's `source` records the provenance of
 the displayed numbers; resource links do not replace it. `Download Report`
 downloads the selected version's JSON with its definition references and provenance.
 

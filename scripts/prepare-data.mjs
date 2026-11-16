@@ -43,8 +43,9 @@ export function validateCatalog(catalog) {
       if (definition.leadingMetricIds && (new Set(definition.leadingMetricIds).size !== definition.leadingMetricIds.length || definition.leadingMetricIds.some(id => !definition.metrics.some(metric => metric.id === id)))) throw new Error("Unknown or duplicate leading metric");
       if (definition.categories) uniqueIds(definition.categories, "category");
       for (const metric of definition.metrics) {
-        if (!["percent", "score", "seconds", "usd", "ratio", "ms", "mib", "points", "count"].includes(metric.unit)) throw new Error("Invalid metric unit");
+        if (!["percent", "score", "seconds", "usd", "ratio", "ms", "mib", "points", "count", "characters"].includes(metric.unit)) throw new Error("Invalid metric unit");
         if (!["asc", "desc"].includes(metric.direction)) throw new Error("Invalid metric direction");
+        if (metric.highlightBest !== undefined && typeof metric.highlightBest !== "boolean") throw new Error("Invalid metric highlight rule");
         if (metric.signed !== undefined && typeof metric.signed !== "boolean") throw new Error("Invalid metric sign");
         if (metric.decimals !== undefined && (!Number.isInteger(metric.decimals) || metric.decimals < 0 || metric.decimals > 6)) throw new Error("Invalid metric display precision");
         if ("sampleCount" in metric || "scope" in metric) throw new Error("Metric samples belong in the result file");
@@ -77,7 +78,7 @@ export function validateSnapshot(snapshot, entry, catalog) {
   }
   if (!Array.isArray(snapshot.benchmarks) || snapshot.benchmarks.length !== 1) throw new Error("Each result file must contain exactly one benchmark");
   for (const benchmark of snapshot.benchmarks) {
-    const allowed = ["id", "definitionId", "taskCount", "categoryTotals", "metricSamples", "otherBest", "notes", "reportUrl", "providers"];
+    const allowed = ["id", "definitionId", "taskCount", "categoryTotals", "metricSamples", "otherBest", "notes", "reportUrl", "providers", "sourceMatches"];
     if (Object.keys(benchmark).some(key => !allowed.includes(key))) throw new Error("Unexpected result field; put benchmark and page definitions in the catalog");
     if (entry.benchmarkId !== benchmark.id || !Number.isInteger(benchmark.taskCount) || benchmark.taskCount < 1) {
       throw new Error("Unexpected benchmark or task count");
@@ -95,6 +96,14 @@ export function validateSnapshot(snapshot, entry, catalog) {
       if (sample.note !== undefined && (typeof sample.note !== "string" || !sample.note.trim() || !/[A-Za-z]/.test(sample.note) || /\p{Script=Han}/u.test(sample.note))) throw new Error("Invalid or non-English metric sample note");
     }
     uniqueIds(benchmark.providers, "provider");
+    if (benchmark.sourceMatches !== undefined) {
+      if (!benchmark.sourceMatches || Object.keys(benchmark.sourceMatches).length !== benchmark.providers.length) throw new Error("Invalid source match population");
+      for (const provider of benchmark.providers) {
+        const match = benchmark.sourceMatches[provider.id];
+        const counts = match && [match.original, match.equivalent, match.replica, match.missing];
+        if (!Array.isArray(counts) || counts.length !== 4 || counts.some(value => !Number.isInteger(value) || value < 0) || counts.reduce((a, b) => a + b, 0) !== benchmark.taskCount) throw new Error("Invalid source match population");
+      }
+    }
     for (const provider of benchmark.providers) {
       if (!httpsUrl(catalog.providerUrls?.[provider.id])) throw new Error(`Missing or invalid provider project URL: ${provider.id}`);
       if ("color" in provider || "categories" in provider) throw new Error("Unexpected provider presentation field in result file");
@@ -115,6 +124,13 @@ export function validateSnapshot(snapshot, entry, catalog) {
           detail.total < 1 || detail.count > detail.total || detail.total > benchmark.taskCount) throw new Error("Invalid count breakdown");
         const value = metric.unit === "count" ? detail.count : Number((detail.count / detail.total * 100).toFixed(metric.decimals ?? 1));
         if (provider.scores[id] !== value || (benchmark.metricSamples?.[id]?.sampleCount != null && benchmark.metricSamples[id].sampleCount !== detail.total)) throw new Error("Inconsistent count breakdown");
+      }
+      for (const [id, interval] of Object.entries(provider.confidenceIntervals ?? {})) {
+        const score = provider.scores[id];
+        const metric = definition.metrics.find(item => item.id === id);
+        const maximum = metric?.unit === "ratio" ? 1 : ["percent", "score", "points"].includes(metric?.unit) ? 100 : Infinity;
+        if (!metric || score == null || !interval || ![interval.lower, interval.upper, interval.level].every(Number.isFinite) ||
+          interval.lower > score || interval.upper < score || (!metric.signed && interval.lower < 0) || interval.upper > maximum || interval.level <= 0 || interval.level >= 1) throw new Error("Invalid confidence interval");
       }
       if (provider.pricing !== undefined) {
         const pricing = provider.pricing;
@@ -200,7 +216,7 @@ export async function prepareData({ write = true } = {}) {
       await copyFile(path.join(resultRoot, file.file), target);
     }
   }
-  return { files: files.length, benchmarks: files.length };
+  return { files: files.length, benchmarks: new Set(files.flatMap(item => item.report.benchmarks.map(benchmark => benchmark.id))).size };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

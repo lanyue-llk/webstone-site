@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CircleHelp } from "lucide-react";
 
-export default function InfoTooltip({ label, description }: { label: string; description: string }) {
+export default function InfoTooltip({ label, description, detailsLabel = "details" }: { label: string; description: string; detailsLabel?: string }) {
   const id = useId();
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -44,7 +44,7 @@ export default function InfoTooltip({ label, description }: { label: string; des
   }, [position]);
 
   return <>
-    <button ref={button} type="button" className="info-trigger" aria-label={`${label} details`} aria-describedby={position ? id : undefined}
+    <button ref={button} type="button" className="info-trigger" aria-label={`${label} ${detailsLabel}`} aria-describedby={position ? id : undefined}
       onMouseEnter={show} onMouseLeave={hideSoon} onFocus={show} onBlur={() => setPosition(null)} onClick={show}>
       <CircleHelp size={13} strokeWidth={1.5} aria-hidden="true" />
     </button>

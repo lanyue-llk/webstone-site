@@ -109,5 +109,16 @@
       "section": "用户提供的结果总览图",
       "text": "四款服务：Lexmount、Serper、Browserbase、Bright Data。速度和价格越低越好；各质量指标越高越好。149 道场景题、773 道事实题与 980 次调用分别记录，不混用分母。"
     }
-  ]
+  ],
+  "translations": {
+    "zh": {
+      "Evaluates 149 scenario queries, matching the task count of the linked scenarios-v2 edition. The source reports aggregate relevance scores without query IDs, graded pools or reference judgments, so identity with the pinned dataset revision is not verified.": "评测 149 道场景查询，与链接数据集 scenarios-v2 的数量一致。来源只给出相关性汇总分数，没有查询 ID、分级候选池或参考判定，无法验证与固定数据集版本的一致性。",
+      "质量指标来自 149 道场景题。": "质量指标来自 149 道场景题。",
+      "平均响应时间来自两个题库合计 980 次调用，不作为本题库独立计时。": "平均响应时间来自两个题库合计 980 次调用，不作为本题库独立计时。"
+    },
+    "en": {
+      "质量指标来自 149 道场景题。": "Quality metrics use 149 scenario queries.",
+      "平均响应时间来自两个题库合计 980 次调用，不作为本题库独立计时。": "Mean response time uses 980 calls across both query sets, not an independent timing sample for this set."
+    }
+  }
 }
