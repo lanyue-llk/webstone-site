@@ -178,5 +178,20 @@
       "taskRateDecimals": 1,
       "overallScoreDecimals": 2
     }
-  ]
+  ],
+  "translations": {
+    "zh": {
+      "Uses the corrected 545-page edition described by the linked dataset card, with frozen HTML as the extraction input. Scores are transcribed from the published comparison; the source does not state the dataset commit, so revision-level identity is not verified.": "使用数据集卡片说明的修订版 545 份冻结 HTML。分数按已发布对比记录；来源未说明数据集提交版本，因此无法验证修订版本是否完全一致。",
+      "五款浏览器处理同一批 545 份预先保存的 HTML。": "五款浏览器处理同一批 545 份预先保存的 HTML。",
+      "全文、代码、公式、表格内容、表格结构五项评分；综合分取五项平均。": "全文、代码、公式、表格内容、表格结构五项评分；综合分取五项平均。",
+      "输入固定，不测实时网络访问或风控。": "输入固定，不测实时网络访问或风控。",
+      "本来源正文仅披露部分分数，缺失值保持为空，未从图形或排名推算。": "来源正文仅披露部分分数，缺失值保持为空，不从图形或排名推算。"
+    },
+    "en": {
+      "五款浏览器处理同一批 545 份预先保存的 HTML。": "Five browsers process the same 545 saved HTML pages.",
+      "全文、代码、公式、表格内容、表格结构五项评分；综合分取五项平均。": "Full text, code, formulas, table content and table structure are scored; overall is their mean.",
+      "输入固定，不测实时网络访问或风控。": "Inputs are frozen; live network retrieval and anti-bot behavior are not measured.",
+      "本来源正文仅披露部分分数，缺失值保持为空，未从图形或排名推算。": "Only disclosed scores are retained. Missing values are not inferred from plots or ranks."
+    }
+  }
 }

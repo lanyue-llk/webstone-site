@@ -467,5 +467,21 @@
       "section": "SWDE quality and timing/cost tables supplied by the user",
       "text": "Quality metrics, page counts, elapsed times and price ranges were transcribed from the user's two tables. Full-page exact match counts are 226, 208, 257, 279, 206, 242, 251, 243, 271 and 263 out of 740; null-handling counts are 0, 19, 17, 14, 17, 20, 20, 21, 13 and 18 out of 25, in the original supplied method order. Sixty pages were excluded from full-page scoring because reference coverage was incomplete."
     }
-  ]
+  ],
+  "translations": {
+    "zh": {
+      "5 credits per call, assuming full use of the plan allowance. Add-on packages are priced separately.": "每次调用 5 积分，假设套餐额度全部使用；加购包单独计价。",
+      "Converted from token usage in this evaluation; includes HTTP, pageContent and differences between plans.": "按本次 token 用量折算，计入 HTTP、pageContent 及套餐差异。",
+      "Estimated for the pages in this evaluation: browser usage plus inference with the default model.": "按本次网页估算，包含浏览器使用及默认模型推理。",
+      "JavaScript was disabled in this evaluation. Includes the page request and AI field parsing.": "本次评测关闭 JavaScript；计入网页请求与 AI 字段解析。",
+      "Parse JSON uses 5 credits per call. The range assumes full use of monthly or annual plan allowances.": "Parse JSON 每次 5 积分；区间假设月付或年付套餐额度全部使用。",
+      "Software costs $0; DeepSeek model usage is billed by tokens. Model usage and total cost were not supplied.": "软件费用为 0 美元；DeepSeek 模型按 token 计费，未提供模型用量及总费用。",
+      "The proxy was disabled in this evaluation. Billed per JSON field extraction.": "本次评测关闭代理，按 JSON 字段提取计费。",
+      "Evaluates 800 archived pages, matching the size of the linked SWDE input subset. The dataset distributes inputs only, without reference answers or evaluation scores; page IDs and hashes were not supplied with these results, so exact correspondence to a dataset revision is unverified. Full-page exact match uses 740 pages: 60 pages were excluded because reference coverage was incomplete. Null handling uses a separate 25-page subset.": "评测 800 份归档网页，与链接 SWDE 输入子集的数量一致。数据集仅分发输入，不包含参考答案或评测分数；结果没有页 ID 和哈希，无法确认准确修订版本。整页全对使用 740 页：60 页因参考标注不完整而排除。空值处理使用单独的 25 页子集。",
+      "All ten methods executed 800 of 800 planned pages and have 800 timing records, with none missing.": "十种方案均执行了计划中的全部 800 页，均有 800 条计时记录，无缺失。",
+      "Full-page exact match excludes 60 pages with incomplete reference coverage for every method; its denominator is 740, not 800.": "所有方案的整页全对分母均为 740 页，60 页因参考标注覆盖不完整而排除，不以 800 页计算。",
+      "Null-handling accuracy uses 25 pages for each method.": "各方案的空值处理正确率均单独使用 25 页。",
+      "Detailed matching rules, page IDs, run date, per-method interpretation links and official billing-source links were not supplied. Prices are preserved as quoted rather than checked against current plans.": "未提供详细匹配规则、页 ID、执行日期、方案解释链接及官方计费出处。价格按报告保留，不代表核验过的当前套餐。"
+    }
+  }
 }

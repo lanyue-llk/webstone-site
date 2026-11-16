@@ -1,4 +1,4 @@
-export type Metric = { id: string; label: string; unit: string; direction: "asc" | "desc"; decimals?: number; description?: string; signed?: boolean };
+export type Metric = { id: string; label: string; unit: string; direction: "asc" | "desc"; decimals?: number; description?: string; signed?: boolean; highlightBest?: boolean };
 export type CategoryDefinition = { id: string; name: string; criterion: string };
 export type Category = CategoryDefinition & { total: number };
 export type Provider = {
@@ -8,6 +8,8 @@ export type Provider = {
   samples?: Record<string, number>;
   counts?: Record<string, { count: number; total: number }>;
   pricing?: Pricing;
+  billingDescription?: string;
+  confidenceIntervals?: Record<string, { lower: number; upper: number; level: number }>;
 };
 export type Pricing = { min: number | null; max: number | null; approximate?: boolean; softwareCost?: number; description: string };
 export type Definition = {
@@ -17,10 +19,12 @@ export type Definition = {
 export type BenchmarkInfo = {
   id: string; trackId: string; name: string; datasetName: string; description: string;
   datasetUrl: string; reportUrl: string; providerLabel: string;
+  searchGroup?: "scenarios" | "facts"; outputLayer?: "L1" | "L2" | "L3";
   definitions: Definition[];
 };
 export type Catalog = {
   schemaVersion: number;
+  translations?: { zh: Record<string, string>; en?: Record<string, string> };
   providerUrls: Record<string, string>;
   tracks: { id: string; name: string; description: string; url?: string }[];
   benchmarks: BenchmarkInfo[];
@@ -31,6 +35,7 @@ export type BenchmarkResult = {
   metricSamples?: Record<string, { sampleCount?: number; scope?: string; note?: string }>;
   notes: string[]; reportUrl: string | null;
   otherBest?: Record<string, number>;
+  sourceMatches?: Record<string, { original: number; equivalent: number; replica: number; missing: number }>;
 };
 export type Benchmark = Omit<BenchmarkInfo, "definitions"> & Omit<Definition, "id" | "categories"> & Omit<BenchmarkResult, "reportUrl"> & {
   categories: Category[]; providerCount: number;
@@ -41,6 +46,7 @@ export type Entry = {
 };
 export type Snapshot = {
   id: string; version: string; datasetDifference: string;
+  translations?: { zh: Record<string, string>; en?: Record<string, string> };
   source: { url: string; title: string; kind?: string; sha256?: string; linkLabel?: string; importedAt: string; method: string; scope: string; dateNote: string };
   benchmarks: BenchmarkResult[];
   evidence: { id: string; section: string; text: string }[];

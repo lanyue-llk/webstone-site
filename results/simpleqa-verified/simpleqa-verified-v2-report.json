@@ -1,0 +1,378 @@
+{
+  "id": "simpleqa-verified-v2",
+  "version": "v2",
+  "datasetDifference": "Scores 773 valid factual questions from 831 collected questions; 58 questions with defective reference information are excluded from quality scoring. Latency retains all 831 factual calls. Annotated-source matching includes equivalent URLs and verified copies of the same page. Exact correspondence to a pinned dataset revision remains unverified.",
+  "source": {
+    "kind": "report-page",
+    "url": "https://yours.lexmount.cn/artifact-site/s/XEDGrWHPjAbu",
+    "title": "Web Search retrieval evaluation: result lists, supplemental text and generated answers",
+    "importedAt": "2026-11-16T09:22:48.898799Z",
+    "method": "Transcribed from the user-linked report, displayed artifact revision v16, overview tables and methodology. No evaluation was executed.",
+    "scope": "L1 / facts: the values and 95% intervals displayed in artifact revision v16. The report identifies Webstone v0.6.0. Collection batches span October and November 2026.",
+    "dateNote": "importedAt records transcription, not the date of a shared evaluation run. Report revisions and website result versions are independent."
+  },
+  "benchmarks": [
+    {
+      "id": "simpleqa-verified",
+      "definitionId": "source-match-v2",
+      "taskCount": 773,
+      "metricSamples": {
+        "mrr5": {
+          "sampleCount": 773,
+          "scope": "valid-quality-questions"
+        },
+        "hit5": {
+          "sampleCount": 773,
+          "scope": "valid-quality-questions"
+        },
+        "answerMatch5": {
+          "sampleCount": 773,
+          "scope": "valid-quality-questions"
+        },
+        "meanTime": {
+          "sampleCount": 831,
+          "scope": "recorded-api-calls",
+          "note": "Retains all collected calls, including factual questions excluded from quality scoring. Methods were collected on different dates and with different concurrency."
+        },
+        "p50Time": {
+          "sampleCount": 831,
+          "scope": "recorded-api-calls",
+          "note": "Retains all collected calls, including factual questions excluded from quality scoring. Methods were collected on different dates and with different concurrency."
+        },
+        "p95Time": {
+          "sampleCount": 831,
+          "scope": "recorded-api-calls",
+          "note": "Retains all collected calls, including factual questions excluded from quality scoring. Methods were collected on different dates and with different concurrency."
+        }
+      },
+      "notes": [
+        "Layers are scored independently; L1, L2 and L3 scores are not added together.",
+        "Methods were collected in separate batches on different dates. Bocha AI Search used concurrency 4; the other methods used concurrency 1. Latencies are observed batch measurements, not a controlled same-window speed comparison.",
+        "L2 and L3 reuse the latency of the underlying API call rather than measuring a separate layer execution.",
+        "Quoted prices use different billing units: per request or per successful search. They are not realized total evaluation costs.",
+        "Confidence intervals are the 95% intervals printed in the report. A displayed leader is not a claim of statistical significance."
+      ],
+      "reportUrl": "https://yours.lexmount.cn/artifact-site/s/XEDGrWHPjAbu",
+      "providers": [
+        {
+          "id": "serper",
+          "name": "Serper / Google",
+          "description": "Google results via Serper",
+          "mode": "L1 · Search API",
+          "scores": {
+            "mrr5": 0.723,
+            "hit5": 80.5,
+            "answerMatch5": 68.8,
+            "meanChars": 919.67,
+            "meanTime": 2238.12,
+            "p50Time": 2038.57,
+            "p95Time": 3677.01,
+            "pricePerThousand": 1.0
+          },
+          "passed": null,
+          "confidenceIntervals": {
+            "mrr5": {
+              "lower": 0.693,
+              "upper": 0.753,
+              "level": 0.95
+            }
+          },
+          "billingDescription": "USD 1.00 per 1,000 successful searches, quoted in the linked evaluation report. Not a verified current tariff."
+        },
+        {
+          "id": "lexmount",
+          "name": "Lexmount Search",
+          "description": "Lexmount search API",
+          "mode": "L1 · Search API",
+          "scores": {
+            "mrr5": 0.658,
+            "hit5": 79.3,
+            "answerMatch5": 71.4,
+            "meanChars": 1458.8,
+            "meanTime": 1448.1,
+            "p50Time": 1395.88,
+            "p95Time": 1899.67,
+            "pricePerThousand": 0.75
+          },
+          "passed": null,
+          "confidenceIntervals": {
+            "mrr5": {
+              "lower": 0.628,
+              "upper": 0.688,
+              "level": 0.95
+            }
+          },
+          "billingDescription": "USD 0.75 per 1,000 requests, quoted in the linked evaluation report. Not a verified current tariff."
+        },
+        {
+          "id": "browserbase",
+          "name": "Browserbase / Parallel Advanced",
+          "description": "Parallel Advanced through Browserbase",
+          "mode": "L1 · Search API",
+          "scores": {
+            "mrr5": 0.547,
+            "hit5": 80.1,
+            "answerMatch5": 20.4,
+            "meanChars": 255.11,
+            "meanTime": 3990.29,
+            "p50Time": 3878.1,
+            "p95Time": 5426.26,
+            "pricePerThousand": 5.0
+          },
+          "passed": null,
+          "confidenceIntervals": {
+            "mrr5": {
+              "lower": 0.519,
+              "upper": 0.576,
+              "level": 0.95
+            }
+          },
+          "billingDescription": "USD 5.00 per 1,000 successful searches, quoted in the linked evaluation report. Not a verified current tariff."
+        },
+        {
+          "id": "brightdata",
+          "name": "Bright Data / Google Light JSON",
+          "description": "Google Light JSON through Bright Data",
+          "mode": "L1 · Search API",
+          "scores": {
+            "mrr5": 0.268,
+            "hit5": 30.1,
+            "answerMatch5": 27.7,
+            "meanChars": 474.23,
+            "meanTime": 46735.03,
+            "p50Time": 51754.93,
+            "p95Time": 60046.38,
+            "pricePerThousand": 1.5
+          },
+          "passed": null,
+          "confidenceIntervals": {
+            "mrr5": {
+              "lower": 0.239,
+              "upper": 0.299,
+              "level": 0.95
+            }
+          },
+          "billingDescription": "USD 1.50 per 1,000 successful searches, quoted in the linked evaluation report. Not a verified current tariff."
+        },
+        {
+          "id": "yuanbao-lite",
+          "name": "Yuanbao Search · Lite",
+          "description": "Yuanbao Search lite configuration",
+          "mode": "L1 · Search API",
+          "scores": {
+            "mrr5": 0.18,
+            "hit5": 26.0,
+            "answerMatch5": 64.6,
+            "meanChars": 4197.76,
+            "meanTime": 563.7,
+            "p50Time": 515.8,
+            "p95Time": 816.14,
+            "pricePerThousand": 2.1
+          },
+          "passed": null,
+          "confidenceIntervals": {
+            "mrr5": {
+              "lower": 0.156,
+              "upper": 0.206,
+              "level": 0.95
+            }
+          },
+          "billingDescription": "USD 2.10 per 1,000 successful searches, quoted in the linked evaluation report. Not a verified current tariff."
+        },
+        {
+          "id": "deepseek-content",
+          "name": "DeepSeek Search + content",
+          "description": "DeepSeek search with supplemental content enabled",
+          "mode": "L1 · Search API",
+          "scores": {
+            "mrr5": 0.173,
+            "hit5": 27.3,
+            "answerMatch5": 73.1,
+            "meanChars": 2006.31,
+            "meanTime": 418.2,
+            "p50Time": 383.09,
+            "p95Time": 743.11,
+            "pricePerThousand": 0.75
+          },
+          "passed": null,
+          "confidenceIntervals": {
+            "mrr5": {
+              "lower": 0.151,
+              "upper": 0.197,
+              "level": 0.95
+            }
+          },
+          "billingDescription": "USD 0.75 per 1,000 successful searches, quoted in the linked evaluation report. Not a verified current tariff."
+        },
+        {
+          "id": "yuanbao-standard",
+          "name": "Yuanbao Search · Standard",
+          "description": "Yuanbao Search standard configuration",
+          "mode": "L1 · Search API",
+          "scores": {
+            "mrr5": 0.151,
+            "hit5": 24.5,
+            "answerMatch5": 64.6,
+            "meanChars": 4285.2,
+            "meanTime": 811.89,
+            "p50Time": 759.4,
+            "p95Time": 1063.69,
+            "pricePerThousand": 3.0
+          },
+          "passed": null,
+          "confidenceIntervals": {
+            "mrr5": {
+              "lower": 0.13,
+              "upper": 0.173,
+              "level": 0.95
+            }
+          },
+          "billingDescription": "USD 3.00 per 1,000 successful searches, quoted in the linked evaluation report. Not a verified current tariff."
+        },
+        {
+          "id": "bocha-ai",
+          "name": "Bocha AI Search",
+          "description": "Bocha AI Search: search results, supplemental text and generated answers",
+          "mode": "L1 · Search API",
+          "scores": {
+            "mrr5": 0.117,
+            "hit5": 19.5,
+            "answerMatch5": 15.7,
+            "meanChars": 856.81,
+            "meanTime": 14624.48,
+            "p50Time": 12383.23,
+            "p95Time": 30132.83,
+            "pricePerThousand": 8.99
+          },
+          "passed": null,
+          "confidenceIntervals": {
+            "mrr5": {
+              "lower": 0.098,
+              "upper": 0.137,
+              "level": 0.95
+            }
+          },
+          "billingDescription": "USD 8.99 per 1,000 requests, quoted in the linked evaluation report. Not a verified current tariff."
+        },
+        {
+          "id": "bocha-summary",
+          "name": "Bocha Web Search + summary",
+          "description": "Bocha Web Search with summary enabled",
+          "mode": "L1 · Search API",
+          "scores": {
+            "mrr5": 0.004,
+            "hit5": 0.5,
+            "answerMatch5": 3.6,
+            "meanChars": 679.75,
+            "meanTime": 242.28,
+            "p50Time": 225.42,
+            "p95Time": 309.42,
+            "pricePerThousand": 5.4
+          },
+          "passed": null,
+          "confidenceIntervals": {
+            "mrr5": {
+              "lower": 0.0,
+              "upper": 0.008,
+              "level": 0.95
+            }
+          },
+          "billingDescription": "USD 5.40 per 1,000 requests, quoted in the linked evaluation report. Not a verified current tariff."
+        }
+      ],
+      "sourceMatches": {
+        "lexmount": {
+          "original": 603,
+          "equivalent": 9,
+          "replica": 1,
+          "missing": 160
+        },
+        "browserbase": {
+          "original": 590,
+          "equivalent": 29,
+          "replica": 0,
+          "missing": 154
+        },
+        "serper": {
+          "original": 620,
+          "equivalent": 2,
+          "replica": 0,
+          "missing": 151
+        },
+        "brightdata": {
+          "original": 233,
+          "equivalent": 0,
+          "replica": 0,
+          "missing": 540
+        },
+        "yuanbao-standard": {
+          "original": 66,
+          "equivalent": 72,
+          "replica": 51,
+          "missing": 584
+        },
+        "yuanbao-lite": {
+          "original": 72,
+          "equivalent": 101,
+          "replica": 28,
+          "missing": 572
+        },
+        "deepseek-content": {
+          "original": 177,
+          "equivalent": 26,
+          "replica": 8,
+          "missing": 562
+        },
+        "bocha-summary": {
+          "original": 4,
+          "equivalent": 0,
+          "replica": 0,
+          "missing": 769
+        },
+        "bocha-ai": {
+          "original": 51,
+          "equivalent": 56,
+          "replica": 44,
+          "missing": 622
+        }
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "id": "overview-table",
+      "section": "Artifact v16 overview / L1 / facts",
+      "text": "Published rows: [[\"serper\", [0.723, 0.693, 0.753, 80.5, 68.8, 919.67, 2238.12, 2038.57, 3677.01]], [\"lexmount\", [0.658, 0.628, 0.688, 79.3, 71.4, 1458.8, 1448.1, 1395.88, 1899.67]], [\"browserbase\", [0.547, 0.519, 0.576, 80.1, 20.4, 255.11, 3990.29, 3878.1, 5426.26]], [\"brightdata\", [0.268, 0.239, 0.299, 30.1, 27.7, 474.23, 46735.03, 51754.93, 60046.38]], [\"yuanbao-lite\", [0.18, 0.156, 0.206, 26.0, 64.6, 4197.76, 563.7, 515.8, 816.14]], [\"deepseek-content\", [0.173, 0.151, 0.197, 27.3, 73.1, 2006.31, 418.2, 383.09, 743.11]], [\"yuanbao-standard\", [0.151, 0.13, 0.173, 24.5, 64.6, 4285.2, 811.89, 759.4, 1063.69]], [\"bocha-ai\", [0.117, 0.098, 0.137, 19.5, 15.7, 856.81, 14624.48, 12383.23, 30132.83]], [\"bocha-summary\", [0.004, 0.0, 0.008, 0.5, 3.6, 679.75, 242.28, 225.42, 309.42]]]. The first three numbers in L1/L2 rows are the primary score and the lower/upper 95% interval; all other fields follow the displayed table order. L3 has no published interval."
+    },
+    {
+      "id": "methodology",
+      "section": "Methodology and dataset scope",
+      "text": "149 scenario questions; 831 collected factual questions, of which 773 have valid reference information. Different collection dates and concurrency are retained. Full-page bodies are not part of the scoring input."
+    },
+    {
+      "id": "source-match-breakdown",
+      "section": "Retrieval quality / annotated source matching",
+      "text": "{\"lexmount\": [603, 9, 1, 160], \"browserbase\": [590, 29, 0, 154], \"serper\": [620, 2, 0, 151], \"brightdata\": [233, 0, 0, 540], \"yuanbao-standard\": [66, 72, 51, 584], \"yuanbao-lite\": [72, 101, 28, 572], \"deepseek-content\": [177, 26, 8, 562], \"bocha-summary\": [4, 0, 0, 769], \"bocha-ai\": [51, 56, 44, 622]}. Values are original URL, equivalent URL, verified same-page copy and missing source; each row totals 773."
+    }
+  ],
+  "translations": {
+    "zh": {
+      "Scores 773 valid factual questions from 831 collected questions; 58 questions with defective reference information are excluded from quality scoring. Latency retains all 831 factual calls. Annotated-source matching includes equivalent URLs and verified copies of the same page. Exact correspondence to a pinned dataset revision remains unverified.": "831 道已采集事实题中，58 道参考信息存在缺陷，质量评分排除这些题，采用 773 道有效题；延迟仍统计全部 831 次调用。来源匹配计入等价网址和已核验同页副本。尚未核实与固定数据集修订版本的逐条对应关系。",
+      "Layers are scored independently; L1, L2 and L3 scores are not added together.": "各层独立评分，L1、L2、L3 分数不相加。",
+      "Methods were collected in separate batches on different dates. Bocha AI Search used concurrency 4; the other methods used concurrency 1. Latencies are observed batch measurements, not a controlled same-window speed comparison.": "各方法在不同日期分批采集。博查 AI 搜索并发为 4，其他方法为 1。延迟是各自批次的观测值，并非同一时间窗口的受控速度对比。",
+      "L2 and L3 reuse the latency of the underlying API call rather than measuring a separate layer execution.": "L2 和 L3 沿用底层 API 调用耗时，不表示单独执行该层的时间。",
+      "Quoted prices use different billing units: per request or per successful search. They are not realized total evaluation costs.": "报价分别按请求或成功检索计费，不是本轮评测实际总成本。",
+      "Confidence intervals are the 95% intervals printed in the report. A displayed leader is not a claim of statistical significance.": "置信区间为报告列出的 95% 区间，榜首不等于具有统计显著性。",
+      "Retains all collected calls, including factual questions excluded from quality scoring. Methods were collected on different dates and with different concurrency.": "保留全部已采集调用，包括质量评分排除的事实题。各方法采集日期与并发不同。",
+      "USD 1.00 per 1,000 successful searches, quoted in the linked evaluation report. Not a verified current tariff.": "每千次成功搜索 1.00 美元，按链接报告报价记录，未核验当前价格。",
+      "USD 0.75 per 1,000 requests, quoted in the linked evaluation report. Not a verified current tariff.": "每千次请求 0.75 美元，按链接报告报价记录，未核验当前价格。",
+      "USD 5.00 per 1,000 successful searches, quoted in the linked evaluation report. Not a verified current tariff.": "每千次成功搜索 5.00 美元，按链接报告报价记录，未核验当前价格。",
+      "USD 1.50 per 1,000 successful searches, quoted in the linked evaluation report. Not a verified current tariff.": "每千次成功搜索 1.50 美元，按链接报告报价记录，未核验当前价格。",
+      "USD 2.10 per 1,000 successful searches, quoted in the linked evaluation report. Not a verified current tariff.": "每千次成功搜索 2.10 美元，按链接报告报价记录，未核验当前价格。",
+      "USD 0.75 per 1,000 successful searches, quoted in the linked evaluation report. Not a verified current tariff.": "每千次成功搜索 0.75 美元，按链接报告报价记录，未核验当前价格。",
+      "USD 3.00 per 1,000 successful searches, quoted in the linked evaluation report. Not a verified current tariff.": "每千次成功搜索 3.00 美元，按链接报告报价记录，未核验当前价格。",
+      "USD 8.99 per 1,000 requests, quoted in the linked evaluation report. Not a verified current tariff.": "每千次请求 8.99 美元，按链接报告报价记录，未核验当前价格。",
+      "USD 5.40 per 1,000 requests, quoted in the linked evaluation report. Not a verified current tariff.": "每千次请求 5.40 美元，按链接报告报价记录，未核验当前价格。"
+    }
+  }
+}
