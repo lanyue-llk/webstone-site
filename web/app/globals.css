@@ -377,7 +377,7 @@ h1 { font-size: 30px; line-height: 1.2; }
 .comparison-methods { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 .comparison-methods label { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border: 1px solid #e0e7df; border-radius: 4px; font-size: 11px; color: #5e6e62; background: white; }
 .comparison-methods label:has(input:checked) { color: var(--series-color); border-color: var(--series-color); }.comparison-methods input { accent-color: var(--series-color); }.comparison-methods small { color: #919991; }
-.insight-grid.single-chart { grid-template-columns: minmax(0, 700px); }.insight-card { padding: 18px; }.card-heading select { max-width: 170px; border: 1px solid #dbe4db; border-radius: 4px; background: white; color: #54715c; padding: 4px; font-size: 11px; }
+.insight-grid.single-chart { grid-template-columns: minmax(0, 900px); justify-content: center; }.insight-card { padding: 18px; }.card-heading select { max-width: 170px; border: 1px solid #dbe4db; border-radius: 4px; background: white; color: #54715c; padding: 4px; font-size: 11px; }
 .comparison-figure { margin: 0; }.comparison-figure svg { display: block; width: 100%; height: 320px; overflow: visible; }.comparison-figure figcaption, .chart-note { font-size: 11px; color: #7a857d; line-height: 1.6; }
 .radar-grid { fill: none; stroke: #e1e9e1; stroke-width: 1; }.radar-axis { stroke: #dde6dd; stroke-width: 1; }.radar-shape { fill: currentColor; fill-opacity: .09; stroke: currentColor; stroke-width: 2; }
 .axis-label { font-size: 12px; fill: #596b5e; }.axis-tick { font-size: 11px; fill: #718078; }
@@ -412,7 +412,7 @@ h1 { font-size: 30px; line-height: 1.2; }
 .dialog-heading .icon-button { width: 30px; height: 30px; border: 1px solid #e1e7df; border-radius: 50%; background: #f6f8f4; }
 .method-meta { margin: 0 0 12px; }.method-meta > div { margin-bottom: 10px; }
 .method-metrics { display: block; margin: 0; }.method-metrics > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 10px 0; }.method-metrics dd { margin: 0; font-size: 14px; text-align: right; }.method-metrics dt { line-height: 1.8; }
-.insight-grid { align-items: stretch; }.insight-card { display: flex; flex-direction: column; }.insight-card .chart-note { margin-top: 10px; }.insight-card .card-heading { margin-bottom: 8px; }.comparison-figure svg { height: 290px; }
+.insight-grid { align-items: stretch; }.insight-card { display: flex; flex-direction: column; }.insight-card .chart-note { margin-top: 10px; }.insight-card .card-heading { margin-bottom: 8px; }.comparison-figure svg { height: 340px; }
 @media (max-width: 760px) {
   .benchmark-tabs-bar { padding: 8px 18px 0; gap: 10px; }.benchmark-tabs-bar .benchmark-navigation { gap: 14px; }.benchmark-tabs-bar .benchmark-navigation button { font-size: 12px; padding: 10px 0; }
   .topbar { padding-top: 16px; padding-bottom: 14px; }.main-content { padding-top: 12px; }.result-meta { gap: 6px 12px; }.version-control { margin-left: 0; }
@@ -424,3 +424,7 @@ h1 { font-size: 30px; line-height: 1.2; }
 .bubble-legend { margin: 10px 0 0; font-size: 11px; line-height: 1.7; color: #5d705f; }
 
 @media (max-width: 760px) { .wide-table { --data-column-width: 110px; } }
+
+/* Keep axis and selected-method labels readable in both comparison cards. */
+.axis-label, .axis-tick { font-size: 14px; }
+.point-number { font-size: 13px; }
