@@ -11,7 +11,7 @@ import ReleaseCheck from "./release-check";
 import { RELEASE } from "../lib/release.generated";
 import { translator } from "../lib/i18n";
 import { useLanguage } from "../lib/use-language";
-import { overviewMetrics } from "../lib/comparisons";
+import { columnMetrics } from "../lib/comparisons";
 
 const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2 };
 const GITHUB_URL = "https://github.com/lexmount/browser-eval-site";
@@ -89,7 +89,7 @@ export default function Dashboard() {
   const providers = benchmark && metric ? sortProviders(benchmark.providers, metric.id, direction) : [];
   const categories = columnView === "overview" ? [] : benchmark?.categories ?? [];
   const primaryMetric = benchmark?.metrics.find(item => item.id === benchmark.primaryMetric);
-  const visibleMetrics = benchmark ? columnView === "all" ? benchmark.metrics : columnView === "categories" ? benchmark.metrics.filter(item => item.id === benchmark.primaryMetric || item.id === selection.metric) : [...new Map([...overviewMetrics(benchmark.metrics, benchmark.primaryMetric), ...benchmark.metrics.filter(item => item.id === selection.metric)].map(item => [item.id, item])).values()] : [];
+  const visibleMetrics = columnMetrics(benchmark, columnView, selection.metric);
   const leadingMetrics = benchmark && primaryMetric
     ? [primaryMetric, ...visibleMetrics.filter(item => item.id !== primaryMetric.id && benchmark.leadingMetricIds?.includes(item.id))]
     : [];
@@ -99,8 +99,8 @@ export default function Dashboard() {
   const metricBest = new Map((benchmark?.metrics ?? []).map(item => [item.id, item.highlightBest === false ? null : bestValue((benchmark?.providers ?? []).map(provider => provider.scores[item.id]), item.direction)]));
   const categoryBest = new Map(categories.map(category => [category.id, bestValue((benchmark?.providers ?? []).map(provider => provider.categoryPassed?.[category.id] ?? null), "desc")]));
   const passedBest = bestValue((benchmark?.providers ?? []).map(provider => provider.passed), "desc");
-  const showPassed = columnView === "all" && (benchmark?.providers.some(provider => provider.passed != null) ?? false);
-  const showPricing = columnView !== "categories" && (benchmark?.providers.some(provider => provider.pricing != null) ?? false);
+  const showPassed = columnView === "all" && (benchmark?.providers.some(provider => provider.passed !== null && provider.passed !== undefined) ?? false);
+  const showPricing = columnView !== "categories" && (benchmark?.providers.some(provider => provider.pricing !== null && provider.pricing !== undefined) ?? false);
   const tableClass = benchmark?.id === "lexbench-webfetch"
     ? "wide-table lexbench-table"
     : benchmark?.id === "webarena-verified" ? "wide-table arena-table"
@@ -242,7 +242,7 @@ export default function Dashboard() {
                 {benchmark.categories.length > 0 && <button aria-pressed={columnView === "categories"} onClick={() => setColumnView("categories")}>{t("Categories")}</button>}
                 <button aria-pressed={columnView === "all"} onClick={() => setColumnView("all")}>{t("All metrics")}</button>
               </div></div>
-              <p className="sample-scope">{benchmark.metrics.filter(item => result?.metricSamples?.[item.id]?.sampleCount != null && result.metricSamples[item.id].sampleCount !== benchmark.taskCount).map(item => `${item.label}: ${result!.metricSamples![item.id].sampleCount} ${t("samples")}`).join(" · ")}</p>
+              <p className="sample-scope">{benchmark.metrics.filter(item => result?.metricSamples?.[item.id]?.sampleCount !== null && result?.metricSamples?.[item.id]?.sampleCount !== undefined && result.metricSamples[item.id].sampleCount !== benchmark.taskCount).map(item => `${item.label}: ${result!.metricSamples![item.id].sampleCount} ${t("samples")}`).join(" · ")}</p>
               {benchmark.trackId === "websearch" && snapshot?.source.kind === "report-page" && <p className="scope-warning">{t("Different collection dates and concurrency: these timings are not a controlled same-window speed comparison.")}</p>}
               <div className="table-scroll">
                 <table className={tableClass} style={{ "--data-columns": categories.length + visibleMetrics.length + Number(showPassed) + Number(showPricing) } as React.CSSProperties}>

@@ -9,6 +9,7 @@ const chinese: Record<string, string> = {
   "Capability profile": "能力对比", "Quality and resources": "质量与资源", "Source coverage and quality": "来源覆盖与质量", "Original source coverage": "原始来源覆盖率",
   "Horizontal axis": "横轴指标", "log scale": "对数刻度",
   "Confidence intervals are available in method details.": "置信区间可在方案详情中查看。",
+  "Confidence interval": "置信区间",
   "Category pass rates use each category's own sample count.": "各类别通过率使用各自的样本数。",
   "Axes show 0–100% of each metric's defined range, without combining them into a score.": "各轴按指标定义范围换算为 0–100%，不合成为总分。",
   "Observed measurements; methods may use different execution and billing conditions.": "图中为实际测量值，各方案的运行及计费条件可能不同。",

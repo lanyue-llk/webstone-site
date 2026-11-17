@@ -16,7 +16,11 @@ function radarAxes(benchmark: Benchmark): Axis[] {
   }));
   return qualityMetrics(benchmark).map(metric => ({
     id: metric.id, label: metric.label,
-    value: provider => provider.scores[metric.id] == null ? null : provider.scores[metric.id]! / qualityScale(metric),
+    value: provider => {
+      const score = provider.scores[metric.id];
+      if (score === null || score === undefined) return null;
+      return score / qualityScale(metric);
+    },
     display: provider => formatMetric(provider.scores[metric.id], metric.unit, metric.decimals),
   }));
 }
@@ -35,7 +39,10 @@ function Radar({ axes, providers, t }: { axes: Axis[]; providers: Provider[]; t:
         const words = axis.label.split(" ");
         const split = Math.ceil(words.length / 2);
         const lines = axis.label.length > 17 ? [words.slice(0, split).join(" "), words.slice(split).join(" ")] : [axis.label];
-        return <g key={axis.id}><line x1="0" y1="0" x2={x} y2={y} className="radar-axis" /><text x={labelX} y={labelY} textAnchor={labelX > 10 ? "start" : labelX < -10 ? "end" : "middle"} className="axis-label">{lines.map((line, i) => <tspan key={i} x={labelX} dy={i ? 13 : 0}>{line}</tspan>)}</text></g>;
+        let anchor: "start" | "end" | "middle" = "middle";
+        if (labelX > 10) anchor = "start";
+        if (labelX < -10) anchor = "end";
+        return <g key={axis.id}><line x1="0" y1="0" x2={x} y2={y} className="radar-axis" /><text x={labelX} y={labelY} textAnchor={anchor} className="axis-label">{lines.map((line, i) => <tspan key={i} x={labelX} dy={i ? 13 : 0}>{line}</tspan>)}</text></g>;
       })}
       {providers.map((provider, index) => <g key={provider.id} style={{ color: colors[index] }}>
         <polygon points={axes.map((axis, i) => point(i, axis.value(provider)! * 112).join(",")).join(" ")} className="radar-shape"><title>{provider.name}</title></polygon>
@@ -57,13 +64,16 @@ function Scatter({ benchmark, selected, t }: Props & { selected: Provider[] }) {
   const rows = benchmark.providers.flatMap(provider => {
     const x = coverage ? benchmark.sourceMatches![provider.id].original / benchmark.taskCount * 100 : provider.scores[xMetric!.id];
     const y = provider.scores[primary.id];
-    return x == null || y == null ? [] : [{ provider, x, y }];
+    if (x === null || x === undefined || y === null || y === undefined) return [];
+    return [{ provider, x, y }];
   });
   if (rows.length < 2) return null;
   const minimum = Math.min(...rows.map(row => row.x)), maximum = Math.max(...rows.map(row => row.x));
   const log = !coverage && minimum > 0 && maximum / minimum > 10;
   const low = log ? Math.floor(Math.log10(minimum)) : 0;
-  const high = coverage ? 100 : log ? Math.ceil(Math.log10(maximum)) : Math.max(1, maximum * 1.08);
+  let high = Math.max(1, maximum * 1.08);
+  if (log) high = Math.ceil(Math.log10(maximum));
+  if (coverage) high = 100;
   const xPosition = (value: number) => 60 + ((log ? Math.log10(value) : value) - low) / (high - low || 1) * 360;
   const yMaximum = qualityScale(primary);
   const xLabel = coverage ? t("Original source coverage") : xMetric!.label;
@@ -81,13 +91,17 @@ function Scatter({ benchmark, selected, t }: Props & { selected: Provider[] }) {
         return <g key={provider.id}>{interval && <line x1={xPosition(x)} x2={xPosition(x)} y1={260 - interval.lower / yMaximum * 220} y2={260 - interval.upper / yMaximum * 220} stroke={index < 0 ? "#c7cec9" : colors[index]} strokeWidth="2"><title>{`${interval.level * 100}% CI: ${interval.lower}–${interval.upper}`}</title></line>}<circle cx={xPosition(x)} cy={260 - y / yMaximum * 220} r={index < 0 ? 5 : 9} fill={index < 0 ? "#c7cec9" : colors[index]} stroke="white" strokeWidth="1.5" tabIndex={0} aria-label={label}><title>{label}</title></circle>{index >= 0 && <text x={xPosition(x)} y={264 - y / yMaximum * 220} textAnchor="middle" className="point-number" aria-hidden="true">{index + 1}</text>}</g>;
       })}
     </svg><figcaption>{t(coverage ? "The horizontal axis is the share of evaluated cases with an original source URL. It does not imply causation." : "Observed measurements; methods may use different execution and billing conditions.")}</figcaption></figure>
+    <table className="sr-only"><caption>{`${primary.label} / ${xLabel}`}</caption><thead><tr><th>{t("Method")}</th><th>{xLabel}</th><th>{primary.label}</th><th>{t("Confidence interval")}</th></tr></thead><tbody>{rows.map(({ provider, x, y }) => {
+      const interval = provider.confidenceIntervals?.[primary.id];
+      return <tr key={provider.id}><th scope="row">{provider.name}</th><td>{formatX(x)}</td><td>{formatMetric(y, primary.unit, primary.decimals)}</td><td>{interval ? `${interval.level * 100}%: ${formatMetric(interval.lower, primary.unit, primary.decimals)}–${formatMetric(interval.upper, primary.unit, primary.decimals)}` : "—"}</td></tr>;
+    })}</tbody></table>
   </article>;
 }
 
 export default function Insights({ benchmark, t }: Props) {
   const axes = radarAxes(benchmark);
   const hasRadar = axes.length >= 3;
-  const eligible = benchmark.providers.filter(provider => !hasRadar || axes.every(axis => axis.value(provider) != null));
+  const eligible = benchmark.providers.filter(provider => !hasRadar || axes.every(axis => axis.value(provider) !== null));
   const [ids, setIds] = useState(() => sortProviders(eligible, benchmark.primaryMetric, benchmark.metrics.find(metric => metric.id === benchmark.primaryMetric)!.direction).slice(0, 3).map(provider => provider.id));
   const selected = ids.flatMap(id => eligible.find(provider => provider.id === id) ?? []);
   const hasScatter = Boolean(benchmark.sourceMatches) || benchmark.metrics.some(metric => ["seconds", "ms", "mib"].includes(metric.unit) && metric.highlightBest !== false);
