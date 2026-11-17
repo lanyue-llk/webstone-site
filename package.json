@@ -1,5 +1,5 @@
 {
-  "name": "browser-eval-site",
+  "name": "webstone-site",
   "private": true,
   "workspaces": [
     "web"

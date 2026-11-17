@@ -4,7 +4,7 @@ Instructions for agents and contributors working in this repository.
 
 ## What this is
 
-The Webstone companion website: a static leaderboard for twelve benchmark views across four local Tracks, plus an external BrowserArena Track. Browser side: **LexBench Web Fetch** (live websites, 430 cases across seven categories in its published version) and **WebMainBench** (545 frozen HTML pages, five scored dimensions). Search side: **LexBench Web Search** (149 scenario queries, nDCG@5 / Precision@5 / Success@5) and **SimpleQA Verified** (773 factual queries, Hit@5 / MRR@5 / Answer Match@5). Agent side: **LexBench WebArena Replay** (812 tasks from [ServiceNow/webarena-verified](https://github.com/ServiceNow/webarena-verified), success rate plus end-to-end task and per-action latency at mean / P50 / P95). **LexBench Headless Browser** covers a 372-task subset of the historical [Lexbench Headless Browser](https://github.com/lexmount/Lexbench-Headless-Browser) protocol with signed deltas against a baseline row, PSS in MiB and latency in milliseconds. The evaluation harness that produces the results lives in [lexmount/browser-eval](https://github.com/lexmount/browser-eval); this repository only publishes the numbers and renders them.
+The Webstone companion website: a static leaderboard for twelve benchmark views across four local Tracks, plus an external BrowserArena Track. Browser side: **LexBench Web Fetch** (live websites, 430 cases across seven categories in its published version) and **WebMainBench** (545 frozen HTML pages, five scored dimensions). Search side: **LexBench Web Search** (149 scenario queries, nDCG@5 / Precision@5 / Success@5) and **SimpleQA Verified** (773 factual queries, Hit@5 / MRR@5 / Answer Match@5). Agent side: **LexBench WebArena Replay** (812 tasks from [ServiceNow/webarena-verified](https://github.com/ServiceNow/webarena-verified), success rate plus end-to-end task and per-action latency at mean / P50 / P95). **LexBench Headless Browser** covers a 372-task subset of the historical [Lexbench Headless Browser](https://github.com/lexmount/Lexbench-Headless-Browser) protocol with signed deltas against a baseline row, PSS in MiB and latency in milliseconds. The evaluation harness that produces the results lives in [lexmount/webstone](https://github.com/lexmount/webstone); this repository only publishes the numbers and renders them.
 
 Page titles use natural English (`Web Fetch`, `Web Search`). Internal IDs stay lowercase and hyphenated (`webfetch`, `websearch`, `lexbench-webfetch`). Never derive a page title by joining a code identifier.
 
@@ -80,7 +80,7 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 
 ## Security
 
-- No tokens, keys or credentials in code, data, documentation or commits. `.env*` files stay local. The GitHub link at the bottom of the navigation always points to `https://github.com/lexmount/browser-eval-site`.
+- No tokens, keys or credentials in code, data, documentation or commits. `.env*` files stay local. The GitHub link at the bottom of the navigation always points to `https://github.com/lexmount/webstone-site`.
 
 ## Result submissions
 

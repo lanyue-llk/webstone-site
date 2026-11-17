@@ -2,7 +2,7 @@
 
 The companion website for [Webstone](https://github.com/lexmount/webstone), publishing browser, search and structured extraction benchmark results in sortable tables.
 
-Twelve local benchmark views across four Tracks are published on this site. A fifth Track, BrowserArena, opens the independently deployed benchmark site in a new tab. The evaluation harness is [lexmount/browser-eval](https://github.com/lexmount/browser-eval).
+Twelve local benchmark views across four Tracks are published on this site. A fifth Track, BrowserArena, opens the independently deployed benchmark site in a new tab. The evaluation harness is [lexmount/webstone](https://github.com/lexmount/webstone).
 
 ## Benchmarks
 
@@ -206,7 +206,7 @@ Discovery runs at startup/build time so the site stays fully static. `prepare:da
 
 For a new Benchmark or evaluation definition, add its metadata to `benchmarks/catalog.json` first, including `datasetName` matching the final segment of `datasetUrl`. Editing an introduction or related resource link only requires changing the catalog. Restart the dev server or rebuild after changing data or configuration.
 
-Language controls and the GitHub link sit at the bottom of the navigation, including the mobile menu. The GitHub link always points to this website's source at <https://github.com/lexmount/browser-eval-site>.
+Language controls and the GitHub link sit at the bottom of the navigation, including the mobile menu. The GitHub link always points to this website's source at <https://github.com/lexmount/webstone-site>.
 
 Each benchmark has separate dataset and report links below its introduction,
 stored as `datasetName`, `datasetUrl` and `reportUrl` in `benchmarks/catalog.json`.
@@ -222,6 +222,6 @@ Tokens are only ever used outside this repository and are never stored in data, 
 
 ## Reviewed result submissions
 
-Use the [submission guide](docs/submitting-results.md) or the site's Submit your result page. Internal and external contributors use `webstone results` from the Webstone CLI/SDK, personal-fork PRs, trusted data checks and maintainer approval. Published files are immutable; corrections add the next per-benchmark version. The CLI assigns publication identity without changing measured values. No website login or submission database is introduced. Protect main with the required review and check settings described in the guide; workflows alone do not enable that policy.
+Use the [submission skill](.agents/skills/submit-webstone-result/SKILL.md) and [PR guide](docs/submitting-results.md). An agent prepares public measured JSON and opens a fork PR; Git, GitHub and Node.js are sufficient. Webstone CLI/SDK helpers are optional. Published results are immutable and corrections add a new edition. CI validates the contract; maintainers control merging and Rainbond deployment. See [Webstone](https://github.com/lexmount/webstone) for the broader evaluation, report and dataset workflow.
 
 Result editions use independent semantic versions and explicit publication/import dates. See [Result versioning](docs/result-versioning.md).

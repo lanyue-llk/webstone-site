@@ -14,7 +14,7 @@ import { useLanguage } from "../lib/use-language";
 import { decisionMetrics } from "../lib/comparisons";
 
 const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2 };
-const GITHUB_URL = "https://github.com/lexmount/browser-eval-site";
+const GITHUB_URL = "https://github.com/lexmount/webstone-site";
 type Selection = { benchmark: string; version: string; metric: string };
 
 export default function Dashboard() {
