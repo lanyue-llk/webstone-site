@@ -418,3 +418,6 @@ h1 { font-size: 30px; line-height: 1.2; }
   .topbar { padding-top: 16px; padding-bottom: 14px; }.main-content { padding-top: 12px; }.result-meta { gap: 6px 12px; }.version-control { margin-left: 0; }
   .method-dialog { inset: auto 12px 12px; width: calc(100% - 24px); max-height: calc(100dvh - 24px); margin: 0; padding: 18px; }.comparison-figure svg { height: 260px; }
 }
+.profile-details, .coverage-details { margin-top: 16px; font-size: 12px; color: #44624b; }
+.profile-details > summary, .coverage-details > summary { cursor: pointer; padding: 8px 0; }
+.profile-details .insight-card, .coverage-details .insight-card { max-width: 720px; }
