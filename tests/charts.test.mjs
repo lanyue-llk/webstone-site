@@ -79,7 +79,24 @@ test("signed resource deltas stay inside the plot instead of being clipped below
   };
   const plot = render(text => text, data).match(/<svg[^>]*aria-label="accuracy \/ Memory delta"[^>]*>([\s\S]*?)<\/svg>/)?.[1];
   assert.ok(plot);
-  for (const match of plot.matchAll(/cx="([^"]+)"/g)) assert.ok(Number(match[1]) >= 60 && Number(match[1]) <= 420);
+  const markers = [...plot.matchAll(/<circle[^>]*cx="([^"]+)"[^>]*aria-label="([^"]+)"[^>]*>/g)];
+  assert.equal(markers.length, 3);
+  for (const provider of data.providers) assert.ok(markers.some(marker => marker[2].startsWith(`${provider.name} ·`)), provider.name);
+  const negative = markers.find(marker => marker[2].startsWith("Missing profile ·"));
+  assert.ok(negative);
+  assert.equal(Number(negative[1]), 60);
+  for (const marker of markers) assert.ok(Number(marker[1]) >= 60 && Number(marker[1]) <= 420);
+});
+
+test("a sparse selected axis retains the selector so another metric remains reachable", () => {
+  const data = { ...benchmark, metrics: [...metrics, { id: "other", label: "Other latency", unit: "ms", direction: "asc" }],
+    providers: benchmark.providers.map((provider, index) => ({ ...provider, scores: { ...provider.scores, p50: index === 1 ? 10 : null, other: index + 1 } })),
+  };
+  const card = render(text => text, data).match(/<article class="insight-card scatter-card">([\s\S]*?)<\/article>/)?.[1];
+  assert.ok(card);
+  assert.match(card, /At least two methods with both axis values/);
+  assert.match(card, /<select aria-label="Horizontal axis"/);
+  assert.match(card, /<option value="other">Other latency<\/option>/);
 });
 
 test("sub-cent quotes use their own axis range and retain readable price labels", () => {

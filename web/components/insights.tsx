@@ -78,6 +78,7 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
   if (xMetric?.unit === "mib") title = "Quality and resources";
   if (coverage) title = "Source coverage and quality";
   if (cost) title = "Accuracy and cost";
+  const heading = <div className="card-heading"><h3>{t(title)}</h3>{!cost && !coverage && candidates.length > 1 && <select aria-label={t("Horizontal axis")} value={xMetric!.id} onChange={event => setXId(event.target.value)}>{candidates.map(metric => <option key={metric.id} value={metric.id}>{t(metric.label)}</option>)}</select>}</div>;
   const missingQuality = benchmark.providers.filter(provider => provider.scores[primary.id] === null || provider.scores[primary.id] === undefined);
   const disclosures = <>
     {cost && <p className="chart-note">{t("Cost unavailable")}: {benchmark.providers.filter(provider => !costBounds(provider)).map(provider => provider.name).join(", ") || t("None")}</p>}
@@ -93,7 +94,7 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
     return [{ provider, x, y, upper: range?.[1] ?? x }];
   });
   if (rows.length < 2) return <article className="insight-card scatter-card">
-    <h3>{t(title)}</h3><p className="chart-note" role="status">{t("At least two methods with both axis values are needed to compare.")}</p>
+    {heading}<p className="chart-note" role="status">{t("At least two methods with both axis values are needed to compare.")}</p>
     {disclosures}
   </article>;
   const maximumCost = Math.max(0, ...rows.flatMap(row => costBounds(row.provider) ?? []));
@@ -113,7 +114,7 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
     return formatMetric(value, xMetric!.unit, xMetric!.decimals);
   }
   return <article className="insight-card scatter-card">
-    <div className="card-heading"><h3>{t(title)}</h3>{!cost && !coverage && candidates.length > 1 && <select aria-label={t("Horizontal axis")} value={xMetric!.id} onChange={event => setXId(event.target.value)}>{candidates.map(metric => <option key={metric.id} value={metric.id}>{t(metric.label)}</option>)}</select>}</div>
+    {heading}
     <figure className="comparison-figure"><svg viewBox="0 0 480 330" role="img" aria-label={`${primary.label} / ${xLabel}`}>
       {[0, .25, .5, .75, 1].map(fraction => <g key={fraction}><line x1="60" x2="420" y1={260 - fraction * 220} y2={260 - fraction * 220} className="radar-grid" /><text x="48" y={264 - fraction * 220} textAnchor="end" className="axis-tick">{formatMetric(yMaximum * fraction, primary.unit, primary.decimals)}</text></g>)}
       {[0, .5, 1].map(fraction => { const value = log ? 10 ** (low + fraction * (high - low)) : low + (high - low) * fraction; return <text key={fraction} x={60 + fraction * 360} y="282" textAnchor="middle" className="axis-tick">{formatX(value)}</text>; })}
