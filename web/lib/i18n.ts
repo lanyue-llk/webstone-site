@@ -7,6 +7,7 @@ const chinese: Record<string, string> = {
   "Cost": "成本", "Accuracy, latency and cost": "准确率、耗时与成本", "Bubble size represents reported cost: smaller is cheaper. Inner/outer circles show a quoted range; hollow markers have no disclosed total cost. Check billing units before comparing.": "气泡越小，报告中的成本越低。内外圈表示报价区间；空心标记表示总成本未披露。比较前请核对计费单位。",
   "More metrics": "更多指标",
   "Quality unavailable": "准确率未披露",
+  "At least two methods with both axis values are needed to compare.": "至少需要两个方案同时披露横纵轴指标，才能进行对比。",
   "Quoted price / 1K": "每千次报价", "Profile data unavailable": "缺少能力维度数据",
   "Category breakdown": "展开分类指标", "Website updated": "网站最新更新", "Version released": "版本发布日期", "Not recorded": "未记录", "Release date not recorded for this historical version.": "此历史版本未记录发布日期。",
   "Cost was not disclosed in this report; unknown does not mean free.": "此报告未披露成本；未知不代表免费。", "Accuracy and cost": "准确率与成本", "Accuracy and latency": "准确率与耗时", "Cost unavailable": "成本未披露", "None": "无",

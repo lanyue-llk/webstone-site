@@ -29,7 +29,7 @@ const benchmark = {
     provider("Known cost missing quality", { accuracy: null, precision: .6, recall: .6, p50: 40 }, { min: 1, max: 1, description: "Per 1K calls" }),
   ],
 };
-const render = t => renderToStaticMarkup(React.createElement(Insights, { benchmark, t }));
+const render = (t, data = benchmark) => renderToStaticMarkup(React.createElement(Insights, { benchmark: data, t }));
 
 test("a missing radar axis does not reassign another selected method's color", () => {
   const html = render(text => text);
@@ -63,4 +63,17 @@ test("one primary bubble plot shows latency, quality and bounded or unknown cost
   assert.match(bubble, /stroke-dasharray="2 2"/);
   assert.match(bubble, /fill="white"[^>]*aria-label="Missing profile/);
   assert.match(html, /Bubble size represents reported cost/);
+});
+
+for (const paired of [0, 1]) test(`cost comparison with ${paired} eligible pairs explains missing measurements`, () => {
+  const data = { ...benchmark, providers: benchmark.providers.map((provider, index) => ({
+    ...provider, scores: { ...provider.scores, accuracy: index === 1 && paired === 1 ? .8 : null },
+  })) };
+  const html = render(text => text, data);
+  const costDetails = html.split("<summary>Accuracy and cost</summary>")[1]?.split("</details>")[0];
+  assert.ok(costDetails);
+  assert.match(costDetails, /At least two methods with both axis values/);
+  assert.match(costDetails, /Cost unavailable.*Missing profile/);
+  assert.match(costDetails, /Quality unavailable.*Known cost missing quality/);
+  assert.doesNotMatch(costDetails, /<svg|NaN|Infinity/);
 });
