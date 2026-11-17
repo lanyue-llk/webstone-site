@@ -80,3 +80,10 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 ## Security
 
 - No tokens, keys or credentials in code, data, documentation or commits. `.env*` files stay local. The top-right GitHub link always points to `https://github.com/lexmount/browser-eval-site`.
+
+## Result submissions
+
+- Internal and external result contributors use the same Webstone CLI/SDK and personal-fork PR flow. The site's submission CTA opens `/submit`; it must not be disguised as a generic repository/source link.
+- Published report files are immutable once merged. Corrections and rollbacks append a new version and explain the change. Result-only PRs may add participant URLs but cannot change definitions or application code.
+- `scripts/check-result-change.mjs` is the trusted base-branch PR boundary. It must inspect candidate Git blobs without running submitted code or receiving deployment credentials. Keep it separate from the ordinary unprivileged website build.
+- New submissions require public HTTPS evidence URLs. Local CLI preflight is not evidence verification; reviewers check measurement provenance and methodology before approval.

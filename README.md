@@ -184,7 +184,7 @@ The catalog's `browserarena` Track links to <https://browserarena.dev.lexmount.n
 
 Published reports, their source/evidence fields and all linked reports are public-facing material. The current data includes transcribed tables and images, unpinned dataset correspondence, undisclosed execution details and quoted pricing. Preserve these limitations; the published tables do not establish full run reproducibility. Raw evaluation logs and datasets are not included here.
 
-The repository currently has no license file. Public visibility alone does not provide an explicit reuse license. The deployment descriptor uses placeholder environment names; keep credentials and webhook URLs in protected platform settings, never in tracked files.
+The website software uses Apache License 2.0, matching Webstone; see `LICENSE` and `NOTICE`. This does not relicense third-party datasets, trademarks or externally linked reports. The deployment descriptor uses placeholder environment names; keep credentials and webhook URLs in protected platform settings, never in tracked files.
 
 See the official [Dockerfile deployment guide](https://www.rainbond.com/docs/how-to-guides/app-deploy/source-code/dockefile).
 
@@ -217,3 +217,7 @@ the displayed numbers; resource links do not replace it. `Download Report`
 downloads the selected version's JSON with its definition references and provenance.
 
 Tokens are only ever used outside this repository and are never stored in data, source or build output.
+
+## Reviewed result submissions
+
+Use the [submission guide](docs/submitting-results.md) or the site's Submit your result page. Internal and external contributors use `webstone results` from the Webstone CLI/SDK, personal-fork PRs, trusted data checks and maintainer approval. Published files are immutable; corrections add the next per-benchmark version. The CLI assigns publication identity without changing measured values. No website login or submission database is introduced. Protect main with the required review and check settings described in the guide; workflows alone do not enable that policy.
