@@ -148,7 +148,7 @@ export function validateSnapshot(snapshot, entry, catalog) {
       if (Object.keys(provider.scores).some(id => !definition.metrics.some(metric => metric.id === id))) throw new Error("Unknown metric score reference");
       for (const metric of definition.metrics) {
         const value = provider.scores[metric.id];
-        const maximum = metric.unit === "ratio" ? 1 : ["percent", "score", "points"].includes(metric.unit) ? 100 : Infinity;
+        const maximum = metric.chartRange?.[1] ?? (metric.unit === "ratio" ? 1 : ["percent", "score", "points"].includes(metric.unit) ? 100 : Infinity);
         const minimum = metric.signed ? -maximum : 0;
         if (value !== null && (typeof value !== "number" || !Number.isFinite(value) || value < minimum || value > maximum)) {
           throw new Error("Invalid or fabricated metric value");
@@ -166,7 +166,7 @@ export function validateSnapshot(snapshot, entry, catalog) {
       for (const [id, interval] of Object.entries(provider.confidenceIntervals ?? {})) {
         const score = provider.scores[id];
         const metric = definition.metrics.find(item => item.id === id);
-        const maximum = metric?.unit === "ratio" ? 1 : ["percent", "score", "points"].includes(metric?.unit) ? 100 : Infinity;
+        const maximum = metric?.chartRange?.[1] ?? (metric?.unit === "ratio" ? 1 : ["percent", "score", "points"].includes(metric?.unit) ? 100 : Infinity);
         if (!metric || score == null || !interval || ![interval.lower, interval.upper, interval.level].every(Number.isFinite) ||
           interval.lower > score || interval.upper < score || (!metric.signed && interval.lower < 0) || interval.upper > maximum || interval.level <= 0 || interval.level >= 1) throw new Error("Invalid confidence interval");
       }

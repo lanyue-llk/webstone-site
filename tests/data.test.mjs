@@ -379,3 +379,15 @@ test("semantic result versions require an honest release date and summary", () =
   assert.throws(() => validateSnapshot({ ...semantic, release: undefined }, nextEntry, catalog), /release summary/);
   for (const version of ["v1.01.0", "v0.1.0", "v1.0", "v1.0.0-beta", "v1.0.0\n"]) assert.throws(() => parseReportFile("lexbench-webfetch", `lexbench-webfetch-${version}-report.json`), /Expected/);
 });
+
+test("explicit metric ranges bound scores and confidence intervals", () => {
+  const bounded = structuredClone(catalog);
+  const metric = bounded.benchmarks[0].definitions.find(item => item.id === snapshot.benchmarks[0].definitionId).metrics.find(item => item.id === "passRate");
+  metric.chartRange = [0, 95];
+  const report = structuredClone(snapshot);
+  report.benchmarks[0].providers[0].scores.passRate = 96;
+  assert.throws(() => validateSnapshot(report, entry, bounded), /Invalid or fabricated metric/);
+  report.benchmarks[0].providers[0].scores.passRate = 90;
+  report.benchmarks[0].providers[0].confidenceIntervals = { passRate: { lower: 85, upper: 96, level: .95 } };
+  assert.throws(() => validateSnapshot(report, entry, bounded), /Invalid confidence interval/);
+});
