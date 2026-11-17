@@ -66,8 +66,8 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 - Each Benchmark opens on its highest version. A version explicitly requested through the URL is shown even when it does not exist, with an English empty state and a `View latest version` action; never silently fall back. A Benchmark with no results also gets an empty state, without an undefined version or a broken latest link.
 - URL state uses `?benchmark=<id>&version=vN&metric=<id>`. Ignore and drop legacy `date` parameters. When a version does not contain the currently selected metric, fall back to that version's default metric and direction.
 - Show `datasetDifference` as a short English paragraph near the Benchmark introduction after the version selection. Keep the Dataset and Evaluation report links visible.
-- All data columns are equal width: the tables use `table-layout: fixed` with a minimum width, so the table scrolls horizontally only when the container is narrower than that minimum. Do not reintroduce auto layout.
-- Row heights are fixed: header 54px and rows 60px on desktop; 44px and 48px below 760px. Keep cells single-line (`white-space: nowrap`).
+- The default table shows a compact set of quality and resource metrics; All metrics and Categories reveal detail without discarding data. All visible data columns are equal width: the tables use `table-layout: fixed` with a minimum width, so the table scrolls horizontally only when the container is narrower than that minimum. Do not reintroduce auto layout.
+- Row heights are fixed: header and rows 46px on desktop; rows 44px below 760px. Numeric cells remain single-line. Method names may use a second line for configuration.
 - The first two columns stay sticky while the table scrolls sideways.
 - Output size, timings collected under incomparable conditions and quotes with incomparable billing bases use catalog `highlightBest: false`: allow numeric sorting without declaring a winner.
 - Highlight the best value in each comparable column independently, using the metric's `direction`. Category pass counts and `Passed / Total` use the highest value. Ties are all highlighted; a column with fewer than two disclosed values or identical values has no winner. `null` and `—` are excluded; real `0` and negative signed deltas participate. Use deep-green bold text on a very light green background and include a screen-reader `Best in this column` label. Do not highlight an entire row.
@@ -79,7 +79,7 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 
 ## Security
 
-- No tokens, keys or credentials in code, data, documentation or commits. `.env*` files stay local. The top-right GitHub link always points to `https://github.com/lexmount/browser-eval-site`.
+- No tokens, keys or credentials in code, data, documentation or commits. `.env*` files stay local. The GitHub link at the bottom of the navigation always points to `https://github.com/lexmount/browser-eval-site`.
 
 ## Result submissions
 
@@ -87,3 +87,9 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 - Published report files are immutable once merged. Corrections and rollbacks append a new version and explain the change. Result-only PRs may add participant URLs but cannot change definitions or application code.
 - `scripts/check-result-change.mjs` is the trusted base-branch PR boundary. It must inspect candidate Git blobs without running submitted code or receiving deployment credentials. Keep it separate from the ordinary unprivileged website build.
 - New submissions require public HTTPS evidence URLs. Local CLI preflight is not evidence verification; reviewers check measurement provenance and methodology before approval.
+
+## Benchmark presentation
+
+- Match Benchmark names to the official Hugging Face Dataset Card. Modified third-party datasets retain the LexBench prefix; untouched mirrors retain the upstream name. LexBench Zyte Product Extraction includes a separate source-qualified annotation layer, so retains its prefix; do not claim existing scores use that layer without report evidence.
+- Name the selected Benchmark once in the main content. Avoid repeating titles, primary metrics, counts or generic sorting instructions in large summary blocks. Put protocol, population and provenance detail in Evaluation notes, with important comparability warnings visible.
+- Comparison charts must add information beyond ranking: multidimensional profiles, or quality against comparable latency/resource use. Allow selection of up to three methods; label scales and preserve missing values. Do not invent composite scores or treat unmatched execution conditions as controlled comparisons.

@@ -11,6 +11,7 @@ import ReleaseCheck from "./release-check";
 import { RELEASE } from "../lib/release.generated";
 import { translator } from "../lib/i18n";
 import { useLanguage } from "../lib/use-language";
+import { columnMetrics } from "../lib/comparisons";
 
 const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2 };
 const GITHUB_URL = "https://github.com/lexmount/browser-eval-site";
@@ -26,6 +27,7 @@ export default function Dashboard() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [language, chooseLanguage] = useLanguage();
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+  const [columnView, setColumnView] = useState<"overview" | "all" | "categories">("overview");
 
   useEffect(() => {
     let active = true;
@@ -85,19 +87,20 @@ export default function Dashboard() {
   const metric = benchmark?.metrics.find(item => item.id === selection.metric) ?? benchmark?.metrics.find(item => item.id === benchmark.primaryMetric) ?? benchmark?.metrics[0];
   const versions = entries ? benchmarkEntries(entries, selection.benchmark).map(item => item.version) : [];
   const providers = benchmark && metric ? sortProviders(benchmark.providers, metric.id, direction) : [];
-  const categories = benchmark?.categories ?? [];
+  const categories = columnView === "overview" ? [] : benchmark?.categories ?? [];
   const primaryMetric = benchmark?.metrics.find(item => item.id === benchmark.primaryMetric);
+  const visibleMetrics = columnMetrics(benchmark, columnView, selection.metric);
   const leadingMetrics = benchmark && primaryMetric
-    ? [primaryMetric, ...benchmark.metrics.filter(item => item.id !== primaryMetric.id && benchmark.leadingMetricIds?.includes(item.id))]
+    ? [primaryMetric, ...visibleMetrics.filter(item => item.id !== primaryMetric.id && benchmark.leadingMetricIds?.includes(item.id))]
     : [];
   const trailingMetrics = benchmark
-    ? benchmark.metrics.filter(item => item.id !== primaryMetric?.id && !benchmark.leadingMetricIds?.includes(item.id))
+    ? visibleMetrics.filter(item => item.id !== primaryMetric?.id && !benchmark.leadingMetricIds?.includes(item.id))
     : [];
   const metricBest = new Map((benchmark?.metrics ?? []).map(item => [item.id, item.highlightBest === false ? null : bestValue((benchmark?.providers ?? []).map(provider => provider.scores[item.id]), item.direction)]));
   const categoryBest = new Map(categories.map(category => [category.id, bestValue((benchmark?.providers ?? []).map(provider => provider.categoryPassed?.[category.id] ?? null), "desc")]));
   const passedBest = bestValue((benchmark?.providers ?? []).map(provider => provider.passed), "desc");
-  const showPassed = benchmark?.providers.some(provider => provider.passed != null) ?? false;
-  const showPricing = benchmark?.providers.some(provider => provider.pricing != null) ?? false;
+  const showPassed = columnView === "all" && (benchmark?.providers.some(provider => provider.passed !== null && provider.passed !== undefined) ?? false);
+  const showPricing = columnView !== "categories" && (benchmark?.providers.some(provider => provider.pricing !== null && provider.pricing !== undefined) ?? false);
   const tableClass = benchmark?.id === "lexbench-webfetch"
     ? "wide-table lexbench-table"
     : benchmark?.id === "webarena-verified" ? "wide-table arena-table"
@@ -107,6 +110,7 @@ export default function Dashboard() {
     : "wide-table";
 
   function chooseBenchmark(id: string) {
+    setColumnView("overview");
     const latest = entries ? latestEntry(entries, id) : null;
     const version = latest?.version ?? "";
     const selectedResult = snapshots.find(record => record.id === latest?.id)?.benchmarks.find(item => item.id === id);
@@ -161,40 +165,50 @@ export default function Dashboard() {
     <a className="skip-link" href="#main">{t("Skip to results")}</a>
     {menuOpen && <button className="sidebar-scrim" aria-label={t("Close navigation")} onClick={() => setMenuOpen(false)} />}
     <aside className={`sidebar ${menuOpen ? "is-open" : ""}`}>
-      <a href="/" className="brand" aria-label={t("Webstone home")}><span className="brand-heading"><Layers3 size={24} strokeWidth={1.8} /><span>Webstone</span></span><span className="brand-tagline">{t("The touchstone for your agent's web tools")}</span></a>
+      <a href="/" className="brand" aria-label={t("Webstone home")}><span className="brand-heading"><Layers3 size={24} strokeWidth={1.8} /><span>Webstone</span></span><span className="brand-tagline">{t("Benchmarks for AI agents' web tools")}</span></a>
       <div className="sidebar-label">{t("TRACKS")}</div>
       <nav aria-label={t("Tracks")}>{tracks.map(item => {
         const Icon = TRACK_ICONS[item.id] ?? Layers3;
         if (item.url) return <a key={item.id} className="nav-item" href={item.url} target="_blank" rel="noopener noreferrer" aria-label={`${t(item.name)} (${t("opens in a new tab")})`}>
           <Icon size={17} aria-hidden="true" /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span><ArrowUpRight className="track-external" size={14} aria-hidden="true" />
         </a>;
-        return <button
-          key={item.id}
+        return <div key={item.id} className="nav-track"><button
           className={`nav-item ${track?.id === item.id ? "active" : ""}`}
           aria-current={track?.id === item.id ? "page" : undefined}
           onClick={() => track?.id === item.id ? setMenuOpen(false) : chooseBenchmark(item.benchmarks[0].id)}
-        ><Icon size={17} /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span></button>;
+        ><Icon size={17} /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span></button>
+          {track?.id === item.id && <div className="benchmark-navigation" role="group" aria-label={t("Benchmarks")}>
+            {item.benchmarks.filter(bench => !bench.outputLayer || bench.outputLayer === "L1").map(bench => {
+              const active = bench.searchGroup ? details?.searchGroup === bench.searchGroup : selection.benchmark === bench.id;
+              return <button key={bench.id} aria-current={active ? "page" : undefined} onClick={() => {
+                const target = bench.searchGroup ? catalog?.benchmarks.find(candidate => candidate.searchGroup === bench.searchGroup && candidate.outputLayer === details?.outputLayer) : bench;
+                chooseBenchmark(target?.id ?? bench.id);
+              }}>{bench.name}</button>;
+            })}
+          </div>}
+        </div>;
       })}</nav>
+      <div className="sidebar-footer">
+        <div className="language-control" role="group" aria-label="Language / 语言"><button lang="en" aria-pressed={language === "en"} onClick={() => chooseLanguage("en")}>EN</button><button lang="zh" aria-pressed={language === "zh"} onClick={() => chooseLanguage("zh")}>中文</button></div>
+        <a className="github-square" href={GITHUB_URL} target="_blank" rel="noreferrer" aria-label={t("View website source on GitHub")} title="GitHub"><Github /></a>
+      </div>
     </aside>
 
     <div className="main-shell">
       <header className="topbar">
         <div className="title-group">
           <button className="mobile-menu icon-button" aria-label={t("Open navigation")} onClick={() => setMenuOpen(true)}><Menu size={20} /></button>
-          <div className="benchmark-heading"><span className="eyebrow">{track ? t(track.name) : "Webstone"} / {t("Leaderboard")}</span><h1>{details ? t(details.name) : "Webstone"}</h1>
+          <div className="benchmark-heading"><h1>{details ? t(details.name) : "Webstone"}</h1>
             {details && <p className="benchmark-description">{t(details.description)}</p>}
             {details && <div className="benchmark-links">
-              <a href={details.datasetUrl} target="_blank" rel="noreferrer" >{t("Dataset")} · {details.datasetName}<ArrowUpRight size={13} aria-hidden="true" /></a>
-              <a href={details.reportUrl} target="_blank" rel="noreferrer" >{t("Track report")}<ArrowUpRight size={13} aria-hidden="true" /></a>
-              {result?.reportUrl && result.reportUrl !== details.reportUrl && <a href={result.reportUrl} target="_blank" rel="noreferrer">{t("Version report")}<ArrowUpRight size={13} aria-hidden="true" /></a>}
+              <a href={details.datasetUrl} target="_blank" rel="noreferrer" aria-label={`${t("Dataset")}: ${details.datasetName}`}>{t("Dataset")}<ArrowUpRight size={13} aria-hidden="true" /></a>
+              <a href={benchmark?.reportUrl ?? details.reportUrl} target="_blank" rel="noreferrer" >{t("Evaluation report")}<ArrowUpRight size={13} aria-hidden="true" /></a>
             </div>}
           </div>
         </div>
         <div className="topbar-actions">
-          <div className="language-control" role="group" aria-label="Language / 语言"><button lang="en" aria-pressed={language === "en"} onClick={() => chooseLanguage("en")}>EN</button><button lang="zh" aria-pressed={language === "zh"} onClick={() => chooseLanguage("zh")}>中文</button></div>
           {entry && <a className="download-link" href={`/results/${entry.file}`} download aria-label={t("Download Report")}><ArrowDownToLine size={17} aria-hidden="true" /><span>{t("Download Report")}</span></a>}
           <a className="submit-result-link" href="/submit">{t("SUBMIT YOUR RESULT")}</a>
-          <a className="github-square" href={GITHUB_URL} target="_blank" rel="noreferrer" aria-label={t("View website source on GitHub")} title="GitHub"><Github /></a>
         </div>
       </header>
 
@@ -204,18 +218,11 @@ export default function Dashboard() {
         {entries && <>
           <div className="results-controls">
             {details?.searchGroup ? <div className="search-selectors">
-              <nav className="benchmark-tabs" aria-label={t("Benchmarks")}>{(["scenarios", "facts"] as const).map(group => <button key={group} className={`benchmark-tab ${details.searchGroup === group ? "active" : ""}`} aria-pressed={details.searchGroup === group} onClick={() => {
-                const target = catalog?.benchmarks.find(item => item.searchGroup === group && item.outputLayer === details.outputLayer);
-                if (target) chooseBenchmark(target.id);
-              }}>{t(group === "scenarios" ? "Scenario queries" : "Factual questions")}</button>)}</nav>
               <div className="layer-control" role="group" aria-label={t("Output layer")}>{(["L1", "L2", "L3"] as const).map((layer, index) => <button key={layer} aria-pressed={details.outputLayer === layer} onClick={() => {
                 const target = catalog?.benchmarks.find(item => item.searchGroup === details.searchGroup && item.outputLayer === layer);
                 if (target) chooseBenchmark(target.id);
               }}>{t(["L1 · Search results", "L2 · Supplemental text", "L3 · Generated answers"][index])}</button>)}</div>
-            </div> : <nav className="benchmark-tabs" aria-label={t("Benchmarks")}>{track?.benchmarks.map(item => <button
-              key={item.id} className={`benchmark-tab ${selection.benchmark === item.id ? "active" : ""}`}
-              aria-current={selection.benchmark === item.id ? "page" : undefined} onClick={() => chooseBenchmark(item.id)}
-            >{t(item.name)}</button>)}</nav>}
+            </div> : <span />}
             {versions.length > 0 && <div className="version-control">
               <label htmlFor="result-version">{t("Version")}</label>
               <select id="result-version" value={selection.version} onChange={event => chooseVersion(event.target.value)}>
@@ -229,19 +236,18 @@ export default function Dashboard() {
             <h2>{t(versions.length > 0 ? "No results for this version" : "No results for this benchmark")}</h2>
             {versions.length > 0 && <button className="text-button" onClick={() => chooseVersion(versions.at(-1)!)}>{t("View latest version")}<ArrowRight size={14} /></button>}
           </div> : <>
-            <div className="summary-strip">
-              <div><span>{t("Published methods")}</span><strong>{benchmark.providerCount.toString().padStart(2, "0")}</strong></div>
-              <div><span>{t("Evaluation cases")}</span><strong>{benchmark.taskCount.toLocaleString(language === "zh" ? "zh-CN" : "en-US")}</strong></div>
-              <div><span>{t("Primary metric")}</span><strong className="summary-metric">{primaryMetric && t(primaryMetric.label)}</strong></div>
-            </div>
             {details?.searchGroup && <p className="scope-warning">{t("Each layer is scored independently. Scores cannot be added or read as incremental gains.")}</p>}
-            {snapshot && <p className="dataset-difference"><strong>{t("Dataset difference")}:</strong> {t(snapshot.datasetDifference)}</p>}
-            <nav className="section-nav" aria-label={t("Results")}><a href="#results">{t("Results")}</a><a href="#insights">{t("Selected insights")}</a><a href="#methodology">{t("Methodology & scope")}</a></nav>
             <section id="results" className="leaderboard" aria-label={`${t(benchmark.name)} ${t("Leaderboard")}`}>
-              <div className="section-heading"><div><span className="eyebrow">01 / {selection.version}</span><h2>{t("Leaderboard")}</h2></div><p>{t("Click a metric to sort. Open a method for its configuration and evidence.")}</p></div>
+              <h2 className="sr-only">{t("Leaderboard")}</h2>
+              <div className="table-toolbar"><span>{benchmark.providerCount} {t("methods")} · {benchmark.taskCount.toLocaleString()} {t("cases")}</span><div className="column-views" role="group" aria-label={t("Table columns")}>
+                <button aria-pressed={columnView === "overview"} onClick={() => setColumnView("overview")}>{t("Overview")}</button>
+                {benchmark.categories.length > 0 && <button aria-pressed={columnView === "categories"} onClick={() => setColumnView("categories")}>{t("Categories")}</button>}
+                <button aria-pressed={columnView === "all"} onClick={() => setColumnView("all")}>{t("All metrics")}</button>
+              </div></div>
+              <p className="sample-scope">{benchmark.metrics.filter(item => result?.metricSamples?.[item.id]?.sampleCount !== null && result?.metricSamples?.[item.id]?.sampleCount !== undefined && result.metricSamples[item.id].sampleCount !== benchmark.taskCount).map(item => `${item.label}: ${result!.metricSamples![item.id].sampleCount} ${t("samples")}`).join(" · ")}</p>
               {benchmark.trackId === "websearch" && snapshot?.source.kind === "report-page" && <p className="scope-warning">{t("Different collection dates and concurrency: these timings are not a controlled same-window speed comparison.")}</p>}
               <div className="table-scroll">
-                <table className={tableClass} style={{ "--data-columns": categories.length + benchmark.metrics.length + Number(showPassed) + Number(showPricing) } as React.CSSProperties}>
+                <table className={tableClass} style={{ "--data-columns": categories.length + visibleMetrics.length + Number(showPassed) + Number(showPricing) } as React.CSSProperties}>
                   <caption className="sr-only">{t(benchmark.name)} {t("Leaderboard")}</caption>
                   <thead><tr>
                     <th className="rank-cell" scope="col">#</th>
@@ -254,7 +260,7 @@ export default function Dashboard() {
                   </tr></thead>
                   <tbody>{providers.map((provider, i) => <tr key={provider.id}>
                     <td className="rank-cell">{provider.scores[metric.id] == null ? "—" : i + 1}</td>
-                    <td><div className="provider-cell"><a className="provider-name provider-link" href={catalog?.providerUrls[provider.id]} target="_blank" rel="noopener noreferrer" aria-label={`${provider.name} ${t("project")} (${t("opens in a new tab")})`}><span className={`provider-mark ${provider.id}`} style={{ "--provider-color": providerColors[provider.id] ?? "#64748b" } as React.CSSProperties} aria-hidden="true">{provider.name[0]}</span><span className="provider-label" title={provider.name}>{provider.name}</span><ArrowUpRight className="provider-external" size={12} aria-hidden="true" /></a><button className="method-open" aria-label={`${provider.name} · ${t("Method details")}`} onClick={() => setSelectedProvider(provider)}>···</button></div></td>
+                    <td><div className="provider-cell"><a className="provider-name provider-link" href={catalog?.providerUrls[provider.id]} target="_blank" rel="noopener noreferrer" aria-label={`${provider.name} ${t("project")} (${t("opens in a new tab")})`}><span className={`provider-mark ${provider.id}`} style={{ "--provider-color": providerColors[provider.id] ?? "#64748b" } as React.CSSProperties} aria-hidden="true">{provider.name[0]}</span><span className="provider-label" title={provider.name}><strong>{provider.name.split(" · ")[0]}</strong>{provider.name.includes(" · ") && <small>{provider.name.split(" · ").slice(1).join(" · ")}</small>}</span><ArrowUpRight className="provider-external" size={12} aria-hidden="true" /></a><button className="method-open" aria-label={`${provider.name} · ${t("Method details")}`} onClick={() => setSelectedProvider(provider)}>···</button></div></td>
                     {leadingMetrics.map(item => metricCell(provider, item))}
                     {categories.map(category => {
                       const isBest = isBestValue(provider.categoryPassed?.[category.id], categoryBest.get(category.id) ?? null);
@@ -266,13 +272,13 @@ export default function Dashboard() {
                   </tr>)}</tbody>
                 </table>
               </div>
+              <details className="evaluation-notes"><summary>{t("Evaluation notes")}</summary>
+                {snapshot && <p>{t(snapshot.datasetDifference)}</p>}
+                <ul>{benchmark.notes.map((note, index) => <li key={index}>{t(note)}</li>)}</ul>
+                {result?.reportUrl && result.reportUrl !== details?.reportUrl && <a href={result.reportUrl} target="_blank" rel="noreferrer">{t("Source report")} ↗</a>}
+              </details>
             </section>
             <Insights key={`${benchmark.id}-${selection.version}`} benchmark={benchmark} t={t} />
-            <section id="methodology" className="methodology-section">
-              <div className="section-heading"><div><span className="eyebrow">03 / {t("Methodology & scope")}</span><h2>{t("Methodology & scope")}</h2></div><a href={details?.reportUrl} target="_blank" rel="noreferrer">{t("Read the full Track report")} ↗</a></div>
-              <ul>{benchmark.notes.map((note, index) => <li key={index}>{t(note)}</li>)}</ul>
-              <p className="release-label">Webstone · {selection.version} · {RELEASE.slice(0, 12)}</p>
-            </section>
             <MethodDetails provider={selectedProvider} benchmark={benchmark} t={t} onClose={() => setSelectedProvider(null)} />
           </>}
         </>}

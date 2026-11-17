@@ -1,4 +1,4 @@
-export type Metric = { id: string; label: string; unit: string; direction: "asc" | "desc"; decimals?: number; description?: string; signed?: boolean; highlightBest?: boolean };
+export type Metric = { id: string; label: string; unit: string; direction: "asc" | "desc"; decimals?: number; description?: string; signed?: boolean; highlightBest?: boolean; chartRange?: [number, number] };
 export type CategoryDefinition = { id: string; name: string; criterion: string };
 export type Category = CategoryDefinition & { total: number };
 export type Provider = {

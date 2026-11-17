@@ -568,7 +568,7 @@
       "trackId": "websearch",
       "providerLabel": "Service",
       "id": "lexbench-websearch-excerpts",
-      "name": "Scenario Search · Supplemental Text",
+      "name": "LexBench Web Search",
       "reportUrl": "https://yours.lexmount.cn/artifact-site/s/-FtUMQm-NmQa",
       "description": "Compare verified supplemental excerpts, scored independently of primary snippets.",
       "definitions": [
@@ -657,7 +657,7 @@
       "trackId": "websearch",
       "providerLabel": "Service",
       "id": "simpleqa-verified-excerpts",
-      "name": "SimpleQA Verified · Supplemental Text",
+      "name": "LexBench SimpleQA Verified",
       "reportUrl": "https://yours.lexmount.cn/artifact-site/s/-FtUMQm-NmQa",
       "description": "Check whether supplemental excerpts contain reference-answer text.",
       "definitions": [
@@ -730,7 +730,7 @@
       "trackId": "websearch",
       "providerLabel": "Service",
       "id": "lexbench-websearch-answers",
-      "name": "Scenario Search · Generated Answers",
+      "name": "LexBench Web Search",
       "reportUrl": "https://yours.lexmount.cn/artifact-site/s/-FtUMQm-NmQa",
       "description": "Evaluate the usefulness and citation support of generated answers.",
       "definitions": [
@@ -744,7 +744,11 @@
               "unit": "score",
               "direction": "desc",
               "decimals": 2,
-              "description": "Judge-rated usefulness of the full generated answer for a scenario query, on the supplied 0–3 scale. Higher is better."
+              "description": "Judge-rated usefulness of the full generated answer for a scenario query, on the supplied 0–3 scale. Higher is better.",
+              "chartRange": [
+                0,
+                3
+              ]
             },
             {
               "id": "citationSupport",
@@ -810,7 +814,7 @@
       "trackId": "websearch",
       "providerLabel": "Service",
       "id": "simpleqa-verified-answers",
-      "name": "SimpleQA Verified · Generated Answers",
+      "name": "LexBench SimpleQA Verified",
       "reportUrl": "https://yours.lexmount.cn/artifact-site/s/-FtUMQm-NmQa",
       "description": "Evaluate generated-answer correctness with official SimpleQA grading rules.",
       "definitions": [
