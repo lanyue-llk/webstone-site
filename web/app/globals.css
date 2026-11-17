@@ -402,7 +402,7 @@ h1 { font-size: 30px; line-height: 1.2; }
 .evaluation-notes summary { font-size: 12px; }
 .evaluation-notes p { margin: 6px 0; }.evaluation-notes ul { margin: 8px 0; }
 .table-scroll { width: 100%; }
-.wide-table { width: max(100%, calc(var(--rank-width) + var(--provider-width) + var(--data-columns) * 132px)); }
+.wide-table { --data-column-width: 132px; width: max(100%, calc(var(--rank-width) + var(--provider-width) + var(--data-columns) * var(--data-column-width))); }
 .cost-disclosure { color: #6d756c; font-size: 11px; margin: 0 0 10px; }
 .method-dialog { position: fixed; inset: 18px 18px 18px auto; width: min(440px, calc(100vw - 32px)); height: fit-content; max-height: calc(100dvh - 36px); margin: auto 0; padding: 22px; border-radius: 12px; box-shadow: 0 12px 50px #172d2226; }
 .method-dialog::backdrop { background: #15271d45; backdrop-filter: blur(2px); }
@@ -422,3 +422,5 @@ h1 { font-size: 30px; line-height: 1.2; }
 .profile-details > summary, .coverage-details > summary { cursor: pointer; padding: 8px 0; }
 .profile-details .insight-card, .coverage-details .insight-card { max-width: 720px; }
 .bubble-legend { margin: 10px 0 0; font-size: 11px; line-height: 1.7; color: #5d705f; }
+
+@media (max-width: 760px) { .wide-table { --data-column-width: 110px; } }

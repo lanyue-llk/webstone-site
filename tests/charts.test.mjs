@@ -46,6 +46,9 @@ test("cost rendering preserves ranges, zero and unknown totals, including Chines
   assert.match(html, /Ranged quote · Quoted price \/ 1K: \$2(?:\.0+)?–\$7/);
   assert.doesNotMatch(html, /\$4\.5/);
   assert.match(html, /Zero quote · Quoted price \/ 1K: \$0/);
+  const costPlot = html.match(/<svg[^>]*aria-label="accuracy \/ Quoted price \/ 1K"[^>]*>([\s\S]*?)<\/svg>/)?.[1];
+  assert.ok(costPlot);
+  assert.match(costPlot, /class="point-number"[^>]*>2<\/text>/);
   assert.match(html, /Cost unavailable.*Missing profile/);
   assert.doesNotMatch(html, /Cost unavailable[^<]*Known cost missing quality/);
   assert.match(html, /Quality unavailable.*Known cost missing quality/);
