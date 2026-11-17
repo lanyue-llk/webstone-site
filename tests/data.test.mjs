@@ -19,10 +19,9 @@ test("result records are versioned files without a hand-maintained index or form
   assert.equal(Object.hasOwn(snapshot, "dateKind"), false);
   assert.equal(snapshot.version, "v1");
   for (const { file, report } of files) {
-    const match = /^([a-z0-9-]+)-(v[1-9]\d*)-report\.json$/.exec(path.basename(file));
-    assert.ok(match, file);
-    assert.equal(report.version, match[2]);
-    assert.equal(report.id, `${match[1]}-${match[2]}`);
+    const parsed = parseReportFile(path.dirname(file), path.basename(file));
+    assert.equal(report.version, parsed.version);
+    assert.equal(report.id, `${parsed.benchmarkId}-${parsed.version}`);
     assert.equal(Object.hasOwn(report, "measuredAt"), false);
     assert.equal(Object.hasOwn(report.source, "versionId"), false);
   }
@@ -71,12 +70,18 @@ test("adding and removing a version file needs no index update", async t => {
   const benchmarkFolder = path.join(folder, "lexbench-webfetch");
   await mkdir(benchmarkFolder);
   const firstFile = path.join(benchmarkFolder, "lexbench-webfetch-v1-report.json");
-  const nextFile = path.join(benchmarkFolder, "lexbench-webfetch-v2-report.json");
-  const next = { ...snapshot, id: "lexbench-webfetch-v2", version: "v2" };
+  const nextFile = path.join(benchmarkFolder, "lexbench-webfetch-v1.1.0-report.json");
+  const next = { ...snapshot, id: "lexbench-webfetch-v1.1.0", version: "v1.1.0", release: { date: "2026-11-16", kind: "results", previous: "v1.0.0", summary: "Publish updated measurements." } };
   await writeFile(firstFile, JSON.stringify(snapshot));
   assert.deepEqual((await discoverResults(folder, catalog)).map(item => item.report.version), ["v1"]);
   await writeFile(nextFile, JSON.stringify(next));
-  assert.deepEqual((await discoverResults(folder, catalog)).map(item => item.report.version), ["v1", "v2"]);
+  const discovered = await discoverResults(folder, catalog);
+  assert.deepEqual(discovered.map(item => item.report.version), ["v1", "v1.1.0"]);
+  for (const { file, report } of discovered) {
+    const parsed = parseReportFile(path.dirname(file), path.basename(file));
+    assert.equal(report.version, parsed.version);
+    assert.equal(report.id, `${parsed.benchmarkId}-${parsed.version}`);
+  }
   await rm(nextFile);
   assert.equal((await discoverResults(folder, catalog)).length, 1);
   const nested = path.join(benchmarkFolder, "nested");
@@ -371,6 +376,14 @@ test("confidence intervals and source coverage reject invented or inconsistent v
   assert.throws(() => validateSnapshot(invalid, entry, catalog), /source match population/);
 });
 
+test("semantic result versions require an honest release date and summary", () => {
+  const semantic = { ...structuredClone(snapshot), id: "lexbench-webfetch-v1.1.0", version: "v1.1.0", release: { date: "2026-11-16", kind: "results", previous: "v1.0.0", summary: "Publish updated measurements." } };
+  const nextEntry = parseReportFile("lexbench-webfetch", "lexbench-webfetch-v1.1.0-report.json");
+  assert.doesNotThrow(() => validateSnapshot(semantic, nextEntry, catalog));
+  for (const date of ["2026-02-30", "2026-13-01", "2099-01-01", "2026-1-1", ""]) assert.throws(() => validateSnapshot({ ...semantic, release: { ...semantic.release, date } }, nextEntry, catalog), /release date/);
+  assert.throws(() => validateSnapshot({ ...semantic, release: undefined }, nextEntry, catalog), /release summary/);
+  for (const version of ["v1.01.0", "v0.1.0", "v1.0", "v1.0.0-beta", "v1.0.0\n"]) assert.throws(() => parseReportFile("lexbench-webfetch", `lexbench-webfetch-${version}-report.json`), /Expected/);
+});
 
 test("explicit metric ranges bound scores and confidence intervals", () => {
   const bounded = structuredClone(catalog);

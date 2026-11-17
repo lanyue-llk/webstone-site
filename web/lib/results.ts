@@ -1,3 +1,6 @@
+import { canonicalVersion, compareVersions, releaseDate } from "./result-version.mjs";
+export { canonicalVersion, compareVersions } from "./result-version.mjs";
+
 export type Metric = { id: string; label: string; unit: string; direction: "asc" | "desc"; decimals?: number; description?: string; signed?: boolean; highlightBest?: boolean; chartRange?: [number, number] };
 export type CategoryDefinition = { id: string; name: string; criterion: string };
 export type Category = CategoryDefinition & { total: number };
@@ -43,9 +46,11 @@ export type Benchmark = Omit<BenchmarkInfo, "definitions"> & Omit<Definition, "i
 export type Entry = {
   id: string; version: string; file: string;
   benchmarks: string[];
+  date?: string | null; dateKind?: string;
 };
 export type Snapshot = {
   id: string; version: string; datasetDifference: string;
+  release?: { date: string; kind: "protocol" | "results" | "metadata"; previous: string | null; summary: string };
   translations?: { zh: Record<string, string>; en?: Record<string, string> };
   source: { url: string; title: string; kind?: string; sha256?: string; linkLabel?: string; importedAt: string; method: string; scope: string; dateNote: string };
   benchmarks: BenchmarkResult[];
@@ -55,7 +60,7 @@ export type ReportFile = { file: string; report: Snapshot };
 
 export function reportEntries(files: ReportFile[]): Entry[] {
   return files.map(({ file, report }) => ({
-    file, id: report.id, version: report.version,
+    file, id: report.id, version: report.version, date: releaseDate(report).date, dateKind: releaseDate(report).kind,
     benchmarks: report.benchmarks.map(benchmark => benchmark.id),
   }));
 }
@@ -79,16 +84,6 @@ export function resolveBenchmark(catalog: Catalog, result: BenchmarkResult): Ben
   };
 }
 
-export function versionNumber(version: string) {
-  const match = /^v([1-9]\d*)$/.exec(version);
-  if (!match) throw new Error("Invalid result version");
-  return Number(match[1]);
-}
-
-export function compareVersions(left: string, right: string) {
-  return versionNumber(left) - versionNumber(right);
-}
-
 export function benchmarkEntries(entries: Entry[], benchmark: string) {
   return entries
     .filter(entry => entry.benchmarks.includes(benchmark))
@@ -96,7 +91,7 @@ export function benchmarkEntries(entries: Entry[], benchmark: string) {
 }
 
 export function selectEntry(entries: Entry[], version: string, benchmark: string) {
-  return entries.find(entry => entry.version === version && entry.benchmarks.includes(benchmark)) ?? null;
+  try { return entries.find(entry => canonicalVersion(entry.version) === canonicalVersion(version) && entry.benchmarks.includes(benchmark)) ?? null; } catch { return null; }
 }
 
 export function latestEntry(entries: Entry[], benchmark: string) {

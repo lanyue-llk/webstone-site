@@ -404,3 +404,19 @@ test("search datasets keep their own quality metrics and exact image values", ()
   assert.equal(sortProviders(scene.providers, "ndcg5", "desc")[0].id, "serper");
   assert.equal(sortProviders(qa.providers, "hit5", "desc")[0].id, "serper");
 });
+
+test("semantic versions sort numerically and historical links identify the same result", async () => {
+  const { canonicalVersion, nextVersion, releaseDate } = await import("./result-version.mjs");
+  assert.equal(canonicalVersion("v2"), "v2.0.0");
+  assert.ok(compareVersions("v2.10.0", "v2.9.9") > 0);
+  assert.ok(compareVersions("v2.0.1", "v2") > 0);
+  assert.equal(nextVersion("v2", "results"), "v2.1.0");
+  assert.equal(nextVersion("v2.1.9", "protocol"), "v3.0.0");
+  assert.equal(nextVersion("v2.1.9", "metadata"), "v2.1.10");
+  const entries = [{ id: "historical", version: "v2", file: "fixture.json", benchmarks: ["fixture"] }];
+  assert.equal(selectEntry(entries, "v2.0.0", "fixture")?.id, "historical");
+  assert.equal(selectEntry(entries, "v2.0.1", "fixture"), null);
+  assert.deepEqual(releaseDate({ source: { importedAt: "2026-11-10T08:00:00Z" } }), { date: "2026-11-10", kind: "imported" });
+  assert.deepEqual(releaseDate({ source: {} }), { date: null, kind: "unknown" });
+  assert.deepEqual(releaseDate({ release: { date: "2026-11-16" } }), { date: "2026-11-16", kind: "released" });
+});
