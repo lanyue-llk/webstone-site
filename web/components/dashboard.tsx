@@ -188,6 +188,10 @@ export default function Dashboard() {
           </div>}
         </div>;
       })}</nav>
+      <div className="sidebar-footer">
+        <div className="language-control" role="group" aria-label="Language / 语言"><button lang="en" aria-pressed={language === "en"} onClick={() => chooseLanguage("en")}>EN</button><button lang="zh" aria-pressed={language === "zh"} onClick={() => chooseLanguage("zh")}>中文</button></div>
+        <a className="github-square" href={GITHUB_URL} target="_blank" rel="noreferrer" aria-label={t("View website source on GitHub")} title="GitHub"><Github /></a>
+      </div>
     </aside>
 
     <div className="main-shell">
@@ -203,10 +207,8 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="topbar-actions">
-          <div className="language-control" role="group" aria-label="Language / 语言"><button lang="en" aria-pressed={language === "en"} onClick={() => chooseLanguage("en")}>EN</button><button lang="zh" aria-pressed={language === "zh"} onClick={() => chooseLanguage("zh")}>中文</button></div>
           {entry && <a className="download-link" href={`/results/${entry.file}`} download aria-label={t("Download Report")}><ArrowDownToLine size={17} aria-hidden="true" /><span>{t("Download Report")}</span></a>}
           <a className="submit-result-link" href="/submit">{t("SUBMIT YOUR RESULT")}</a>
-          <a className="github-square" href={GITHUB_URL} target="_blank" rel="noreferrer" aria-label={t("View website source on GitHub")} title="GitHub"><Github /></a>
         </div>
       </header>
 

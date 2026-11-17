@@ -99,7 +99,7 @@ function Scatter({ benchmark, selected, t }: Props & { selected: Provider[] }) {
 }
 
 export default function Insights({ benchmark, t }: Props) {
-  const axes = radarAxes(benchmark);
+  const axes = radarAxes(benchmark).map(axis => ({ ...axis, label: t(axis.label) }));
   const hasRadar = axes.length >= 3;
   const eligible = benchmark.providers.filter(provider => !hasRadar || axes.every(axis => axis.value(provider) !== null));
   const [ids, setIds] = useState(() => sortProviders(eligible, benchmark.primaryMetric, benchmark.metrics.find(metric => metric.id === benchmark.primaryMetric)!.direction).slice(0, 3).map(provider => provider.id));
