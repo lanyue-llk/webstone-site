@@ -71,8 +71,6 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
     if (provider.pricing) return t(formatPricing(provider.pricing));
     return t("Cost unavailable");
   }
-  const maximumCost = Math.max(0, ...benchmark.providers.flatMap(provider => costBounds(provider) ?? []));
-  const costRadius = (value: number) => Math.max(4, Math.sqrt(value / (maximumCost || 1)) * 20);
   const xMetric = cost ? priceMetric ?? { id: "quoted-price", label: t("Quoted price / 1K"), unit: "usd", direction: "asc" as const } : candidates.find(metric => metric.id === xId) ?? preferred;
   const coverage = !cost && Boolean(benchmark.sourceMatches) && (sourceCoverage || !xMetric);
   if (!coverage && !xMetric) return null;
@@ -98,9 +96,11 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
     <h3>{t(title)}</h3><p className="chart-note" role="status">{t("At least two methods with both axis values are needed to compare.")}</p>
     {disclosures}
   </article>;
+  const maximumCost = Math.max(0, ...rows.flatMap(row => costBounds(row.provider) ?? []));
+  const costRadius = (value: number) => Math.sqrt(16 + value / (maximumCost || 1) * 400);
   const minimum = Math.min(...rows.map(row => row.x)), maximum = Math.max(...rows.map(row => row.upper));
   const log = !coverage && minimum > 0 && maximum / minimum > 10;
-  const low = log ? Math.floor(Math.log10(minimum)) : 0;
+  const low = log ? Math.floor(Math.log10(minimum)) : Math.min(0, minimum);
   let high = Math.max(1, maximum * 1.08);
   if (log) high = Math.ceil(Math.log10(maximum));
   if (coverage) high = 100;
@@ -112,7 +112,7 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
     <div className="card-heading"><h3>{t(title)}</h3>{!cost && !coverage && candidates.length > 1 && <select aria-label={t("Horizontal axis")} value={xMetric!.id} onChange={event => setXId(event.target.value)}>{candidates.map(metric => <option key={metric.id} value={metric.id}>{t(metric.label)}</option>)}</select>}</div>
     <figure className="comparison-figure"><svg viewBox="0 0 480 330" role="img" aria-label={`${primary.label} / ${xLabel}`}>
       {[0, .25, .5, .75, 1].map(fraction => <g key={fraction}><line x1="60" x2="420" y1={260 - fraction * 220} y2={260 - fraction * 220} className="radar-grid" /><text x="48" y={264 - fraction * 220} textAnchor="end" className="axis-tick">{formatMetric(yMaximum * fraction, primary.unit, primary.decimals)}</text></g>)}
-      {[0, .5, 1].map(fraction => { const value = log ? 10 ** (low + fraction * (high - low)) : high * fraction; return <text key={fraction} x={60 + fraction * 360} y="282" textAnchor="middle" className="axis-tick">{formatX(value)}</text>; })}
+      {[0, .5, 1].map(fraction => { const value = log ? 10 ** (low + fraction * (high - low)) : low + (high - low) * fraction; return <text key={fraction} x={60 + fraction * 360} y="282" textAnchor="middle" className="axis-tick">{formatX(value)}</text>; })}
       <text x="60" y="20" className="axis-label">{primary.label}</text><text x="240" y="313" textAnchor="middle" className="axis-label">{xLabel}{log ? ` · ${t("log scale")}` : ""}</text>
       {rows.map(({ provider, x, y, upper }) => {
         const index = selected.findIndex(item => item.id === provider.id);

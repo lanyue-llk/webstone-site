@@ -26,7 +26,7 @@ const benchmark = {
     provider("Missing profile", { accuracy: .9, precision: .8, recall: null, p50: 10 }, { min: null, max: null, softwareCost: 0, description: "Model billed separately" }),
     provider("Ranged quote", { accuracy: .8, precision: .8, recall: .8, p50: 20 }, { min: 2, max: 7, description: "Per 1K calls" }),
     provider("Zero quote", { accuracy: .7, precision: .7, recall: .7, p50: 30 }, { min: 0, max: 0, description: "No charge" }),
-    provider("Known cost missing quality", { accuracy: null, precision: .6, recall: .6, p50: 40 }, { min: 1, max: 1, description: "Per 1K calls" }),
+    provider("Known cost missing quality", { accuracy: null, precision: .6, recall: .6, p50: 40 }, { min: 1000, max: 1000, description: "Per 1K calls" }),
   ],
 };
 const render = (t, data = benchmark) => renderToStaticMarkup(React.createElement(Insights, { benchmark: data, t }));
@@ -62,10 +62,24 @@ test("one primary bubble plot shows latency, quality and bounded or unknown cost
   const html = render(text => text);
   const bubble = html.match(/<svg[^>]*aria-label="accuracy \/ P50 latency"[^>]*>([\s\S]*?)<\/svg>/)?.[1];
   assert.ok(bubble);
-  assert.match(bubble, /r="20"/);
+  const outer = Number(bubble.match(/<circle[^>]*r="([^"]+)"[^>]*aria-label="Ranged quote[^>]*>/)?.[1]);
+  const inner = Number(bubble.match(/<circle[^>]*r="([^"]+)"[^>]*stroke-dasharray="2 2"/)?.[1]);
+  const zero = Number(bubble.match(/<circle[^>]*r="([^"]+)"[^>]*aria-label="Zero quote[^>]*>/)?.[1]);
+  assert.ok(outer > inner && inner > zero);
+  assert.ok(outer > 20 && outer < 21, "a $1,000 method missing accuracy cannot shrink the plotted $2–$7 range");
+  assert.equal(zero, 4);
   assert.match(bubble, /stroke-dasharray="2 2"/);
   assert.match(bubble, /fill="white"[^>]*aria-label="Missing profile/);
   assert.match(html, /Bubble size represents reported cost/);
+});
+
+test("signed resource deltas stay inside the plot instead of being clipped below zero", () => {
+  const data = { ...benchmark, metrics: [...metrics.slice(0, 3), { id: "delta", label: "Memory delta", unit: "mib", signed: true, direction: "asc" }],
+    providers: benchmark.providers.slice(0, 3).map((provider, index) => ({ ...provider, scores: { ...provider.scores, delta: index - 1 } })),
+  };
+  const plot = render(text => text, data).match(/<svg[^>]*aria-label="accuracy \/ Memory delta"[^>]*>([\s\S]*?)<\/svg>/)?.[1];
+  assert.ok(plot);
+  for (const match of plot.matchAll(/cx="([^"]+)"/g)) assert.ok(Number(match[1]) >= 60 && Number(match[1]) <= 420);
 });
 
 for (const paired of [0, 1]) test(`cost comparison with ${paired} eligible pairs explains missing measurements`, () => {
