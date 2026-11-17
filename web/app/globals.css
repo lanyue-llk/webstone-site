@@ -421,3 +421,4 @@ h1 { font-size: 30px; line-height: 1.2; }
 .profile-details, .coverage-details { margin-top: 16px; font-size: 12px; color: #44624b; }
 .profile-details > summary, .coverage-details > summary { cursor: pointer; padding: 8px 0; }
 .profile-details .insight-card, .coverage-details .insight-card { max-width: 720px; }
+.bubble-legend { margin: 10px 0 0; font-size: 11px; line-height: 1.7; color: #5d705f; }

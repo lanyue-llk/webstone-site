@@ -26,6 +26,7 @@ const benchmark = {
     provider("Missing profile", { accuracy: .9, precision: .8, recall: null, p50: 10 }, { min: null, max: null, softwareCost: 0, description: "Model billed separately" }),
     provider("Ranged quote", { accuracy: .8, precision: .8, recall: .8, p50: 20 }, { min: 2, max: 7, description: "Per 1K calls" }),
     provider("Zero quote", { accuracy: .7, precision: .7, recall: .7, p50: 30 }, { min: 0, max: 0, description: "No charge" }),
+    provider("Known cost missing quality", { accuracy: null, precision: .6, recall: .6, p50: 40 }, { min: 1, max: 1, description: "Per 1K calls" }),
   ],
 };
 const render = t => renderToStaticMarkup(React.createElement(Insights, { benchmark, t }));
@@ -46,8 +47,20 @@ test("cost rendering preserves ranges, zero and unknown totals, including Chines
   assert.doesNotMatch(html, /\$4\.5/);
   assert.match(html, /Zero quote · Quoted price \/ 1K: \$0/);
   assert.match(html, /Cost unavailable.*Missing profile/);
+  assert.doesNotMatch(html, /Cost unavailable[^<]*Known cost missing quality/);
+  assert.match(html, /Quality unavailable.*Known cost missing quality/);
   const chinese = render(translator("zh"));
   assert.match(chinese, /每千次报价/);
   assert.doesNotMatch(chinese, /Quoted price \/ 1K/);
   assert.doesNotMatch(html, /NaN|Infinity/);
+});
+
+test("one primary bubble plot shows latency, quality and bounded or unknown cost together", () => {
+  const html = render(text => text);
+  const bubble = html.match(/<svg[^>]*aria-label="accuracy \/ P50 latency"[^>]*>([\s\S]*?)<\/svg>/)?.[1];
+  assert.ok(bubble);
+  assert.match(bubble, /r="20"/);
+  assert.match(bubble, /stroke-dasharray="2 2"/);
+  assert.match(bubble, /fill="white"[^>]*aria-label="Missing profile/);
+  assert.match(html, /Bubble size represents reported cost/);
 });
