@@ -1,7 +1,7 @@
 import test from "node:test";
 import { initialLanguage, translator } from "./i18n.ts";
 import { shouldReloadRelease } from "./release.ts";
-import { categoryRate, overviewMetrics, qualityScale } from "./comparisons.ts";
+import { categoryRate, columnMetrics, overviewMetrics, qualityScale } from "./comparisons.ts";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { benchmarkEntries, bestValue, compareVersions, isBestValue, latestEntry, selectEntry, reportEntries, formatMetric, formatPricing, sumCategoryPasses, resolveBenchmark, sortProviders, type Catalog, type Provider, type Snapshot } from "./results.ts";
@@ -70,6 +70,16 @@ test("compact tables keep the ranking metric and charts preserve natural scales 
   assert.equal(categoryRate(fixture, "disclosed", 10), 0);
   assert.equal(categoryRate(fixture, "missing", 10), null);
   assert.equal(categoryRate(fixture, "disclosed", 0), null);
+  const benchmark = snapshot.benchmarks[0];
+  assert.deepEqual(columnMetrics(null, "all", "passRate"), []);
+  assert.deepEqual(columnMetrics(benchmark, "all", "passRate"), benchmark.metrics);
+  const selected = benchmark.metrics.at(-1)!.id;
+  for (const view of ["overview", "categories"] as const) {
+    const columns = columnMetrics(benchmark, view, selected);
+    assert.ok(columns.some(metric => metric.id === benchmark.primaryMetric));
+    assert.ok(columns.some(metric => metric.id === selected));
+    assert.equal(new Set(columns.map(metric => metric.id)).size, columns.length);
+  }
 });
 
 test("SWDE keeps eligible denominators, precision and independent quality/latency rankings", () => {

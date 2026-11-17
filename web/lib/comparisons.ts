@@ -10,6 +10,14 @@ export function overviewMetrics(metrics: Metric[], primary: string): Metric[] {
   return chosen.slice(0, 5);
 }
 
+export function columnMetrics(benchmark: Benchmark | null, view: "overview" | "all" | "categories", selected: string): Metric[] {
+  if (!benchmark) return [];
+  if (view === "all") return benchmark.metrics;
+  if (view === "categories") return benchmark.metrics.filter(item => item.id === benchmark.primaryMetric || item.id === selected);
+  const metrics = [...overviewMetrics(benchmark.metrics, benchmark.primaryMetric), ...benchmark.metrics.filter(item => item.id === selected)];
+  return [...new Map(metrics.map(item => [item.id, item])).values()];
+}
+
 export function qualityMetrics(benchmark: Benchmark) {
   return benchmark.metrics.filter(item => ["ratio", "percent", "score"].includes(item.unit) && !item.signed && item.direction === "desc");
 }
@@ -20,5 +28,5 @@ export function qualityScale(metric: Metric) {
 
 export function categoryRate(provider: Provider, id: string, total: number): number | null {
   const passed = provider.categoryPassed?.[id];
-  return passed == null || total <= 0 ? null : passed / total;
+  return passed === null || passed === undefined || total <= 0 ? null : passed / total;
 }

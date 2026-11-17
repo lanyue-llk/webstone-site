@@ -10,6 +10,13 @@ const catalogPath = path.join(root, "benchmarks/catalog.json");
 const resultRoot = path.join(root, "results");
 const outputRoot = path.join(root, "web/public/results");
 
+function metricMaximum(metric) {
+  if (metric?.chartRange) return metric.chartRange[1];
+  if (metric?.unit === "ratio") return 1;
+  if (["percent", "score", "points"].includes(metric?.unit)) return 100;
+  return Infinity;
+}
+
 function uniqueIds(items, label) {
   if (!Array.isArray(items) || !items.length || items.some(item => typeof item.id !== "string" || !item.id)) throw new Error(`Invalid ${label}`);
   if (new Set(items.map(item => item.id)).size !== items.length) throw new Error(`Duplicate ${label} id`);
@@ -148,7 +155,7 @@ export function validateSnapshot(snapshot, entry, catalog) {
       if (Object.keys(provider.scores).some(id => !definition.metrics.some(metric => metric.id === id))) throw new Error("Unknown metric score reference");
       for (const metric of definition.metrics) {
         const value = provider.scores[metric.id];
-        const maximum = metric.chartRange?.[1] ?? (metric.unit === "ratio" ? 1 : ["percent", "score", "points"].includes(metric.unit) ? 100 : Infinity);
+        const maximum = metricMaximum(metric);
         const minimum = metric.signed ? -maximum : 0;
         if (value !== null && (typeof value !== "number" || !Number.isFinite(value) || value < minimum || value > maximum)) {
           throw new Error("Invalid or fabricated metric value");
@@ -166,7 +173,7 @@ export function validateSnapshot(snapshot, entry, catalog) {
       for (const [id, interval] of Object.entries(provider.confidenceIntervals ?? {})) {
         const score = provider.scores[id];
         const metric = definition.metrics.find(item => item.id === id);
-        const maximum = metric?.chartRange?.[1] ?? (metric?.unit === "ratio" ? 1 : ["percent", "score", "points"].includes(metric?.unit) ? 100 : Infinity);
+        const maximum = metricMaximum(metric);
         if (!metric || score == null || !interval || ![interval.lower, interval.upper, interval.level].every(Number.isFinite) ||
           interval.lower > score || interval.upper < score || (!metric.signed && interval.lower < 0) || interval.upper > maximum || interval.level <= 0 || interval.level >= 1) throw new Error("Invalid confidence interval");
       }
