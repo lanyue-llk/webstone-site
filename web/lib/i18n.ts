@@ -4,6 +4,10 @@ export type Language = "en" | "zh";
 export const LANGUAGE_KEY = "webstone-language";
 
 const chinese: Record<string, string> = {
+  "Category breakdown": "展开分类指标", "Website updated": "网站最新更新", "Version released": "版本发布日期", "Not recorded": "未记录", "Release date not recorded for this historical version.": "此历史版本未记录发布日期。",
+  "Cost was not disclosed in this report; unknown does not mean free.": "此报告未披露成本；未知不代表免费。", "Accuracy and cost": "准确率与成本", "Accuracy and latency": "准确率与耗时", "Cost unavailable": "成本未披露", "None": "无",
+  "Further left and higher is better. Lines preserve quoted price ranges; no midpoint or combined score is calculated. Billing units may differ; check method details.": "越靠左上越好。线段保留报价区间，不取中间值、不合成总分。计费单位可能不同，请查看方案详情。",
+  "Further left and higher is better. Compare accuracy, latency and billing together; there is no universal best method.": "越靠左上越好。结合准确率、耗时与计费口径选择，没有适用于所有场景的唯一最优方案。",
   "methods": "个方案", "Table columns": "表格列", "Overview": "主要指标", "All metrics": "全部指标", "Categories": "分类结果",
   "Released": "发布", "Imported": "导入", "Date unrecorded": "日期未记录", "Result versioning": "结果版本规范", "Historical publication date was not recorded; the version selector shows its import date.": "历史结果未记录发布日期；版本选择器显示的是导入日期。",
   "Compare methods": "方案对比", "Select up to three methods": "最多选择 3 个方案", "Methods to compare": "对比方案", "Incomplete metrics": "指标不完整",

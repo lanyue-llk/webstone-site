@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { categoryRate, qualityMetrics, qualityScale } from "../lib/comparisons";
+import { categoryRate, qualityMetrics, qualityScale, quotedCost } from "../lib/comparisons";
 import { formatMetric, sortProviders, type Benchmark, type Provider } from "../lib/results";
 
 type Props = { benchmark: Benchmark; t: (text: string) => string };
@@ -53,22 +53,24 @@ function Radar({ axes, providers, t }: { axes: Axis[]; providers: Provider[]; t:
   </figure>;
 }
 
-function Scatter({ benchmark, selected, t }: Props & { selected: Provider[] }) {
+function Scatter({ benchmark, selected, t, cost = false }: Props & { selected: Provider[]; cost?: boolean }) {
   const primary = benchmark.metrics.find(metric => metric.id === benchmark.primaryMetric)!;
-  const candidates = benchmark.metrics.filter(metric => ["seconds", "ms", "mib"].includes(metric.unit) && metric.highlightBest !== false);
+  const candidates = benchmark.metrics.filter(metric => ["seconds", "ms", "mib"].includes(metric.unit));
   const preferred = candidates.find(metric => /p50/i.test(metric.id)) ?? candidates.find(metric => metric.unit === "mib") ?? candidates[0];
   const [xId, setXId] = useState(preferred?.id);
-  const xMetric = candidates.find(metric => metric.id === xId) ?? preferred;
-  const coverage = Boolean(benchmark.sourceMatches);
+  const priceMetric = benchmark.metrics.find(metric => metric.unit === "usd");
+  const xMetric = cost ? priceMetric ?? { id: "quoted-price", label: t("Quoted price / 1K"), unit: "usd", direction: "asc" as const } : candidates.find(metric => metric.id === xId) ?? preferred;
+  const coverage = !cost && !xMetric && Boolean(benchmark.sourceMatches);
   if (!coverage && !xMetric) return null;
   const rows = benchmark.providers.flatMap(provider => {
-    const x = coverage ? benchmark.sourceMatches![provider.id].original / benchmark.taskCount * 100 : provider.scores[xMetric!.id];
+    const range = cost && !priceMetric ? quotedCost(provider) : null;
+    const x = cost && !priceMetric ? range?.[0] : coverage ? benchmark.sourceMatches![provider.id].original / benchmark.taskCount * 100 : provider.scores[xMetric!.id];
     const y = provider.scores[primary.id];
     if (x === null || x === undefined || y === null || y === undefined) return [];
-    return [{ provider, x, y }];
+    return [{ provider, x, y, upper: range?.[1] ?? x }];
   });
   if (rows.length < 2) return null;
-  const minimum = Math.min(...rows.map(row => row.x)), maximum = Math.max(...rows.map(row => row.x));
+  const minimum = Math.min(...rows.map(row => row.x)), maximum = Math.max(...rows.map(row => row.upper));
   const log = !coverage && minimum > 0 && maximum / minimum > 10;
   const low = log ? Math.floor(Math.log10(minimum)) : 0;
   let high = Math.max(1, maximum * 1.08);
@@ -76,24 +78,26 @@ function Scatter({ benchmark, selected, t }: Props & { selected: Provider[] }) {
   if (coverage) high = 100;
   const xPosition = (value: number) => 60 + ((log ? Math.log10(value) : value) - low) / (high - low || 1) * 360;
   const yMaximum = qualityScale(primary);
-  const xLabel = coverage ? t("Original source coverage") : xMetric!.label;
+  const xLabel = coverage ? t("Original source coverage") : t(xMetric!.label);
   const formatX = (value: number) => coverage ? `${value.toFixed(1)}%` : formatMetric(value, xMetric!.unit, xMetric!.decimals);
   return <article className="insight-card scatter-card">
-    <div className="card-heading"><h3>{t(coverage ? "Source coverage and quality" : "Quality and resources")}</h3>{!coverage && candidates.length > 1 && <select aria-label={t("Horizontal axis")} value={xMetric!.id} onChange={event => setXId(event.target.value)}>{candidates.map(metric => <option key={metric.id} value={metric.id}>{metric.label}</option>)}</select>}</div>
+    <div className="card-heading"><h3>{t(cost ? "Accuracy and cost" : coverage ? "Source coverage and quality" : "Accuracy and latency")}</h3>{!cost && !coverage && candidates.length > 1 && <select aria-label={t("Horizontal axis")} value={xMetric!.id} onChange={event => setXId(event.target.value)}>{candidates.map(metric => <option key={metric.id} value={metric.id}>{t(metric.label)}</option>)}</select>}</div>
     <figure className="comparison-figure"><svg viewBox="0 0 480 330" role="img" aria-label={`${primary.label} / ${xLabel}`}>
       {[0, .25, .5, .75, 1].map(fraction => <g key={fraction}><line x1="60" x2="420" y1={260 - fraction * 220} y2={260 - fraction * 220} className="radar-grid" /><text x="48" y={264 - fraction * 220} textAnchor="end" className="axis-tick">{formatMetric(yMaximum * fraction, primary.unit, primary.decimals)}</text></g>)}
       {[0, .5, 1].map(fraction => { const value = log ? 10 ** (low + fraction * (high - low)) : high * fraction; return <text key={fraction} x={60 + fraction * 360} y="282" textAnchor="middle" className="axis-tick">{formatX(value)}</text>; })}
       <text x="60" y="20" className="axis-label">{primary.label}</text><text x="240" y="313" textAnchor="middle" className="axis-label">{xLabel}{log ? ` · ${t("log scale")}` : ""}</text>
-      {rows.map(({ provider, x, y }) => {
+      {rows.map(({ provider, x, y, upper }) => {
         const index = selected.findIndex(item => item.id === provider.id);
         const interval = provider.confidenceIntervals?.[primary.id];
-        const label = `${provider.name} · ${xLabel}: ${formatX(x)} · ${primary.label}: ${formatMetric(y, primary.unit, primary.decimals)}`;
-        return <g key={provider.id}>{interval && <line x1={xPosition(x)} x2={xPosition(x)} y1={260 - interval.lower / yMaximum * 220} y2={260 - interval.upper / yMaximum * 220} stroke={index < 0 ? "#c7cec9" : colors[index]} strokeWidth="2"><title>{`${interval.level * 100}% CI: ${interval.lower}–${interval.upper}`}</title></line>}<circle cx={xPosition(x)} cy={260 - y / yMaximum * 220} r={index < 0 ? 5 : 9} fill={index < 0 ? "#c7cec9" : colors[index]} stroke="white" strokeWidth="1.5" tabIndex={0} aria-label={label}><title>{label}</title></circle>{index >= 0 && <text x={xPosition(x)} y={264 - y / yMaximum * 220} textAnchor="middle" className="point-number" aria-hidden="true">{index + 1}</text>}</g>;
+        const label = `${provider.name} · ${xLabel}: ${formatX(x)}${upper !== x ? `–${formatX(upper)}` : ""} · ${primary.label}: ${formatMetric(y, primary.unit, primary.decimals)}`;
+        return <g key={provider.id}>{upper !== x && <line x1={xPosition(x)} x2={xPosition(upper)} y1={260 - y / yMaximum * 220} y2={260 - y / yMaximum * 220} stroke={index < 0 ? "#89978c" : colors[index]} strokeWidth="4"><title>{label}</title></line>}{interval && <line x1={xPosition(x)} x2={xPosition(x)} y1={260 - interval.lower / yMaximum * 220} y2={260 - interval.upper / yMaximum * 220} stroke={index < 0 ? "#c7cec9" : colors[index]} strokeWidth="2"><title>{`${interval.level * 100}% CI: ${interval.lower}–${interval.upper}`}</title></line>}<circle cx={xPosition(x)} cy={260 - y / yMaximum * 220} r={index < 0 ? 5 : 9} fill={upper !== x ? "white" : index < 0 ? "#c7cec9" : colors[index]} stroke={upper !== x ? index < 0 ? "#89978c" : colors[index] : "white"} strokeWidth="1.5" tabIndex={0} aria-label={label}><title>{label}</title></circle>{index >= 0 && upper === x && <text x={xPosition(x)} y={264 - y / yMaximum * 220} textAnchor="middle" className="point-number" aria-hidden="true">{index + 1}</text>}</g>;
       })}
     </svg><figcaption>{t(coverage ? "The horizontal axis is the share of evaluated cases with an original source URL. It does not imply causation." : "Observed measurements; methods may use different execution and billing conditions.")}</figcaption></figure>
-    <table className="sr-only"><caption>{`${primary.label} / ${xLabel}`}</caption><thead><tr><th>{t("Method")}</th><th>{xLabel}</th><th>{primary.label}</th><th>{t("Confidence interval")}</th></tr></thead><tbody>{rows.map(({ provider, x, y }) => {
+    <p className="chart-note">{t(cost ? "Further left and higher is better. Lines preserve quoted price ranges; no midpoint or combined score is calculated. Billing units may differ; check method details." : "Further left and higher is better. Compare accuracy, latency and billing together; there is no universal best method.")}</p>
+    {cost && <p className="chart-note">{t("Cost unavailable")}: {benchmark.providers.filter(provider => !rows.some(row => row.provider.id === provider.id)).map(provider => provider.name).join(", ") || t("None")}</p>}
+    <table className="sr-only"><caption>{`${primary.label} / ${xLabel}`}</caption><thead><tr><th>{t("Method")}</th><th>{xLabel}</th><th>{primary.label}</th><th>{t("Confidence interval")}</th></tr></thead><tbody>{rows.map(({ provider, x, y, upper }) => {
       const interval = provider.confidenceIntervals?.[primary.id];
-      return <tr key={provider.id}><th scope="row">{provider.name}</th><td>{formatX(x)}</td><td>{formatMetric(y, primary.unit, primary.decimals)}</td><td>{interval ? `${interval.level * 100}%: ${formatMetric(interval.lower, primary.unit, primary.decimals)}–${formatMetric(interval.upper, primary.unit, primary.decimals)}` : "—"}</td></tr>;
+      return <tr key={provider.id}><th scope="row">{provider.name}</th><td>{formatX(x)}{upper !== x ? `–${formatX(upper)}` : ""}</td><td>{formatMetric(y, primary.unit, primary.decimals)}</td><td>{interval ? `${interval.level * 100}%: ${formatMetric(interval.lower, primary.unit, primary.decimals)}–${formatMetric(interval.upper, primary.unit, primary.decimals)}` : "—"}</td></tr>;
     })}</tbody></table>
   </article>;
 }
@@ -101,11 +105,12 @@ function Scatter({ benchmark, selected, t }: Props & { selected: Provider[] }) {
 export default function Insights({ benchmark, t }: Props) {
   const axes = radarAxes(benchmark).map(axis => ({ ...axis, label: t(axis.label) }));
   const hasRadar = axes.length >= 3;
-  const eligible = benchmark.providers.filter(provider => !hasRadar || axes.every(axis => axis.value(provider) !== null));
+  const eligible = benchmark.providers;
   const [ids, setIds] = useState(() => sortProviders(eligible, benchmark.primaryMetric, benchmark.metrics.find(metric => metric.id === benchmark.primaryMetric)!.direction).slice(0, 3).map(provider => provider.id));
   const selected = ids.flatMap(id => eligible.find(provider => provider.id === id) ?? []);
-  const hasScatter = Boolean(benchmark.sourceMatches) || benchmark.metrics.some(metric => ["seconds", "ms", "mib"].includes(metric.unit) && metric.highlightBest !== false);
-  if (!hasRadar && !hasScatter) return null;
+  const hasScatter = Boolean(benchmark.sourceMatches) || benchmark.metrics.some(metric => ["seconds", "ms", "mib"].includes(metric.unit));
+  const hasCost = benchmark.metrics.some(metric => metric.unit === "usd") || benchmark.providers.some(provider => quotedCost(provider));
+  if (!hasRadar && !hasScatter && !hasCost) return null;
   return <section id="insights" className="insights-section">
     <div className="section-heading"><h2>{t("Compare methods")}</h2><span className="comparison-limit">{t("Select up to three methods")}</span></div>
     <div className="comparison-methods" role="group" aria-label={t("Methods to compare")}>{benchmark.providers.map(provider => {
@@ -113,8 +118,9 @@ export default function Insights({ benchmark, t }: Props) {
       return <label key={provider.id} style={{ "--series-color": index < 0 ? "#bdc7bf" : colors[index] } as React.CSSProperties}><input type="checkbox" checked={index >= 0} disabled={!available || (index < 0 && ids.length >= 3)} onChange={() => setIds(current => current.includes(provider.id) ? current.filter(id => id !== provider.id) : [...current, provider.id])} />{index >= 0 && <b className="series-number" aria-hidden="true">{index + 1}</b>}<span>{provider.name}</span>{!available && <small>{t("Incomplete metrics")}</small>}</label>;
     })}</div>
     <div className={`insight-grid ${hasRadar && hasScatter ? "" : "single-chart"}`}>
-      {hasRadar && <article className="insight-card"><div className="card-heading"><h3>{t("Capability profile")}</h3></div><Radar axes={axes} providers={selected} t={t} /><p className="chart-note">{t(benchmark.categories.length >= 3 ? "Category pass rates use each category's own sample count." : "Axes show 0–100% of each metric's defined range, without combining them into a score.")}{benchmark.providers.some(provider => provider.confidenceIntervals) && <> {t("Confidence intervals are available in method details.")}</>}</p></article>}
       {hasScatter && <Scatter benchmark={benchmark} selected={selected} t={t} />}
+      {hasCost && <Scatter benchmark={benchmark} selected={selected} t={t} cost />}
+      {hasRadar && <article className="insight-card"><div className="card-heading"><h3>{t("Capability profile")}</h3></div><Radar axes={axes} providers={selected.filter(provider => axes.every(axis => axis.value(provider) !== null))} t={t} /><p className="chart-note">{t(benchmark.categories.length >= 3 ? "Category pass rates use each category's own sample count." : "Axes show 0–100% of each metric's defined range, without combining them into a score.")}{benchmark.providers.some(provider => provider.confidenceIntervals) && <> {t("Confidence intervals are available in method details.")}</>}</p></article>}
     </div>
   </section>;
 }

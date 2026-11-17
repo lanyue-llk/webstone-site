@@ -8,10 +8,9 @@ import InfoTooltip from "./info-tooltip";
 import Insights from "./insights";
 import MethodDetails from "./method-details";
 import ReleaseCheck from "./release-check";
-import { RELEASE } from "../lib/release.generated";
+import { RELEASE, BUILT_AT } from "../lib/release.generated";
 import { translator } from "../lib/i18n";
 import { useLanguage } from "../lib/use-language";
-import { columnMetrics } from "../lib/comparisons";
 
 const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2 };
 const GITHUB_URL = "https://github.com/lexmount/browser-eval-site";
@@ -27,7 +26,7 @@ export default function Dashboard() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [language, chooseLanguage] = useLanguage();
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
-  const [columnView, setColumnView] = useState<"overview" | "all" | "categories">("overview");
+  const [showCategories, setShowCategories] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -88,9 +87,9 @@ export default function Dashboard() {
   const versionEntries = entries ? benchmarkEntries(entries, selection.benchmark) : [];
   const versions = versionEntries.map(item => canonicalVersion(item.version));
   const providers = benchmark && metric ? sortProviders(benchmark.providers, metric.id, direction) : [];
-  const categories = columnView === "overview" ? [] : benchmark?.categories ?? [];
+  const categories = showCategories ? benchmark?.categories ?? [] : [];
   const primaryMetric = benchmark?.metrics.find(item => item.id === benchmark.primaryMetric);
-  const visibleMetrics = columnMetrics(benchmark, columnView, selection.metric);
+  const visibleMetrics = benchmark?.metrics ?? [];
   const leadingMetrics = benchmark && primaryMetric
     ? [primaryMetric, ...visibleMetrics.filter(item => item.id !== primaryMetric.id && benchmark.leadingMetricIds?.includes(item.id))]
     : [];
@@ -100,8 +99,9 @@ export default function Dashboard() {
   const metricBest = new Map((benchmark?.metrics ?? []).map(item => [item.id, item.highlightBest === false ? null : bestValue((benchmark?.providers ?? []).map(provider => provider.scores[item.id]), item.direction)]));
   const categoryBest = new Map(categories.map(category => [category.id, bestValue((benchmark?.providers ?? []).map(provider => provider.categoryPassed?.[category.id] ?? null), "desc")]));
   const passedBest = bestValue((benchmark?.providers ?? []).map(provider => provider.passed), "desc");
-  const showPassed = columnView === "all" && (benchmark?.providers.some(provider => provider.passed !== null && provider.passed !== undefined) ?? false);
-  const showPricing = columnView !== "categories" && (benchmark?.providers.some(provider => provider.pricing !== null && provider.pricing !== undefined) ?? false);
+  const showPassed = showCategories && (benchmark?.providers.some(provider => provider.passed !== null && provider.passed !== undefined) ?? false);
+  const hasPricing = benchmark?.providers.some(provider => provider.pricing != null) ?? false;
+  const showPricing = hasPricing || !benchmark?.metrics.some(item => item.unit === "usd");
   const tableClass = benchmark?.id === "lexbench-webfetch"
     ? "wide-table lexbench-table"
     : benchmark?.id === "webarena-verified" ? "wide-table arena-table"
@@ -111,7 +111,7 @@ export default function Dashboard() {
     : "wide-table";
 
   function chooseBenchmark(id: string) {
-    setColumnView("overview");
+    setShowCategories(false);
     const latest = entries ? latestEntry(entries, id) : null;
     const version = latest ? canonicalVersion(latest.version) : "";
     const selectedResult = snapshots.find(record => record.id === latest?.id)?.benchmarks.find(item => item.id === id);
@@ -178,15 +178,7 @@ export default function Dashboard() {
           aria-current={track?.id === item.id ? "page" : undefined}
           onClick={() => track?.id === item.id ? setMenuOpen(false) : chooseBenchmark(item.benchmarks[0].id)}
         ><Icon size={17} /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span></button>
-          {track?.id === item.id && <div className="benchmark-navigation" role="group" aria-label={t("Benchmarks")}>
-            {item.benchmarks.filter(bench => !bench.outputLayer || bench.outputLayer === "L1").map(bench => {
-              const active = bench.searchGroup ? details?.searchGroup === bench.searchGroup : selection.benchmark === bench.id;
-              return <button key={bench.id} aria-current={active ? "page" : undefined} onClick={() => {
-                const target = bench.searchGroup ? catalog?.benchmarks.find(candidate => candidate.searchGroup === bench.searchGroup && candidate.outputLayer === details?.outputLayer) : bench;
-                chooseBenchmark(target?.id ?? bench.id);
-              }}>{bench.name}</button>;
-            })}
-          </div>}
+
         </div>;
       })}</nav>
       <div className="sidebar-footer">
@@ -196,9 +188,17 @@ export default function Dashboard() {
     </aside>
 
     <div className="main-shell">
+      <div className="benchmark-tabs-bar"><button className="mobile-menu icon-button" aria-label={t("Open navigation")} onClick={() => setMenuOpen(true)}><Menu size={20} /></button>          {track && <div className="benchmark-navigation" role="group" aria-label={t("Benchmarks")}>
+            {track.benchmarks.filter(bench => !bench.outputLayer || bench.outputLayer === "L1").map(bench => {
+              const active = bench.searchGroup ? details?.searchGroup === bench.searchGroup : selection.benchmark === bench.id;
+              return <button key={bench.id} aria-current={active ? "page" : undefined} onClick={() => {
+                const target = bench.searchGroup ? catalog?.benchmarks.find(candidate => candidate.searchGroup === bench.searchGroup && candidate.outputLayer === details?.outputLayer) : bench;
+                chooseBenchmark(target?.id ?? bench.id);
+              }}>{bench.name}</button>;
+            })}
+          </div>}</div>
       <header className="topbar">
         <div className="title-group">
-          <button className="mobile-menu icon-button" aria-label={t("Open navigation")} onClick={() => setMenuOpen(true)}><Menu size={20} /></button>
           <div className="benchmark-heading"><h1>{details ? t(details.name) : "Webstone"}</h1>
             {details && <p className="benchmark-description">{t(details.description)}</p>}
             {details && <div className="benchmark-links">
@@ -217,18 +217,18 @@ export default function Dashboard() {
         {!entries && !error && <div className="loading-panel" role="status">{t("Loading…")}</div>}
         {error && <div className="empty-state" role="alert"><p>{t(error)}</p><button className="text-button" onClick={() => window.location.reload()}>{t("Retry")}</button></div>}
         {entries && <>
-          <div className="results-controls">
+          <div className="results-controls"><div className="result-meta"><span>{t("Website updated")} <time dateTime={BUILT_AT}>{BUILT_AT.slice(0, 16).replace("T", " ")} UTC</time></span>{entry && <span>{t("Version released")}: {entry.dateKind === "released" ? entry.date : t("Not recorded")}</span>}</div>
             {details?.searchGroup ? <div className="search-selectors">
               <div className="layer-control" role="group" aria-label={t("Output layer")}>{(["L1", "L2", "L3"] as const).map((layer, index) => <button key={layer} aria-pressed={details.outputLayer === layer} onClick={() => {
                 const target = catalog?.benchmarks.find(item => item.searchGroup === details.searchGroup && item.outputLayer === layer);
                 if (target) chooseBenchmark(target.id);
               }}>{t(["L1 · Search results", "L2 · Supplemental text", "L3 · Generated answers"][index])}</button>)}</div>
-            </div> : <span />}
+            </div> : null}
             {versions.length > 0 && <div className="version-control">
               <label htmlFor="result-version">{t("Version")}</label>
               <select id="result-version" value={selection.version} onChange={event => chooseVersion(event.target.value)}>
                 {selection.version && !versions.includes(selection.version) && <option value={selection.version}>{selection.version} ({t("no results")})</option>}
-                {[...versionEntries].reverse().map(item => <option key={item.version} value={canonicalVersion(item.version)}>{canonicalVersion(item.version)}{item.date ? ` · ${item.date} (${t(item.dateKind === "released" ? "Released" : "Imported")})` : ` · ${t("Date unrecorded")}`}</option>)}
+                {[...versionEntries].reverse().map(item => <option key={item.version} value={canonicalVersion(item.version)}>{canonicalVersion(item.version)}{item.dateKind === "released" && item.date ? ` · ${item.date}` : ""}</option>)}
               </select>
             </div>}
           </div>
@@ -238,15 +238,22 @@ export default function Dashboard() {
             {versions.length > 0 && <button className="text-button" onClick={() => chooseVersion(versions.at(-1)!)}>{t("View latest version")}<ArrowRight size={14} /></button>}
           </div> : <>
             {details?.searchGroup && <p className="scope-warning">{t("Each layer is scored independently. Scores cannot be added or read as incremental gains.")}</p>}
+              <details className="evaluation-notes"><summary>{t("Evaluation notes")}</summary>
+                {snapshot && <p>{t(snapshot.datasetDifference)}</p>}
+                {snapshot?.release && <p><strong>{canonicalVersion(snapshot.version)}</strong> · {snapshot.release.date} · {t(snapshot.release.summary)}</p>}
+                {!snapshot?.release && <p>{t("Release date not recorded for this historical version.")}</p>}
+                <a href="/versioning">{t("Result versioning")}</a>
+                <ul>{benchmark.notes.map((note, index) => <li key={index}>{t(note)}</li>)}</ul>
+                {result?.reportUrl && result.reportUrl !== details?.reportUrl && <a href={result.reportUrl} target="_blank" rel="noreferrer">{t("Source report")} ↗</a>}
+              </details>
             <section id="results" className="leaderboard" aria-label={`${t(benchmark.name)} ${t("Leaderboard")}`}>
               <h2 className="sr-only">{t("Leaderboard")}</h2>
               <div className="table-toolbar"><span>{benchmark.providerCount} {t("methods")} · {benchmark.taskCount.toLocaleString()} {t("cases")}</span><div className="column-views" role="group" aria-label={t("Table columns")}>
-                <button aria-pressed={columnView === "overview"} onClick={() => setColumnView("overview")}>{t("Overview")}</button>
-                {benchmark.categories.length > 0 && <button aria-pressed={columnView === "categories"} onClick={() => setColumnView("categories")}>{t("Categories")}</button>}
-                <button aria-pressed={columnView === "all"} onClick={() => setColumnView("all")}>{t("All metrics")}</button>
+                {benchmark.categories.length > 0 && <button aria-pressed={showCategories} onClick={() => setShowCategories(current => !current)}>{t("Category breakdown")}</button>}
               </div></div>
               <p className="sample-scope">{benchmark.metrics.filter(item => result?.metricSamples?.[item.id]?.sampleCount !== null && result?.metricSamples?.[item.id]?.sampleCount !== undefined && result.metricSamples[item.id].sampleCount !== benchmark.taskCount).map(item => `${item.label}: ${result!.metricSamples![item.id].sampleCount} ${t("samples")}`).join(" · ")}</p>
               {benchmark.trackId === "websearch" && snapshot?.source.kind === "report-page" && <p className="scope-warning">{t("Different collection dates and concurrency: these timings are not a controlled same-window speed comparison.")}</p>}
+              {!hasPricing && !benchmark.metrics.some(item => item.unit === "usd") && <p className="cost-disclosure">{t("Cost was not disclosed in this report; unknown does not mean free.")}</p>}
               <div className="table-scroll">
                 <table className={tableClass} style={{ "--data-columns": categories.length + visibleMetrics.length + Number(showPassed) + Number(showPricing) } as React.CSSProperties}>
                   <caption className="sr-only">{t(benchmark.name)} {t("Leaderboard")}</caption>
@@ -273,14 +280,7 @@ export default function Dashboard() {
                   </tr>)}</tbody>
                 </table>
               </div>
-              <details className="evaluation-notes"><summary>{t("Evaluation notes")}</summary>
-                {snapshot && <p>{t(snapshot.datasetDifference)}</p>}
-                {snapshot?.release && <p><strong>{canonicalVersion(snapshot.version)}</strong> · {snapshot.release.date} · {t(snapshot.release.summary)}</p>}
-                {!snapshot?.release && <p>{t("Historical publication date was not recorded; the version selector shows its import date.")}</p>}
-                <a href="/versioning">{t("Result versioning")}</a>
-                <ul>{benchmark.notes.map((note, index) => <li key={index}>{t(note)}</li>)}</ul>
-                {result?.reportUrl && result.reportUrl !== details?.reportUrl && <a href={result.reportUrl} target="_blank" rel="noreferrer">{t("Source report")} ↗</a>}
-              </details>
+
             </section>
             <Insights key={`${benchmark.id}-${selection.version}`} benchmark={benchmark} t={t} />
             <MethodDetails provider={selectedProvider} benchmark={benchmark} t={t} onClose={() => setSelectedProvider(null)} />

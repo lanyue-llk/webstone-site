@@ -1,7 +1,7 @@
 import test from "node:test";
 import { initialLanguage, translator } from "./i18n.ts";
 import { clearLegacyCache, LEGACY_CACHE_RESET_KEY, shouldReloadRelease } from "./release.ts";
-import { categoryRate, columnMetrics, overviewMetrics, qualityScale } from "./comparisons.ts";
+import { categoryRate, quotedCost, qualityScale } from "./comparisons.ts";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { benchmarkEntries, bestValue, compareVersions, isBestValue, latestEntry, selectEntry, reportEntries, formatMetric, formatPricing, sumCategoryPasses, resolveBenchmark, sortProviders, type Catalog, type Provider, type Snapshot } from "./results.ts";
@@ -83,12 +83,6 @@ const searchSnapshot = readSnapshot("lexbench-websearch/lexbench-websearch-v1-re
 const search = { ...searchSnapshot, benchmarks: [...searchSnapshot.benchmarks, ...readSnapshot("simpleqa-verified/simpleqa-verified-v1-report.json").benchmarks] };
 
 test("compact tables keep the ranking metric and charts preserve natural scales and missing data", () => {
-  for (const info of catalog.benchmarks) for (const definition of info.definitions) {
-    const metrics = overviewMetrics(definition.metrics, definition.primaryMetric);
-    assert.equal(metrics[0].id, definition.primaryMetric);
-    assert.ok(metrics.length <= 5);
-    assert.equal(new Set(metrics.map(metric => metric.id)).size, metrics.length);
-  }
   const usefulness = catalog.benchmarks.flatMap(info => info.definitions.flatMap(definition => definition.metrics)).find(metric => metric.id === "usefulness")!;
   assert.equal(qualityScale(usefulness), 3);
   assert.equal(qualityScale({ ...usefulness, unit: "ratio", chartRange: undefined }), 1);
@@ -96,16 +90,10 @@ test("compact tables keep the ranking metric and charts preserve natural scales 
   assert.equal(categoryRate(fixture, "disclosed", 10), 0);
   assert.equal(categoryRate(fixture, "missing", 10), null);
   assert.equal(categoryRate(fixture, "disclosed", 0), null);
-  const benchmark = snapshot.benchmarks[0];
-  assert.deepEqual(columnMetrics(null, "all", "passRate"), []);
-  assert.deepEqual(columnMetrics(benchmark, "all", "passRate"), benchmark.metrics);
-  const selected = benchmark.metrics.at(-1)!.id;
-  for (const view of ["overview", "categories"] as const) {
-    const columns = columnMetrics(benchmark, view, selected);
-    assert.ok(columns.some(metric => metric.id === benchmark.primaryMetric));
-    assert.ok(columns.some(metric => metric.id === selected));
-    assert.equal(new Set(columns.map(metric => metric.id)).size, columns.length);
-  }
+  assert.equal(quotedCost({ ...providers[0], pricing: undefined }), null);
+  assert.equal(quotedCost({ ...providers[0], pricing: { min: null, max: null, softwareCost: 0, description: "Model billed separately" } }), null);
+  assert.deepEqual(quotedCost({ ...providers[0], pricing: { min: 2, max: 7, description: "Per 1,000 calls" } }), [2, 7]);
+  assert.deepEqual(quotedCost({ ...providers[0], pricing: { min: 0, max: 0, description: "No charge" } }), [0, 0]);
 });
 
 test("SWDE keeps eligible denominators, precision and independent quality/latency rankings", () => {
