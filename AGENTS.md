@@ -79,7 +79,7 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 
 ## Security
 
-- No tokens, keys or credentials in code, data, documentation or commits. `.env*` files stay local. The top-right GitHub link always points to `https://github.com/lexmount/browser-eval-site`.
+- No tokens, keys or credentials in code, data, documentation or commits. `.env*` files stay local. The GitHub link at the bottom of the navigation always points to `https://github.com/lexmount/browser-eval-site`.
 
 ## Result submissions
 

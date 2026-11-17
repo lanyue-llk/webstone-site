@@ -204,7 +204,7 @@ Discovery runs at startup/build time so the site stays fully static. `prepare:da
 
 For a new Benchmark or evaluation definition, add its metadata to `benchmarks/catalog.json` first, including `datasetName` matching the final segment of `datasetUrl`. Editing an introduction or related resource link only requires changing the catalog. Restart the dev server or rebuild after changing data or configuration.
 
-The GitHub button in the top-right corner always links to this website's source at <https://github.com/lexmount/browser-eval-site>.
+Language controls and the GitHub link sit at the bottom of the navigation, including the mobile menu. The GitHub link always points to this website's source at <https://github.com/lexmount/browser-eval-site>.
 
 Each benchmark has separate dataset and report links below its introduction,
 stored as `datasetName`, `datasetUrl` and `reportUrl` in `benchmarks/catalog.json`.
