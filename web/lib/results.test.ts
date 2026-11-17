@@ -1,7 +1,7 @@
 import test from "node:test";
 import { initialLanguage, translator } from "./i18n.ts";
 import { clearLegacyCache, LEGACY_CACHE_RESET_KEY, shouldReloadRelease } from "./release.ts";
-import { categoryRate, quotedCost, qualityScale } from "./comparisons.ts";
+import { categoryRate, decisionMetrics, quotedCost, qualityScale } from "./comparisons.ts";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { benchmarkEntries, bestValue, compareVersions, isBestValue, latestEntry, selectEntry, reportEntries, formatMetric, formatPricing, sumCategoryPasses, resolveBenchmark, sortProviders, type Catalog, type Provider, type Snapshot } from "./results.ts";
@@ -83,6 +83,13 @@ const searchSnapshot = readSnapshot("lexbench-websearch/lexbench-websearch-v1-re
 const search = { ...searchSnapshot, benchmarks: [...searchSnapshot.benchmarks, ...readSnapshot("simpleqa-verified/simpleqa-verified-v1-report.json").benchmarks] };
 
 test("compact tables keep the ranking metric and charts preserve natural scales and missing data", () => {
+  for (const info of catalog.benchmarks) for (const name of readdirSync(new URL(`../../results/${info.id}/`, import.meta.url))) {
+    const benchmark = readSnapshot(`${info.id}/${name}`).benchmarks[0];
+    const visible = decisionMetrics(benchmark, false, benchmark.primaryMetric);
+    assert.ok(visible.some(metric => metric.id === benchmark.primaryMetric));
+    for (const metric of benchmark.metrics.filter(item => ["seconds", "ms", "mib", "usd"].includes(item.unit))) assert.ok(visible.includes(metric));
+    assert.deepEqual(decisionMetrics(benchmark, true, benchmark.primaryMetric), benchmark.metrics);
+  }
   const usefulness = catalog.benchmarks.flatMap(info => info.definitions.flatMap(definition => definition.metrics)).find(metric => metric.id === "usefulness")!;
   assert.equal(qualityScale(usefulness), 3);
   assert.equal(qualityScale({ ...usefulness, unit: "ratio", chartRange: undefined }), 1);

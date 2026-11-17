@@ -1,5 +1,12 @@
 import type { Benchmark, Metric, Provider } from "./results.ts";
 
+export function decisionMetrics(benchmark: Benchmark, expanded: boolean, selected: string): Metric[] {
+  if (expanded) return benchmark.metrics;
+  return benchmark.metrics.filter(metric => metric.id === benchmark.primaryMetric || metric.id === selected
+    || benchmark.leadingMetricIds?.includes(metric.id)
+    || ["seconds", "ms", "mib", "usd"].includes(metric.unit));
+}
+
 // Never turn unknown, software-only, or ranged billing into a point price.
 export function quotedCost(provider: Provider): [number, number] | null {
   const pricing = provider.pricing;

@@ -11,6 +11,7 @@ import ReleaseCheck from "./release-check";
 import { RELEASE, BUILT_AT } from "../lib/release.generated";
 import { translator } from "../lib/i18n";
 import { useLanguage } from "../lib/use-language";
+import { decisionMetrics } from "../lib/comparisons";
 
 const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2 };
 const GITHUB_URL = "https://github.com/lexmount/browser-eval-site";
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [language, chooseLanguage] = useLanguage();
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [showCategories, setShowCategories] = useState(false);
+  const [moreMetrics, setMoreMetrics] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -89,7 +91,7 @@ export default function Dashboard() {
   const providers = benchmark && metric ? sortProviders(benchmark.providers, metric.id, direction) : [];
   const categories = showCategories ? benchmark?.categories ?? [] : [];
   const primaryMetric = benchmark?.metrics.find(item => item.id === benchmark.primaryMetric);
-  const visibleMetrics = benchmark?.metrics ?? [];
+  const visibleMetrics = benchmark ? decisionMetrics(benchmark, moreMetrics, selection.metric) : [];
   const leadingMetrics = benchmark && primaryMetric
     ? [primaryMetric, ...visibleMetrics.filter(item => item.id !== primaryMetric.id && benchmark.leadingMetricIds?.includes(item.id))]
     : [];
@@ -112,6 +114,7 @@ export default function Dashboard() {
 
   function chooseBenchmark(id: string) {
     setShowCategories(false);
+    setMoreMetrics(false);
     const latest = entries ? latestEntry(entries, id) : null;
     const version = latest ? canonicalVersion(latest.version) : "";
     const selectedResult = snapshots.find(record => record.id === latest?.id)?.benchmarks.find(item => item.id === id);
@@ -250,6 +253,7 @@ export default function Dashboard() {
               <h2 className="sr-only">{t("Leaderboard")}</h2>
               <div className="table-toolbar"><span>{benchmark.providerCount} {t("methods")} · {benchmark.taskCount.toLocaleString()} {t("cases")}</span><div className="column-views" role="group" aria-label={t("Table columns")}>
                 {benchmark.categories.length > 0 && <button aria-pressed={showCategories} onClick={() => setShowCategories(current => !current)}>{t("Category breakdown")}</button>}
+                {benchmark.metrics.some(item => !decisionMetrics(benchmark, false, selection.metric).includes(item)) && <button aria-pressed={moreMetrics} onClick={() => setMoreMetrics(current => !current)}>{t("More metrics")}</button>}
               </div></div>
               <p className="sample-scope">{benchmark.metrics.filter(item => result?.metricSamples?.[item.id]?.sampleCount !== null && result?.metricSamples?.[item.id]?.sampleCount !== undefined && result.metricSamples[item.id].sampleCount !== benchmark.taskCount).map(item => `${item.label}: ${result!.metricSamples![item.id].sampleCount} ${t("samples")}`).join(" · ")}</p>
               {benchmark.trackId === "websearch" && snapshot?.source.kind === "report-page" && <p className="scope-warning">{t("Different collection dates and concurrency: these timings are not a controlled same-window speed comparison.")}</p>}
