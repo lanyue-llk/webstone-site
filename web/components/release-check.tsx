@@ -2,12 +2,12 @@
 
 import { useEffect } from "react";
 import { RELEASE } from "../lib/release.generated";
-import { shouldReloadRelease } from "../lib/release";
+import { clearLegacyCache, shouldReloadRelease } from "../lib/release";
 
 // An HTTP cache policy cannot replace JavaScript in an already-open page.
 export default function ReleaseCheck() {
   useEffect(() => {
-    let active = true, pending = false;
+    let active = true, pending = false, cacheResetAttempted = false;
     let request: AbortController | null = null;
     const key = "webstone-release-reload";
     async function check() {
@@ -17,6 +17,10 @@ export default function ReleaseCheck() {
       request = controller;
       const timeout = window.setTimeout(() => controller.abort(), 15_000);
       try {
+        if (!cacheResetAttempted) {
+          cacheResetAttempted = true;
+          await clearLegacyCache(() => window.localStorage, () => fetch("/cache-reset", { cache: "no-store", signal: controller.signal }));
+        }
         const response = await fetch(`/release.json?check=${Date.now()}`, { cache: "no-store", signal: controller.signal });
         if (!response.ok) return;
         const { release } = await response.json();

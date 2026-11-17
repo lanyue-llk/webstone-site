@@ -1,6 +1,6 @@
 import test from "node:test";
 import { initialLanguage, translator } from "./i18n.ts";
-import { shouldReloadRelease } from "./release.ts";
+import { clearLegacyCache, LEGACY_CACHE_RESET_KEY, shouldReloadRelease } from "./release.ts";
 import { categoryRate, columnMetrics, overviewMetrics, qualityScale } from "./comparisons.ts";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -31,6 +31,32 @@ test("release checks reject invalid manifests and prevent repeated reload loops"
   assert.equal(shouldReloadRelease(current, current, null), false);
   assert.equal(shouldReloadRelease(current, next, next), false);
   for (const invalid of [null, undefined, "<html>", "", 42, {}, "b".repeat(63)]) assert.equal(shouldReloadRelease(current, invalid, null), false);
+});
+
+test("legacy HTTP cache is cleared once without removing stored preferences", async () => {
+  const values = new Map([["webstone-language", "zh"]]);
+  const storage = () => ({ getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); } });
+  let calls = 0;
+  const request = async () => { calls++; return { status: 204, headers: { get: () => '"cache"' } }; };
+  assert.equal(await clearLegacyCache(storage, request), true);
+  assert.equal(await clearLegacyCache(storage, request), true);
+  assert.equal(calls, 1);
+  assert.equal(values.get(LEGACY_CACHE_RESET_KEY), "done");
+  assert.equal(values.get("webstone-language"), "zh");
+});
+
+test("failed or unsupported cache resets remain retryable and do not break release checks", async () => {
+  const values = new Map<string, string>();
+  const storage = () => ({ getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); } });
+  for (const response of [{ status: 404, header: null }, { status: 200, header: '"cache"' }, { status: 204, header: null }]) {
+    assert.equal(await clearLegacyCache(storage, async () => ({ status: response.status, headers: { get: () => response.header } })), false);
+    assert.equal(values.has(LEGACY_CACHE_RESET_KEY), false);
+  }
+  assert.equal(await clearLegacyCache(storage, async () => { throw new Error("Offline"); }), false);
+  let requests = 0;
+  assert.equal(await clearLegacyCache(() => { throw new Error("Storage denied"); }, async () => { requests++; return { status: 204, headers: { get: () => '"cache"' } }; }), false);
+  assert.equal(requests, 0);
+  assert.equal(shouldReloadRelease("a".repeat(64), "b".repeat(64), null), true);
 });
 
 test("English method details and notes never expose untranslated historical source text", () => {
