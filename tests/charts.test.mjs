@@ -82,6 +82,18 @@ test("signed resource deltas stay inside the plot instead of being clipped below
   for (const match of plot.matchAll(/cx="([^"]+)"/g)) assert.ok(Number(match[1]) >= 60 && Number(match[1]) <= 420);
 });
 
+test("sub-cent quotes use their own axis range and retain readable price labels", () => {
+  const data = { ...benchmark, providers: benchmark.providers.map(provider => {
+    if (provider.id !== "Ranged quote") return provider;
+    return { ...provider, pricing: { min: .002, max: .007, description: "Per 1K calls" } };
+  }) };
+  const plot = render(text => text, data).match(/<svg[^>]*aria-label="accuracy \/ Quoted price \/ 1K"[^>]*>([\s\S]*?)<\/svg>/)?.[1];
+  assert.ok(plot);
+  const x = Number(plot.match(/<circle[^>]*cx="([^"]+)"[^>]*aria-label="Ranged quote/)?.[1]);
+  assert.ok(x > 100 && x <= 420);
+  assert.match(plot, /\$0\.002–\$0\.007/);
+});
+
 for (const paired of [0, 1]) test(`cost comparison with ${paired} eligible pairs explains missing measurements`, () => {
   const data = { ...benchmark, providers: benchmark.providers.map((provider, index) => ({
     ...provider, scores: { ...provider.scores, accuracy: index === 1 && paired === 1 ? .8 : null },

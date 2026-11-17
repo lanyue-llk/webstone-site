@@ -101,13 +101,17 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
   const minimum = Math.min(...rows.map(row => row.x)), maximum = Math.max(...rows.map(row => row.upper));
   const log = !coverage && minimum > 0 && maximum / minimum > 10;
   const low = log ? Math.floor(Math.log10(minimum)) : Math.min(0, minimum);
-  let high = Math.max(1, maximum * 1.08);
+  let high = maximum > 0 ? maximum * 1.08 : 1;
   if (log) high = Math.ceil(Math.log10(maximum));
   if (coverage) high = 100;
   const xPosition = (value: number) => 60 + ((log ? Math.log10(value) : value) - low) / (high - low || 1) * 360;
   const yMaximum = qualityScale(primary);
   const xLabel = coverage ? t("Original source coverage") : t(xMetric!.label);
-  const formatX = (value: number) => coverage ? `${value.toFixed(1)}%` : formatMetric(value, xMetric!.unit, xMetric!.decimals);
+  function formatX(value: number) {
+    if (coverage) return `${value.toFixed(1)}%`;
+    if (cost && !priceMetric) return `$${Number(value.toPrecision(3))}`;
+    return formatMetric(value, xMetric!.unit, xMetric!.decimals);
+  }
   return <article className="insight-card scatter-card">
     <div className="card-heading"><h3>{t(title)}</h3>{!cost && !coverage && candidates.length > 1 && <select aria-label={t("Horizontal axis")} value={xMetric!.id} onChange={event => setXId(event.target.value)}>{candidates.map(metric => <option key={metric.id} value={metric.id}>{t(metric.label)}</option>)}</select>}</div>
     <figure className="comparison-figure"><svg viewBox="0 0 480 330" role="img" aria-label={`${primary.label} / ${xLabel}`}>
