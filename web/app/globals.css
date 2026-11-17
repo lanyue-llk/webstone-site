@@ -94,7 +94,7 @@ tbody tr:hover { background: #f8f8f6; }
 .primary-number { font-size: 16px; font-weight: 550; color: #303030; }
 .count-cell { white-space: nowrap; }
 .count-cell span { color: #a1a1a1; font-size: 12px; }
-.main-content:has(.search-table) .results-controls, .table-scroll:has(> .search-table) { max-width: 1060px; }
+.main-content:has(.search-table) .results-controls { max-width: 1060px; }
 .search-table { --provider-width: 220px; min-width: calc(var(--rank-width) + var(--provider-width) + var(--data-columns) * 136px); }
 .search-table th.provider-heading { width: var(--provider-width); }
 .search-table th { font-size: 11px; }
@@ -254,7 +254,7 @@ h1 { font-size: 30px; line-height: 1.2; }
 .provider-cell .provider-link { min-width: 0; flex: 1; }
 .method-open { display: inline-flex; justify-content: center; align-items: center; width: 24px; height: 26px; flex-shrink: 0; border: 1px solid #dbe5d9; border-radius: 4px; background: #fff; color: #426149; font-size: 18px; letter-spacing: -1px; }
 .method-open:hover { background: #eaf3e5; }
-.main-content:has(.search-table) .results-controls, .table-scroll:has(> .search-table) { max-width: none; }
+.main-content:has(.search-table) .results-controls { max-width: none; }
 .search-table { --provider-width: 290px; }
 .insights-section, .methodology-section { margin-top: 52px; }
 .insight-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
