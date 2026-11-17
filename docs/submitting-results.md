@@ -10,7 +10,7 @@ Install the [submit-webstone-result skill](../.agents/skills/submit-webstone-res
 gh repo clone lexmount/webstone-site
 cd webstone-site
 mkdir -p "$HOME/.codex/skills"
-cp -R .agents/skills/submit-webstone-result "$HOME/.codex/skills/"
+mkdir "$HOME/.codex/skills/submit-webstone-result" && cp .agents/skills/submit-webstone-result/SKILL.md "$HOME/.codex/skills/submit-webstone-result/SKILL.md"
 ```
 
 If that destination already exists, inspect its source and update it deliberately instead of nesting another copy. Other agents use their own supported skills directory. The skill guides preparation, validation, a fork PR, review fixes and live verification. It never generates measurements, merges PRs or publishes datasets automatically.

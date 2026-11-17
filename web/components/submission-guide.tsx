@@ -13,7 +13,7 @@ export default function SubmissionGuide() {
     {
       title: text("Install the submission skill", "安装提交 Skill"),
       description: text("Ask your agent to prepare a pull request using the submission skill. Git, GitHub CLI and Node.js 22.13+ are sufficient; Webstone CLI is optional.", "让你的 Agent 按提交 Skill 准备 PR。仅需 Git、GitHub CLI 和 Node.js 22.13+，无需安装 Webstone CLI。"),
-      command: 'gh repo clone lexmount/webstone-site\ncd webstone-site\n# Codex skills directory; use your agent’s equivalent if different.\nmkdir -p "$HOME/.codex/skills"\n# Inspect an existing destination before copying.\ncp -R .agents/skills/submit-webstone-result "$HOME/.codex/skills/"',
+      command: 'gh repo clone lexmount/webstone-site\ncd webstone-site\n# Codex skills directory; use your agent’s equivalent if different.\nmkdir -p "$HOME/.codex/skills"\n# Inspect an existing destination before copying.\nmkdir "$HOME/.codex/skills/submit-webstone-result" && cp .agents/skills/submit-webstone-result/SKILL.md "$HOME/.codex/skills/submit-webstone-result/SKILL.md"',
     },
     {
       title: text("Prepare public measurements", "准备公开结果"),
