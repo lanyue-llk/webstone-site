@@ -89,14 +89,18 @@ function population(benchmark) {
   return {
     definitionId: benchmark.definitionId, taskCount: benchmark.taskCount,
     categoryTotals: benchmark.categoryTotals,
-    metricSamples: Object.fromEntries(Object.entries(benchmark.metricSamples ?? {}).map(([id, { note, ...sample }]) => [id, sample])),
+    metricSamples: Object.fromEntries(Object.entries(benchmark.metricSamples ?? {}).flatMap(([id, { note, ...sample }]) => Object.keys(sample).length ? [[id, sample]] : [])),
   };
 }
 
 function measurements(benchmark) {
   const { notes, reportUrl, metricSamples, ...data } = benchmark;
   return { ...data, metricSamples: population(benchmark).metricSamples,
-    providers: data.providers.map(({ description, billingDescription, ...provider }) => provider) };
+    providers: data.providers.map(({ description, billingDescription, ...provider }) => {
+      if (!provider.pricing) return provider;
+      const { description: pricingDescription, ...pricing } = provider.pricing;
+      return { ...provider, pricing };
+    }) };
 }
 
 export function validateReleaseChange(previous, report) {

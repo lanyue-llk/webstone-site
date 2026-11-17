@@ -179,3 +179,32 @@ test("semantic releases enforce major/minor/patch changes and immutable history"
   assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: JSON.stringify(mismatch) }], published), /latest previous/);
   assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), path: published[0], content: JSON.stringify(original) }], published), /semantic versions/);
 });
+
+test("metadata releases may add or remove note-only sample entries", () => {
+  const metadata = report("v1.0.1");
+  metadata.release.kind = "metadata";
+  metadata.benchmarks[0].metricSamples = { ...metadata.benchmarks[0].metricSamples, passRate: { note: "Clarify the published evidence." } };
+  assert.deepEqual(checkResultChange(catalog, catalog, [{ ...addition("v1.0.1"), content: JSON.stringify(metadata) }], published), { reports: 1 });
+  const withoutNote = structuredClone(metadata);
+  delete withoutNote.benchmarks[0].metricSamples.passRate;
+  assert.doesNotThrow(() => validateReleaseChange(metadata, withoutNote));
+  const changedPopulation = structuredClone(metadata);
+  changedPopulation.benchmarks[0].metricSamples.passRate.sampleCount = 1;
+  assert.throws(() => validateReleaseChange(metadata, changedPopulation), /protocol release/);
+});
+
+test("metadata may correct pricing wording while preserving all numeric pricing fields", () => {
+  const previous = JSON.parse(readFileSync(new URL("../results/lexbench-swde/lexbench-swde-v1-report.json", import.meta.url), "utf8"));
+  const metadata = structuredClone(previous);
+  metadata.id = "lexbench-swde-v1.0.1";
+  metadata.version = "v1.0.1";
+  metadata.source.url = "https://example.com/evaluation";
+  metadata.release = { date: "2026-11-16", kind: "metadata", previous: "v1.0.0", summary: "Clarify the billing explanation." };
+  const pricing = metadata.benchmarks[0].providers[0].pricing;
+  pricing.description = "Clarify the billing explanation without changing charges.";
+  const previousPath = "results/lexbench-swde/lexbench-swde-v1-report.json";
+  const change = { path: "results/lexbench-swde/lexbench-swde-v1.0.1-report.json", status: "A", mode: "100644", content: JSON.stringify(metadata) };
+  assert.deepEqual(checkResultChange(catalog, catalog, [change], [previousPath], new Map([[previousPath, previous]])), { reports: 1 });
+  pricing.min += 1;
+  assert.throws(() => validateReleaseChange(previous, metadata), /cannot change measurements/);
+});

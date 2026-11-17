@@ -19,10 +19,9 @@ test("result records are versioned files without a hand-maintained index or form
   assert.equal(Object.hasOwn(snapshot, "dateKind"), false);
   assert.equal(snapshot.version, "v1");
   for (const { file, report } of files) {
-    const match = /^([a-z0-9-]+)-(v[1-9]\d*)-report\.json$/.exec(path.basename(file));
-    assert.ok(match, file);
-    assert.equal(report.version, match[2]);
-    assert.equal(report.id, `${match[1]}-${match[2]}`);
+    const parsed = parseReportFile(path.dirname(file), path.basename(file));
+    assert.equal(report.version, parsed.version);
+    assert.equal(report.id, `${parsed.benchmarkId}-${parsed.version}`);
     assert.equal(Object.hasOwn(report, "measuredAt"), false);
     assert.equal(Object.hasOwn(report.source, "versionId"), false);
   }
@@ -71,12 +70,18 @@ test("adding and removing a version file needs no index update", async t => {
   const benchmarkFolder = path.join(folder, "lexbench-webfetch");
   await mkdir(benchmarkFolder);
   const firstFile = path.join(benchmarkFolder, "lexbench-webfetch-v1-report.json");
-  const nextFile = path.join(benchmarkFolder, "lexbench-webfetch-v2-report.json");
-  const next = { ...snapshot, id: "lexbench-webfetch-v2", version: "v2" };
+  const nextFile = path.join(benchmarkFolder, "lexbench-webfetch-v1.1.0-report.json");
+  const next = { ...snapshot, id: "lexbench-webfetch-v1.1.0", version: "v1.1.0", release: { date: "2026-11-16", kind: "results", previous: "v1.0.0", summary: "Publish updated measurements." } };
   await writeFile(firstFile, JSON.stringify(snapshot));
   assert.deepEqual((await discoverResults(folder, catalog)).map(item => item.report.version), ["v1"]);
   await writeFile(nextFile, JSON.stringify(next));
-  assert.deepEqual((await discoverResults(folder, catalog)).map(item => item.report.version), ["v1", "v2"]);
+  const discovered = await discoverResults(folder, catalog);
+  assert.deepEqual(discovered.map(item => item.report.version), ["v1", "v1.1.0"]);
+  for (const { file, report } of discovered) {
+    const parsed = parseReportFile(path.dirname(file), path.basename(file));
+    assert.equal(report.version, parsed.version);
+    assert.equal(report.id, `${parsed.benchmarkId}-${parsed.version}`);
+  }
   await rm(nextFile);
   assert.equal((await discoverResults(folder, catalog)).length, 1);
   const nested = path.join(benchmarkFolder, "nested");
