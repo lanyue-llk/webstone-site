@@ -10,7 +10,7 @@ export function decisionMetrics(benchmark: Benchmark, expanded: boolean, selecte
 // Never turn unknown, software-only, or ranged billing into a point price.
 export function quotedCost(provider: Provider): [number, number] | null {
   const pricing = provider.pricing;
-  if (pricing?.min != null && pricing.max != null) return [pricing.min, pricing.max];
+  if (pricing && pricing.min !== null && pricing.min !== undefined && pricing.max !== null && pricing.max !== undefined) return [pricing.min, pricing.max];
   return null;
 }
 

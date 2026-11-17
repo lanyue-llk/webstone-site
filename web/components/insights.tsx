@@ -25,7 +25,7 @@ function radarAxes(benchmark: Benchmark): Axis[] {
   }));
 }
 
-function Radar({ axes, providers, t }: { axes: Axis[]; providers: Provider[]; t: Props["t"] }) {
+function Radar({ axes, providers, selection, t }: { axes: Axis[]; providers: Provider[]; selection: Provider[]; t: Props["t"] }) {
   const point = (index: number, radius: number) => {
     const angle = -Math.PI / 2 + index * Math.PI * 2 / axes.length;
     return [Math.cos(angle) * radius, Math.sin(angle) * radius];
@@ -44,7 +44,7 @@ function Radar({ axes, providers, t }: { axes: Axis[]; providers: Provider[]; t:
         if (labelX < -10) anchor = "end";
         return <g key={axis.id}><line x1="0" y1="0" x2={x} y2={y} className="radar-axis" /><text x={labelX} y={labelY} textAnchor={anchor} className="axis-label">{lines.map((line, i) => <tspan key={i} x={labelX} dy={i ? 13 : 0}>{line}</tspan>)}</text></g>;
       })}
-      {providers.map((provider, index) => <g key={provider.id} style={{ color: colors[index] }}>
+      {providers.map(provider => <g key={provider.id} style={{ color: colors[selection.findIndex(item => item.id === provider.id)] }}>
         <polygon points={axes.map((axis, i) => point(i, axis.value(provider)! * 112).join(",")).join(" ")} className="radar-shape"><title>{provider.name}</title></polygon>
         {axes.map((axis, i) => { const [x, y] = point(i, axis.value(provider)! * 112); return <circle key={axis.id} cx={x} cy={y} r="3" fill="currentColor"><title>{`${provider.name} · ${axis.label}: ${axis.display(provider)}`}</title></circle>; })}
       </g>)}
@@ -121,7 +121,7 @@ export default function Insights({ benchmark, t }: Props) {
       {hasScatter && <Scatter benchmark={benchmark} selected={selected} t={t} />}
       {hasCost && <Scatter benchmark={benchmark} selected={selected} t={t} cost />}
     </div>
-          {hasRadar && <details className="profile-details"><summary>{t("Capability profile")}</summary><article className="insight-card"><div className="card-heading"><h3>{t("Capability profile")}</h3></div><Radar axes={axes} providers={selected.filter(provider => axes.every(axis => axis.value(provider) !== null))} t={t} /><p className="chart-note">{t(benchmark.categories.length >= 3 ? "Category pass rates use each category's own sample count." : "Axes show 0–100% of each metric's defined range, without combining them into a score.")}{benchmark.providers.some(provider => provider.confidenceIntervals) && <> {t("Confidence intervals are available in method details.")}</>}</p></article></details>}
+          {hasRadar && <details className="profile-details"><summary>{t("Capability profile")}</summary><article className="insight-card"><div className="card-heading"><h3>{t("Capability profile")}</h3></div><Radar axes={axes} providers={selected.filter(provider => axes.every(axis => axis.value(provider) !== null))} selection={selected} t={t} />{selected.some(provider => axes.some(axis => axis.value(provider) === null)) && <p className="chart-note">{t("Profile data unavailable")}: {selected.filter(provider => axes.some(axis => axis.value(provider) === null)).map(provider => provider.name).join(", ")}</p>}<p className="chart-note">{t(benchmark.categories.length >= 3 ? "Category pass rates use each category's own sample count." : "Axes show 0–100% of each metric's defined range, without combining them into a score.")}{benchmark.providers.some(provider => provider.confidenceIntervals) && <> {t("Confidence intervals are available in method details.")}</>}</p></article></details>}
       {benchmark.sourceMatches && benchmark.metrics.some(metric => ["seconds", "ms", "mib"].includes(metric.unit)) && <details className="coverage-details"><summary>{t("Source coverage and quality")}</summary><Scatter benchmark={benchmark} selected={selected} t={t} sourceCoverage /></details>}
   </section>;
 }

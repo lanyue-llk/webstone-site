@@ -5,6 +5,7 @@ export const LANGUAGE_KEY = "webstone-language";
 
 const chinese: Record<string, string> = {
   "More metrics": "更多指标",
+  "Quoted price / 1K": "每千次报价", "Profile data unavailable": "缺少能力维度数据",
   "Category breakdown": "展开分类指标", "Website updated": "网站最新更新", "Version released": "版本发布日期", "Not recorded": "未记录", "Release date not recorded for this historical version.": "此历史版本未记录发布日期。",
   "Cost was not disclosed in this report; unknown does not mean free.": "此报告未披露成本；未知不代表免费。", "Accuracy and cost": "准确率与成本", "Accuracy and latency": "准确率与耗时", "Cost unavailable": "成本未披露", "None": "无",
   "Further left and higher is better. Lines preserve quoted price ranges; no midpoint or combined score is calculated. Billing units may differ; check method details.": "越靠左上越好。线段保留报价区间，不取中间值、不合成总分。计费单位可能不同，请查看方案详情。",

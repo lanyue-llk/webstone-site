@@ -102,7 +102,7 @@ export default function Dashboard() {
   const categoryBest = new Map(categories.map(category => [category.id, bestValue((benchmark?.providers ?? []).map(provider => provider.categoryPassed?.[category.id] ?? null), "desc")]));
   const passedBest = bestValue((benchmark?.providers ?? []).map(provider => provider.passed), "desc");
   const showPassed = showCategories && (benchmark?.providers.some(provider => provider.passed !== null && provider.passed !== undefined) ?? false);
-  const hasPricing = benchmark?.providers.some(provider => provider.pricing != null) ?? false;
+  const hasPricing = benchmark?.providers.some(provider => provider.pricing !== null && provider.pricing !== undefined) ?? false;
   const showPricing = hasPricing || !benchmark?.metrics.some(item => item.unit === "usd");
   const tableClass = benchmark?.id === "lexbench-webfetch"
     ? "wide-table lexbench-table"
