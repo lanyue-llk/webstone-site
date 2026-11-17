@@ -166,9 +166,11 @@ Configure the running component to fetch the official GitHub repository from `ma
 
 `deploy/nginx.conf` sends `Cache-Control: no-store, max-age=0` for HTML, catalogs and reports. Fingerprinted files under `/_next/static/` use a one-year immutable cache. This policy is included by the Dockerfile; a local-package deployment does not automatically use this Nginx configuration. Any ingress or CDN must preserve these response headers.
 
-Previously cached HTML may remain usable until the browser contacts the server again. After the first deployment of this policy, refresh once (or clear this site's cached files) and purge any upstream cached HTML. Verify the response headers at the public domain; changing data fetch options alone cannot refresh an old HTML/JavaScript shell.
+Previously cached HTML may remain usable until the browser contacts the server again. A current client requests `/cache-reset` once per browser to evict HTTP-cache entries from before the no-store policy. The endpoint sends only `Clear-Site-Data: "cache"`; cookies, language preferences and other storage remain intact. Successful migration is recorded locally, so later visits do not repeatedly clear fingerprinted assets. Network or storage failures leave normal release checks usable and migration retryable on a later load. A page that predates the client still needs one initial refresh; server headers cannot change code that has not contacted the server. Any intermediate HTML cache must also be purged separately.
 
 `prepare:data` fingerprints page source, catalog and published results into a generated `release.json` and a compiled release constant. A visible page checks that manifest on mount, focus, history restoration and once per minute. A different release triggers one reload per release per tab; invalid or unavailable manifests leave the current page usable. This covers already-open pages, which HTTP response headers alone cannot update. A page predating this mechanism must first load the new client once. The manifest and data requests bypass HTTP caches; ingress/CDN caches must preserve the no-store policy.
+
+CI serves the actual static export through this Nginx configuration and checks entry-page and data cache headers, immutable stylesheet headers, deep links and the cache-reset response. A source-code assertion alone does not verify deployed response headers.
 
 ## Languages and selected insights
 
