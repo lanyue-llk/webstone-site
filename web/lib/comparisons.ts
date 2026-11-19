@@ -17,7 +17,7 @@ export function quotedCost(provider: Provider): [number, number] | null {
 export function costBounds(provider: Provider, metric?: Metric): [number, number] | null {
   if (!metric) return quotedCost(provider);
   const amount = provider.scores[metric.id];
-  return amount == null ? null : [amount, amount];
+  return amount === null || amount === undefined ? null : [amount, amount];
 }
 
 export function hasComparableChartCosts(providers: Provider[], metric?: Metric): boolean {

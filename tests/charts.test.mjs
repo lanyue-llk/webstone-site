@@ -144,3 +144,17 @@ test("a report without cost figures still compares quality and latency", () => {
   assert.match(html, /aria-label="accuracy \/ P50 latency"/);
   assert.doesNotMatch(html, /Bubble size represents reported cost|<summary>Accuracy and cost<\/summary>/);
 });
+
+
+test("quoted ranges stay visible when a report defines a USD metric but omits numeric prices", () => {
+  const data = {
+    ...benchmark,
+    metrics: [...metrics, { id: "price", label: "Price / 1K", unit: "usd", direction: "asc", decimals: 2 }],
+    providers: benchmark.providers.map(row => ({ ...row, scores: { ...row.scores, price: null } })),
+  };
+  const html = render(text => text, data);
+  assert.match(html, /<summary>Accuracy and cost<\/summary>/);
+  assert.match(html, /Ranged quote · Quoted price \/ 1K: \$2–\$7/);
+  assert.match(html, /Zero quote · Quoted price \/ 1K: \$0/);
+  assert.doesNotMatch(html, /Bubble size represents reported cost/);
+});

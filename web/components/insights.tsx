@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { categoryRate, costBounds, hasComparableChartCosts, qualityMetrics, qualityScale } from "../lib/comparisons";
+import { categoryRate, costBounds, hasComparableChartCosts, qualityMetrics, qualityScale, quotedCost } from "../lib/comparisons";
 import { formatMetric, formatPricing, sortProviders, type Benchmark, type Provider } from "../lib/results";
 
 type Props = { benchmark: Benchmark; t: (text: string) => string };
@@ -59,6 +59,8 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
   const preferred = candidates.find(metric => /p50/i.test(metric.id)) ?? candidates.find(metric => ["seconds", "ms"].includes(metric.unit)) ?? candidates[0];
   const [xId, setXId] = useState(preferred?.id);
   const priceMetric = benchmark.metrics.find(metric => metric.unit === "usd");
+  const reportedCost = (provider: Provider) => costBounds(provider, priceMetric) ?? quotedCost(provider);
+  const numericPrices = priceMetric && benchmark.providers.some(provider => costBounds(provider, priceMetric) !== null) ? priceMetric : undefined;
   function costLabel(provider: Provider) {
     if (priceMetric) {
       const value = provider.scores[priceMetric.id];
@@ -67,7 +69,7 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
     if (provider.pricing) return t(formatPricing(provider.pricing));
     return t("Cost unavailable");
   }
-  const xMetric = cost ? priceMetric ?? { id: "quoted-price", label: t("Quoted price / 1K"), unit: "usd", direction: "asc" as const } : candidates.find(metric => metric.id === xId) ?? preferred;
+  const xMetric = cost ? numericPrices ?? { id: "quoted-price", label: t("Quoted price / 1K"), unit: "usd", direction: "asc" as const } : candidates.find(metric => metric.id === xId) ?? preferred;
   const coverage = !cost && Boolean(benchmark.sourceMatches) && (sourceCoverage || !xMetric);
   if (!coverage && !xMetric) return null;
   const showBubbles = !cost && !coverage && hasComparableChartCosts(benchmark.providers, priceMetric);
@@ -78,11 +80,11 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
   const heading = <div className="card-heading"><h3>{t(title)}</h3>{!cost && !coverage && candidates.length > 1 && <select aria-label={t("Horizontal axis")} value={xMetric!.id} onChange={event => setXId(event.target.value)}>{candidates.map(metric => <option key={metric.id} value={metric.id}>{t(metric.label)}</option>)}</select>}</div>;
   const missingQuality = benchmark.providers.filter(provider => provider.scores[primary.id] === null || provider.scores[primary.id] === undefined);
   const disclosures = <>
-    {cost && <p className="chart-note">{t("Cost unavailable")}: {benchmark.providers.filter(provider => !costBounds(provider, priceMetric)).map(provider => provider.name).join(", ") || t("None")}</p>}
+    {cost && <p className="chart-note">{t("Cost unavailable")}: {benchmark.providers.filter(provider => !reportedCost(provider)).map(provider => provider.name).join(", ") || t("None")}</p>}
     {cost && missingQuality.length > 0 && <p className="chart-note">{t("Quality unavailable")}: {missingQuality.map(provider => provider.name).join(", ")}</p>}
   </>;
   const rows = benchmark.providers.flatMap(provider => {
-    const range = cost ? costBounds(provider, priceMetric) : null;
+    const range = cost ? reportedCost(provider) : null;
     let x = provider.scores[xMetric?.id ?? ""];
     if (coverage) x = benchmark.sourceMatches![provider.id].original / benchmark.taskCount * 100;
     if (cost) x = range?.[0] ?? null;
@@ -107,7 +109,7 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
   const xLabel = coverage ? t("Original source coverage") : t(xMetric!.label);
   function formatX(value: number) {
     if (coverage) return `${value.toFixed(1)}%`;
-    if (cost && !priceMetric) return `$${Number(value.toPrecision(3))}`;
+    if (cost && !numericPrices) return `$${Number(value.toPrecision(3))}`;
     return formatMetric(value, xMetric!.unit, xMetric!.decimals);
   }
   return <article className="insight-card scatter-card">
@@ -150,7 +152,7 @@ export default function Insights({ benchmark, t }: Props) {
   const selected = ids.flatMap(id => benchmark.providers.find(provider => provider.id === id) ?? []);
   const hasScatter = Boolean(benchmark.sourceMatches) || benchmark.metrics.some(metric => ["seconds", "ms", "mib"].includes(metric.unit));
   const priceMetric = benchmark.metrics.find(metric => metric.unit === "usd");
-  const hasCost = benchmark.providers.some(provider => costBounds(provider, priceMetric) !== null);
+  const hasCost = benchmark.providers.some(provider => costBounds(provider, priceMetric) !== null || quotedCost(provider) !== null);
   if (!hasRadar && !hasScatter && !hasCost) return null;
   return <section id="insights" className="insights-section">
     <div className="section-heading"><h2>{t("Compare methods")}</h2><span className="comparison-limit">{t("Select up to three methods")}</span></div>
