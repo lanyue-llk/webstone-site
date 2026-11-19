@@ -1,7 +1,7 @@
 import test from "node:test";
 import { initialLanguage, translator } from "./i18n.ts";
 import { clearLegacyCache, LEGACY_CACHE_RESET_KEY, shouldReloadRelease } from "./release.ts";
-import { categoryRate, decisionMetrics, quotedCost, qualityScale } from "./comparisons.ts";
+import { categoryRate, costBounds, decisionMetrics, hasComparableChartCosts, quotedCost, qualityScale } from "./comparisons.ts";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { benchmarkEntries, bestValue, compareVersions, isBestValue, latestEntry, selectEntry, reportEntries, formatMetric, formatPricing, sumCategoryPasses, resolveBenchmark, sortProviders, type Catalog, type Provider, type Snapshot } from "./results.ts";
@@ -101,6 +101,19 @@ test("compact tables keep the ranking metric and charts preserve natural scales 
   assert.equal(quotedCost({ ...providers[0], pricing: { min: null, max: null, softwareCost: 0, description: "Model billed separately" } }), null);
   assert.deepEqual(quotedCost({ ...providers[0], pricing: { min: 2, max: 7, description: "Per 1,000 calls" } }), [2, 7]);
   assert.deepEqual(quotedCost({ ...providers[0], pricing: { min: 0, max: 0, description: "No charge" } }), [0, 0]);
+});
+
+test("chart cost sizing preserves zero and excludes mixed billing and undisclosed totals", () => {
+  const mixed = readSnapshot("lexbench-websearch/lexbench-websearch-v2-report.json").benchmarks[0];
+  const metric = mixed.metrics.find(item => item.unit === "usd")!;
+  assert.ok(mixed.providers.some(provider => costBounds(provider, metric) !== null));
+  assert.equal(hasComparableChartCosts(mixed.providers, metric), false);
+  assert.equal(hasComparableChartCosts(providers), false);
+
+  const reference = { ...providers[0], pricing: { min: 0, max: 0, description: "No charge" } };
+  assert.equal(hasComparableChartCosts([reference]), true);
+  assert.equal(costBounds(reference, metric), null);
+  assert.deepEqual(costBounds(reference), [0, 0]);
 });
 
 test("SWDE keeps eligible denominators, precision and independent quality/latency rankings", () => {

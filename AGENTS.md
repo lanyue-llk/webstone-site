@@ -41,7 +41,7 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 - `benchmarks/` owns reusable definitions; `results/` owns published evaluation versions. Never hand-edit `web/public/benchmarks/`, `web/public/results/` or `web/out/`; all are generated and git-ignored.
 - Add a version by adding only `results/<id>/<id>-vX.Y.Z-report.json`; never create or maintain an index file. Each report must contain exactly one Benchmark, matching its parent directory and filename.
 - New result releases use `vMAJOR.MINOR.PATCH`, independently per Benchmark. MAJOR changes task populations/reference answers/scoring protocols; MINOR changes measurements/methods/configurations under the same protocol and population; PATCH changes wording/evidence/links only. All versions are immutable files. Require `release: {date, kind, previous, summary}` with an actual UTC publication date, kind `protocol` / `results` / `metadata`, latest previous result version (or null initially), and English summary. Use numeric tuple ordering. See `docs/result-versioning.md`.
-- Historical vN files remain unchanged and resolve as vN.0.0 in the UI. Their import dates are explicitly labelled Imported, never presented as publication or measurement dates. Retain old URL access.
+- Historical vN files remain unchanged and resolve as vN.0.0 in the UI. Their import dates are retained in source provenance. The leaderboard indicates that the publication date was not recorded. Retain old URL access.
 - The top-level `id` is `<benchmark-id>-<version>` and globally unique. Filename, parent directory, Benchmark `id` and `version` must all agree.
 - `datasetDifference` is a required English sentence or short paragraph. It states how this published version's task population, selection, reference answers or scoring differ from the Dataset linked by the catalog. Mark unverified correspondence as unknown instead of inventing it.
 - Results have no `snapshotDate`, `dateKind`, `schemaVersion`, `measuredAt` or `source.versionId` fields. Use the linked report for source details. Keep actual browser/build version information in method names/configurations.
@@ -84,7 +84,7 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 
 ## Result submissions
 
-- Internal and external result contributors use the same Webstone CLI/SDK and personal-fork PR flow. The site's submission CTA opens `/submit`; it must not be disguised as a generic repository/source link.
+- Internal and external result contributors use the same personal-fork PR flow. A Webstone installation is optional. The site's submission CTA opens `/submit`; it must not be disguised as a generic repository/source link.
 - Published report files are immutable once merged. Corrections and rollbacks append a new version and explain the change. Result-only PRs may add participant URLs but cannot change definitions or application code.
 - `scripts/check-result-change.mjs` is the trusted base-branch PR boundary. It must inspect candidate Git blobs without running submitted code or receiving deployment credentials. Keep it separate from the ordinary unprivileged website build.
 - New submissions require public HTTPS evidence URLs. Local CLI preflight is not evidence verification; reviewers check measurement provenance and methodology before approval.

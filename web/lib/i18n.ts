@@ -4,17 +4,18 @@ export type Language = "en" | "zh";
 export const LANGUAGE_KEY = "webstone-language";
 
 const chinese: Record<string, string> = {
+  "Quality, resources and cost": "质量、资源与成本",
+  "See Accuracy and cost for quotes with different billing units.": "不同计费口径的报价见「准确率与成本」。",
+  "Lines show quoted price ranges. Check the billing basis in method details before comparing prices.": "线段表示报价区间。比较前请在方案详情中查看计费口径。",
   "Cost": "成本", "Accuracy, latency and cost": "准确率、耗时与成本", "Bubble size represents reported cost: smaller is cheaper. Inner/outer circles show a quoted range; hollow markers have no disclosed total cost. Check billing units before comparing.": "气泡越小，报告中的成本越低。内外圈表示报价区间；空心标记表示总成本未披露。比较前请核对计费单位。",
   "More metrics": "更多指标",
   "Quality unavailable": "准确率未披露",
   "At least two methods with both axis values are needed to compare.": "至少需要两个方案同时披露横纵轴指标，才能进行对比。",
   "Quoted price / 1K": "每千次报价", "Profile data unavailable": "缺少能力维度数据",
-  "Category breakdown": "展开分类指标", "Website updated": "网站最新更新", "Version released": "版本发布日期", "Not recorded": "未记录", "Release date not recorded for this historical version.": "此历史版本未记录发布日期。",
+  "Category breakdown": "展开分类指标", "Website updated": "网站最新更新", "Version released": "版本发布日期", "Release date not recorded for this historical version.": "此历史版本未记录发布日期。",
   "Cost was not disclosed in this report; unknown does not mean free.": "此报告未披露成本；未知不代表免费。", "Accuracy and cost": "准确率与成本", "Accuracy and latency": "准确率与耗时", "Cost unavailable": "成本未披露", "None": "无",
-  "Further left and higher is better. Lines preserve quoted price ranges; no midpoint or combined score is calculated. Billing units may differ; check method details.": "越靠左上越好。线段保留报价区间，不取中间值、不合成总分。计费单位可能不同，请查看方案详情。",
-  "Further left and higher is better. Compare accuracy, latency and billing together; there is no universal best method.": "越靠左上越好。结合准确率、耗时与计费口径选择，没有适用于所有场景的唯一最优方案。",
   "methods": "个方案", "Table columns": "表格列", "Overview": "主要指标", "All metrics": "全部指标", "Categories": "分类结果",
-  "Released": "发布", "Imported": "导入", "Date unrecorded": "日期未记录", "Result versioning": "结果版本规范", "Historical publication date was not recorded; the version selector shows its import date.": "历史结果未记录发布日期；版本选择器显示的是导入日期。",
+  "Result versioning": "结果版本规范",
   "Compare methods": "方案对比", "Select up to three methods": "最多选择 3 个方案", "Methods to compare": "对比方案", "Incomplete metrics": "指标不完整",
   "Capability profile": "能力对比", "Quality and resources": "质量与资源", "Source coverage and quality": "来源覆盖与质量", "Original source coverage": "原始来源覆盖率",
   "Horizontal axis": "横轴指标", "log scale": "对数刻度",
