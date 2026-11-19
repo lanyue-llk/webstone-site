@@ -14,7 +14,8 @@ import { useLanguage } from "../lib/use-language";
 import { decisionMetrics } from "../lib/comparisons";
 
 const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2 };
-const GITHUB_URL = "https://github.com/lexmount/browser-eval-site";
+const GITHUB_URL = "https://github.com/lexmount/webstone-site";
+const LEGACY_DATE_NOTE = "The evaluation date was not supplied; the displayed date is the date of import.";
 type Selection = { benchmark: string; version: string; metric: string };
 
 export default function Dashboard() {
@@ -82,6 +83,7 @@ export default function Dashboard() {
   const t = translator(language, catalog, snapshot);
   const result = snapshot?.benchmarks.find(item => item.id === selection.benchmark);
   const benchmark = catalog && result ? resolveBenchmark(catalog, result) : null;
+  const evaluationNotes = benchmark?.notes.filter(note => note !== LEGACY_DATE_NOTE) ?? [];
   const details = catalog?.benchmarks.find(item => item.id === selection.benchmark);
   const tracks = catalog?.tracks.map(item => ({ ...item, benchmarks: catalog.benchmarks.filter(bench => bench.trackId === item.id) })) ?? [];
   const track = tracks.find(item => item.id === details?.trackId);
@@ -206,13 +208,22 @@ export default function Dashboard() {
             {details && <p className="benchmark-description">{t(details.description)}</p>}
             {details && <div className="benchmark-links">
               <a href={details.datasetUrl} target="_blank" rel="noreferrer" aria-label={`${t("Dataset")}: ${details.datasetName}`}>{t("Dataset")}<ArrowUpRight size={13} aria-hidden="true" /></a>
-              <a href={benchmark?.reportUrl ?? details.reportUrl} target="_blank" rel="noreferrer" >{t("Evaluation report")}<ArrowUpRight size={13} aria-hidden="true" /></a>
+              <a href={details.reportUrl} target="_blank" rel="noreferrer" >{t("Evaluation report")}<ArrowUpRight size={13} aria-hidden="true" /></a>
+              {benchmark?.reportUrl && benchmark.reportUrl !== details.reportUrl && <a href={benchmark.reportUrl} target="_blank" rel="noreferrer">{t("Version report")}<ArrowUpRight size={13} aria-hidden="true" /></a>}
             </div>}
+            {benchmark && snapshot && <details key={snapshot.id} className="evaluation-notes">
+              <summary>{t("Evaluation notes")}</summary>
+              <p>{t(snapshot.datasetDifference)}</p>
+              {snapshot.release && <p>{t(snapshot.release.summary)}</p>}
+              {evaluationNotes.length > 0 && <ul>{evaluationNotes.map(note => <li key={note}>{t(note)}</li>)}</ul>}
+              <a href="/versioning">{t("Result versioning")}</a>
+            </details>}
           </div>
         </div>
         <div className="topbar-actions">
           {entry && <a className="download-link" href={`/results/${entry.file}`} download aria-label={t("Download Report")}><ArrowDownToLine size={17} aria-hidden="true" /><span>{t("Download Report")}</span></a>}
           <a className="submit-result-link" href="/submit">{t("SUBMIT YOUR RESULT")}</a>
+          <span className="site-updated">{t("Website updated")} <time dateTime={BUILT_AT}>{BUILT_AT.slice(0, 16).replace("T", " ")} UTC</time></span>
         </div>
       </header>
 
@@ -220,7 +231,7 @@ export default function Dashboard() {
         {!entries && !error && <div className="loading-panel" role="status">{t("Loading…")}</div>}
         {error && <div className="empty-state" role="alert"><p>{t(error)}</p><button className="text-button" onClick={() => window.location.reload()}>{t("Retry")}</button></div>}
         {entries && <>
-          <div className="results-controls"><div className="result-meta"><span>{t("Website updated")} <time dateTime={BUILT_AT}>{BUILT_AT.slice(0, 16).replace("T", " ")} UTC</time></span>{entry && <span>{t("Version released")}: {entry.dateKind === "released" ? entry.date : t("Not recorded")}</span>}</div>
+          <div className="results-controls">
             {details?.searchGroup ? <div className="search-selectors">
               <div className="layer-control" role="group" aria-label={t("Output layer")}>{(["L1", "L2", "L3"] as const).map((layer, index) => <button key={layer} aria-pressed={details.outputLayer === layer} onClick={() => {
                 const target = catalog?.benchmarks.find(item => item.searchGroup === details.searchGroup && item.outputLayer === layer);
@@ -231,9 +242,12 @@ export default function Dashboard() {
               <label htmlFor="result-version">{t("Version")}</label>
               <select id="result-version" value={selection.version} onChange={event => chooseVersion(event.target.value)}>
                 {selection.version && !versions.includes(selection.version) && <option value={selection.version}>{selection.version} ({t("no results")})</option>}
-                {[...versionEntries].reverse().map(item => <option key={item.version} value={canonicalVersion(item.version)}>{canonicalVersion(item.version)}{item.dateKind === "released" && item.date ? ` · ${item.date}` : ""}</option>)}
+                {[...versionEntries].reverse().map(item => <option key={item.version} value={canonicalVersion(item.version)}>{canonicalVersion(item.version)}</option>)}
               </select>
             </div>}
+            {entry && <span className="result-published">{entry.dateKind === "released" && entry.date
+              ? <>{t("Version released")} <time dateTime={entry.date}>{entry.date}</time></>
+              : t("Release date not recorded for this historical version.")}</span>}
           </div>
 
           {!benchmark || !metric ? <div className="empty-state">
@@ -241,14 +255,6 @@ export default function Dashboard() {
             {versions.length > 0 && <button className="text-button" onClick={() => chooseVersion(versions.at(-1)!)}>{t("View latest version")}<ArrowRight size={14} /></button>}
           </div> : <>
             {details?.searchGroup && <p className="scope-warning">{t("Each layer is scored independently. Scores cannot be added or read as incremental gains.")}</p>}
-              <details className="evaluation-notes"><summary>{t("Evaluation notes")}</summary>
-                {snapshot && <p>{t(snapshot.datasetDifference)}</p>}
-                {snapshot?.release && <p><strong>{canonicalVersion(snapshot.version)}</strong> · {snapshot.release.date} · {t(snapshot.release.summary)}</p>}
-                {!snapshot?.release && <p>{t("Release date not recorded for this historical version.")}</p>}
-                <a href="/versioning">{t("Result versioning")}</a>
-                <ul>{benchmark.notes.map((note, index) => <li key={index}>{t(note)}</li>)}</ul>
-                {result?.reportUrl && result.reportUrl !== details?.reportUrl && <a href={result.reportUrl} target="_blank" rel="noreferrer">{t("Source report")} ↗</a>}
-              </details>
             <section id="results" className="leaderboard" aria-label={`${t(benchmark.name)} ${t("Leaderboard")}`}>
               <h2 className="sr-only">{t("Leaderboard")}</h2>
               <div className="table-toolbar"><span>{benchmark.providerCount} {t("methods")} · {benchmark.taskCount.toLocaleString()} {t("cases")}</span><div className="column-views" role="group" aria-label={t("Table columns")}>
@@ -272,7 +278,7 @@ export default function Dashboard() {
                   </tr></thead>
                   <tbody>{providers.map((provider, i) => <tr key={provider.id}>
                     <td className="rank-cell">{provider.scores[metric.id] == null ? "—" : i + 1}</td>
-                    <td><div className="provider-cell"><a className="provider-name provider-link" href={catalog?.providerUrls[provider.id]} target="_blank" rel="noopener noreferrer" aria-label={`${provider.name} ${t("project")} (${t("opens in a new tab")})`}><span className={`provider-mark ${provider.id}`} style={{ "--provider-color": providerColors[provider.id] ?? "#64748b" } as React.CSSProperties} aria-hidden="true">{provider.name[0]}</span><span className="provider-label" title={provider.name}><strong>{provider.name.split(" · ")[0]}</strong>{provider.name.includes(" · ") && <small>{provider.name.split(" · ").slice(1).join(" · ")}</small>}</span><ArrowUpRight className="provider-external" size={12} aria-hidden="true" /></a><button className="method-open" aria-label={`${provider.name} · ${t("Method details")}`} onClick={() => setSelectedProvider(provider)}>···</button></div></td>
+                    <td><div className="provider-cell"><a className="provider-name provider-link" href={catalog?.providerUrls[provider.id]} target="_blank" rel="noopener noreferrer" aria-label={`${provider.name} ${t("project")} (${t("opens in a new tab")})`}><span className={`provider-mark ${provider.id}`} style={{ "--provider-color": providerColors[provider.id] ?? "#64748b" } as React.CSSProperties} aria-hidden="true">{provider.name[0]}</span><span className="provider-label" title={provider.name}><strong>{provider.name.split(" · ")[0]}</strong>{provider.name.includes(" · ") && <small>{provider.name.split(" · ").slice(1).join(" · ")}</small>}</span><ArrowUpRight className="provider-external" size={12} aria-hidden="true" /></a><button className="method-open" aria-label={`${provider.name} · ${t("Method details")}`} aria-haspopup="dialog" onClick={() => setSelectedProvider(provider)}>···</button></div></td>
                     {leadingMetrics.map(item => metricCell(provider, item))}
                     {categories.map(category => {
                       const isBest = isBestValue(provider.categoryPassed?.[category.id], categoryBest.get(category.id) ?? null);

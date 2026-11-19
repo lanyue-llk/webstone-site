@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { categoryRate, qualityMetrics, qualityScale, quotedCost } from "../lib/comparisons";
+import { categoryRate, costBounds, hasComparableChartCosts, qualityMetrics, qualityScale, quotedCost } from "../lib/comparisons";
 import { formatMetric, formatPricing, sortProviders, type Benchmark, type Provider } from "../lib/results";
 
 type Props = { benchmark: Benchmark; t: (text: string) => string };
@@ -59,10 +59,8 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
   const preferred = candidates.find(metric => /p50/i.test(metric.id)) ?? candidates.find(metric => ["seconds", "ms"].includes(metric.unit)) ?? candidates[0];
   const [xId, setXId] = useState(preferred?.id);
   const priceMetric = benchmark.metrics.find(metric => metric.unit === "usd");
-  const costBounds = (provider: Provider): [number, number] | null => {
-    const value = priceMetric ? provider.scores[priceMetric.id] : null;
-    return value !== null && value !== undefined ? [value, value] : quotedCost(provider);
-  };
+  const reportedCost = (provider: Provider) => costBounds(provider, priceMetric) ?? quotedCost(provider);
+  const numericPrices = priceMetric && benchmark.providers.some(provider => costBounds(provider, priceMetric) !== null) ? priceMetric : undefined;
   function costLabel(provider: Provider) {
     if (priceMetric) {
       const value = provider.scores[priceMetric.id];
@@ -71,21 +69,22 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
     if (provider.pricing) return t(formatPricing(provider.pricing));
     return t("Cost unavailable");
   }
-  const xMetric = cost ? priceMetric ?? { id: "quoted-price", label: t("Quoted price / 1K"), unit: "usd", direction: "asc" as const } : candidates.find(metric => metric.id === xId) ?? preferred;
+  const xMetric = cost ? numericPrices ?? { id: "quoted-price", label: t("Quoted price / 1K"), unit: "usd", direction: "asc" as const } : candidates.find(metric => metric.id === xId) ?? preferred;
   const coverage = !cost && Boolean(benchmark.sourceMatches) && (sourceCoverage || !xMetric);
   if (!coverage && !xMetric) return null;
-  let title = "Accuracy, latency and cost";
-  if (xMetric?.unit === "mib") title = "Quality and resources";
+  const showBubbles = !cost && !coverage && hasComparableChartCosts(benchmark.providers, priceMetric);
+  let title = showBubbles ? "Accuracy, latency and cost" : "Accuracy and latency";
+  if (xMetric?.unit === "mib") title = showBubbles ? "Quality, resources and cost" : "Quality and resources";
   if (coverage) title = "Source coverage and quality";
   if (cost) title = "Accuracy and cost";
   const heading = <div className="card-heading"><h3>{t(title)}</h3>{!cost && !coverage && candidates.length > 1 && <select aria-label={t("Horizontal axis")} value={xMetric!.id} onChange={event => setXId(event.target.value)}>{candidates.map(metric => <option key={metric.id} value={metric.id}>{t(metric.label)}</option>)}</select>}</div>;
   const missingQuality = benchmark.providers.filter(provider => provider.scores[primary.id] === null || provider.scores[primary.id] === undefined);
   const disclosures = <>
-    {cost && <p className="chart-note">{t("Cost unavailable")}: {benchmark.providers.filter(provider => !costBounds(provider)).map(provider => provider.name).join(", ") || t("None")}</p>}
+    {cost && <p className="chart-note">{t("Cost unavailable")}: {benchmark.providers.filter(provider => !reportedCost(provider)).map(provider => provider.name).join(", ") || t("None")}</p>}
     {cost && missingQuality.length > 0 && <p className="chart-note">{t("Quality unavailable")}: {missingQuality.map(provider => provider.name).join(", ")}</p>}
   </>;
   const rows = benchmark.providers.flatMap(provider => {
-    const range = cost ? costBounds(provider) : null;
+    const range = cost ? reportedCost(provider) : null;
     let x = provider.scores[xMetric?.id ?? ""];
     if (coverage) x = benchmark.sourceMatches![provider.id].original / benchmark.taskCount * 100;
     if (cost) x = range?.[0] ?? null;
@@ -97,7 +96,7 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
     {heading}<p className="chart-note" role="status">{t("At least two methods with both axis values are needed to compare.")}</p>
     {disclosures}
   </article>;
-  const maximumCost = Math.max(0, ...rows.flatMap(row => costBounds(row.provider) ?? []));
+  const maximumCost = Math.max(0, ...rows.flatMap(row => costBounds(row.provider, priceMetric) ?? []));
   const costRadius = (value: number) => Math.sqrt(16 + value / (maximumCost || 1) * 400);
   const minimum = Math.min(...rows.map(row => row.x)), maximum = Math.max(...rows.map(row => row.upper));
   const log = !coverage && minimum > 0 && maximum / minimum > 10;
@@ -110,7 +109,7 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
   const xLabel = coverage ? t("Original source coverage") : t(xMetric!.label);
   function formatX(value: number) {
     if (coverage) return `${value.toFixed(1)}%`;
-    if (cost && !priceMetric) return `$${Number(value.toPrecision(3))}`;
+    if (cost && !numericPrices) return `$${Number(value.toPrecision(3))}`;
     return formatMetric(value, xMetric!.unit, xMetric!.decimals);
   }
   return <article className="insight-card scatter-card">
@@ -122,8 +121,8 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
       {rows.map(({ provider, x, y, upper }) => {
         const index = selected.findIndex(item => item.id === provider.id);
         const interval = provider.confidenceIntervals?.[primary.id];
-        const bounds = costBounds(provider);
-        const bubble = !cost && !coverage;
+        const bounds = costBounds(provider, priceMetric);
+        const bubble = showBubbles;
         const color = index < 0 ? "#9aa79d" : colors[index];
         let radius = index < 0 ? 5 : 9;
         if (bubble) {
@@ -135,8 +134,9 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
         return <g key={provider.id}>{upper !== x && <line x1={xPosition(x)} x2={xPosition(upper)} y1={260 - y / yMaximum * 220} y2={260 - y / yMaximum * 220} stroke={index < 0 ? "#89978c" : colors[index]} strokeWidth="4"><title>{label}</title></line>}{interval && <line x1={xPosition(x)} x2={xPosition(x)} y1={260 - interval.lower / yMaximum * 220} y2={260 - interval.upper / yMaximum * 220} stroke={index < 0 ? "#c7cec9" : colors[index]} strokeWidth="2"><title>{`${interval.level * 100}% CI: ${interval.lower}–${interval.upper}`}</title></line>}<circle cx={xPosition(x)} cy={260 - y / yMaximum * 220} r={radius} fill={(bubble && !bounds) || upper !== x ? "white" : color} fillOpacity={bubble ? .65 : 1} stroke={color} strokeWidth="1.5" tabIndex={0} aria-label={`${label} · ${t("Cost")}: ${price}`}><title>{`${label} · ${t("Cost")}: ${price}`}</title></circle>{bubble && bounds && bounds[0] !== bounds[1] && <circle cx={xPosition(x)} cy={260 - y / yMaximum * 220} r={costRadius(bounds[0])} fill="white" fillOpacity=".5" stroke={color} strokeDasharray="2 2" aria-hidden="true" />}{index >= 0 && <text x={xPosition(x)} y={bubble || upper !== x ? 255 - y / yMaximum * 220 - radius : 264 - y / yMaximum * 220} textAnchor="middle" className="point-number" style={{ fill: bubble || upper !== x ? color : "white" }} aria-hidden="true">{index + 1}</text>}</g>;
       })}
     </svg><figcaption>{t(coverage ? "The horizontal axis is the share of evaluated cases with an original source URL. It does not imply causation." : "Observed measurements; methods may use different execution and billing conditions.")}</figcaption></figure>
-    {!cost && !coverage && <p className="bubble-legend">{t("Bubble size represents reported cost: smaller is cheaper. Inner/outer circles show a quoted range; hollow markers have no disclosed total cost. Check billing units before comparing.")}</p>}
-    {!coverage && <p className="chart-note">{t(cost ? "Further left and higher is better. Lines preserve quoted price ranges; no midpoint or combined score is calculated. Billing units may differ; check method details." : "Further left and higher is better. Compare accuracy, latency and billing together; there is no universal best method.")}</p>}
+    {showBubbles && <p className="bubble-legend">{t("Bubble size represents reported cost: smaller is cheaper. Inner/outer circles show a quoted range; hollow markers have no disclosed total cost. Check billing units before comparing.")}</p>}
+    {!coverage && !cost && priceMetric?.highlightBest === false && <p className="chart-note">{t("See Accuracy and cost for quotes with different billing units.")}</p>}
+    {cost && <p className="chart-note">{t("Lines show quoted price ranges. Check the billing basis in method details before comparing prices.")}</p>}
     {disclosures}
     <table className="sr-only"><caption>{`${primary.label} / ${xLabel}`}</caption><thead><tr><th>{t("Method")}</th><th>{xLabel}</th><th>{primary.label}</th><th>{t("Confidence interval")}</th>{!cost && <th>{t("Cost")}</th>}</tr></thead><tbody>{rows.map(({ provider, x, y, upper }) => {
       const interval = provider.confidenceIntervals?.[primary.id];
@@ -151,7 +151,8 @@ export default function Insights({ benchmark, t }: Props) {
   const [ids, setIds] = useState(() => sortProviders(benchmark.providers, benchmark.primaryMetric, benchmark.metrics.find(metric => metric.id === benchmark.primaryMetric)!.direction).slice(0, 3).map(provider => provider.id));
   const selected = ids.flatMap(id => benchmark.providers.find(provider => provider.id === id) ?? []);
   const hasScatter = Boolean(benchmark.sourceMatches) || benchmark.metrics.some(metric => ["seconds", "ms", "mib"].includes(metric.unit));
-  const hasCost = benchmark.metrics.some(metric => metric.unit === "usd") || benchmark.providers.some(provider => quotedCost(provider));
+  const priceMetric = benchmark.metrics.find(metric => metric.unit === "usd");
+  const hasCost = benchmark.providers.some(provider => costBounds(provider, priceMetric) !== null || quotedCost(provider) !== null);
   if (!hasRadar && !hasScatter && !hasCost) return null;
   return <section id="insights" className="insights-section">
     <div className="section-heading"><h2>{t("Compare methods")}</h2><span className="comparison-limit">{t("Select up to three methods")}</span></div>

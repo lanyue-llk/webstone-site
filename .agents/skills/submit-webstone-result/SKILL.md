@@ -1,0 +1,19 @@
+---
+name: submit-webstone-result
+description: Submit measured benchmark results to the Webstone leaderboard through a GitHub pull request, fix review or version collisions, and verify publication. Use with public result files and evidence; does not require the Webstone CLI.
+---
+
+# Submit a Webstone result
+
+Use GitHub PRs in **lexmount/webstone-site**. Git, GitHub CLI and Node.js 22.13+ are sufficient. Do not require Python or Webstone. Never fabricate measurements or silently convert billing ranges into point costs.
+
+1. Inspect the supplied evidence, benchmark, dataset/scorer identities, actual populations, participant versions/configurations, latency and cost definitions. Missing measurements stay null. If no real evidence is provided, stop before creating a result; ask for it.
+2. Reuse a clean site checkout or clone `https://github.com/lexmount/webstone-site.git` into an isolated directory. Preserve existing user modifications. Verify `gh api user --jq .login`, fetch upstream main, and branch from that exact revision. An authentication error is different from a network/DNS error.
+3. Read the checkout's `AGENTS.md`, `docs/submitting-results.md`, `docs/result-versioning.md` and `benchmarks/catalog.json`. For a separately installed skill, these files belong to the site checkout, not the skill's installation directory. Inspect current result JSON for the selected benchmark as a schema example, never as invented measurements. Reusable definitions belong to the catalog; result data and provenance belong to the report.
+4. Add the next semantic report under `results/<benchmark>/<benchmark>-vX.Y.Z-report.json`. Set matching id/version and release.previous/kind/date/summary. Preserve all published files byte for byte. Only add official HTTPS participant URLs needed by the result to catalog.providerUrls. Propose definition changes separately before using them. Do not change source evidence, scores or denominators to satisfy validation.
+5. Run `npm ci --ignore-scripts`, `npm test` and `npm run build`. Inspect the complete diff for private data and unrelated changes. Commit only the result JSON and necessary catalog URLs, then run `node scripts/check-result-change.mjs origin/main HEAD` against freshly fetched main. These checks validate consistency, not scientific truth.
+6. Fork through the authenticated contributor when necessary; keep the upstream remote intact. Push a feature branch to the contributor fork and open `gh pr create --repo lexmount/webstone-site --base main --head LOGIN:BRANCH`. The PR body must state evidence URLs, dataset/scorer identity, scope, billing/timing assumptions, release classification and validation. Reuse an existing equivalent open PR rather than duplicating it. The user's request to submit results authorizes this public PR; it does not authorize merging or exposing private evidence.
+7. Inspect CI and review, fix confirmed issues, rerun affected checks. Resolve only individually verified discussions. On version collision merge current upstream main, advance the new edition identity and previous value, preserve measurements, and push normally; never rewrite history or force-push. Maintainers control merging.
+8. After an authorized merge, check the actual Rainbond build commit and release manifest, live selected result, report links and downloaded JSON. Report PR URL, tested source SHA, version and publication status separately. Do not claim a merged PR is already live.
+
+Optional: when Webstone is already installed, `webstone results --help` offers template/validate/submit/status/rebase helpers for the same contract. Never make installation a prerequisite for this skill. Evaluating systems and building reports belong to [Webstone](https://github.com/lexmount/webstone); publishing dataset definitions belongs to Hugging Face PRs, not this leaderboard PR.

@@ -65,7 +65,7 @@ test("every participant has a reusable HTTPS project link outside the result fil
 });
 
 test("adding and removing a version file needs no index update", async t => {
-  const folder = await mkdtemp(path.join(tmpdir(), "browser-eval-reports-"));
+  const folder = await mkdtemp(path.join(tmpdir(), "webstone-reports-"));
   t.after(() => rm(folder, { recursive: true, force: true }));
   const benchmarkFolder = path.join(folder, "lexbench-webfetch");
   await mkdir(benchmarkFolder);

@@ -123,3 +123,38 @@ for (const paired of [0, 1]) test(`cost comparison with ${paired} eligible pairs
   assert.match(costDetails, /Quality unavailable.*Known cost missing quality/);
   assert.doesNotMatch(costDetails, /<svg|NaN|Infinity/);
 });
+
+test("latency charts leave visibly incompatible quotes out of bubble sizing", () => {
+  const data = {
+    ...benchmark,
+    metrics: [...metrics, { id: "price", label: "Price / 1K", unit: "usd", direction: "asc", highlightBest: false }],
+    providers: benchmark.providers.map((row, index) => ({ ...row, pricing: undefined, scores: { ...row.scores, price: index } })),
+  };
+  const html = render(text => text, data);
+  assert.match(html, /<h3>Accuracy and latency<\/h3>/);
+  assert.doesNotMatch(html, /Bubble size represents reported cost/);
+  assert.match(html, /<summary>Accuracy and cost<\/summary>/);
+  assert.match(html, /quotes with different billing units/);
+});
+
+test("a report without cost figures still compares quality and latency", () => {
+  const data = { ...benchmark, providers: benchmark.providers.map(row => ({ ...row, pricing: undefined })) };
+  const html = render(text => text, data);
+  assert.match(html, /<h3>Accuracy and latency<\/h3>/);
+  assert.match(html, /aria-label="accuracy \/ P50 latency"/);
+  assert.doesNotMatch(html, /Bubble size represents reported cost|<summary>Accuracy and cost<\/summary>/);
+});
+
+
+test("quoted ranges stay visible when a report defines a USD metric but omits numeric prices", () => {
+  const data = {
+    ...benchmark,
+    metrics: [...metrics, { id: "price", label: "Price / 1K", unit: "usd", direction: "asc", decimals: 2 }],
+    providers: benchmark.providers.map(row => ({ ...row, scores: { ...row.scores, price: null } })),
+  };
+  const html = render(text => text, data);
+  assert.match(html, /<summary>Accuracy and cost<\/summary>/);
+  assert.match(html, /Ranged quote · Quoted price \/ 1K: \$2–\$7/);
+  assert.match(html, /Zero quote · Quoted price \/ 1K: \$0/);
+  assert.doesNotMatch(html, /Bubble size represents reported cost/);
+});

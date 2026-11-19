@@ -1,63 +1,56 @@
 # Submit public benchmark results
 
-Webstone and external contributors use the same `webstone results` CLI and Python SDK. Results are reviewed pull requests in `lexmount/webstone-site`; there is no website account, upload database or privileged internal publication endpoint. The website remains a static publication of approved versions.
+Results are pull requests in [lexmount/webstone-site](https://github.com/lexmount/webstone-site). Internal and external contributors use the same reviewed JSON contract. A GitHub account, Git and Node.js 22.13+ are sufficient; installing Webstone or Python is optional. There is no website account or upload database.
 
-## Install and authenticate
+## Ask your agent
 
-The results command is new. Until a PyPI release containing it is published, install from the maintained source using Python 3.11 or later:
-
-```sh
-pip install "git+https://github.com/lexmount/webstone.git"
-gh auth login
-webstone results --help
-```
-
-Install [GitHub CLI](https://cli.github.com/) if needed. Use your own contributor login. Rainbond's repository-read credential is a deployment credential and is not used for submissions.
-
-## Prepare and submit
+Install the [submit-webstone-result skill](../.agents/skills/submit-webstone-result/SKILL.md) in your agent's skills directory, then ask it to submit your measured results. For Codex, copy the skill from a fresh site checkout:
 
 ```sh
-webstone results template --benchmark lexbench-webfetch --definition split-media --output report.json
-# Fill the template with measured values and public evidence.
-webstone results validate report.json --provider-url your-method=https://example.com/project
-webstone results submit report.json --provider-url your-method=https://example.com/project --dry-run
-webstone results submit report.json --provider-url your-method=https://example.com/project
+gh repo clone lexmount/webstone-site
+cd webstone-site
+mkdir -p "$HOME/.codex/skills"
+mkdir "$HOME/.codex/skills/submit-webstone-result" && cp .agents/skills/submit-webstone-result/SKILL.md "$HOME/.codex/skills/submit-webstone-result/SKILL.md"
 ```
 
-Templates contain empty placeholders, not fabricated measurements. `validate` performs local preflight; the trusted repository validator and human evidence review are authoritative. Each file contains one benchmark, references an existing `definitionId`, and supplies the actual `taskCount`, metric values, method configurations and any category/sample counts. Use `null` for unavailable metrics; preserve genuine zeros and the original units. `datasetDifference` explains the difference from the linked dataset in English. Preserve original evidence and quotations separately from display translations.
+If that destination already exists, inspect its source and update it deliberately instead of nesting another copy. Other agents use their own supported skills directory. The skill guides preparation, validation, a fork PR, review fixes and live verification. It never generates measurements, merges PRs or publishes datasets automatically.
 
-Every new submission needs a public HTTPS `source.url`. Disclose dataset/scorer identities, sample selection, execution and timing conditions, billing bases and limitations in the supplied provenance and report. A version-specific `reportUrl` is only supplied when it describes that result. The shared Track report remains visible independently.
+## Direct PR workflow
 
-For a new participant, `--provider-url ID=HTTPS_URL` proposes its official product or GitHub link. Only additive project links used by the submitted methods are allowed; changing benchmark definitions, existing participant links or website code needs a separate PR.
+```sh
+gh auth status
+git switch -c results/my-method
+# Add a new JSON file under results/<benchmark>/ using the catalog and version guide.
+# For a new method, add only its official HTTPS URL to catalog.providerUrls.
+npm ci --ignore-scripts
+npm test
+npm run build
+git add results/<benchmark>/<benchmark>-vX.Y.Z-report.json benchmarks/catalog.json
+git commit -m "feat(results): add measured results for my method"
+# Fork, push your feature branch to YOUR fork, then:
+gh pr create --repo lexmount/webstone-site --base main --head YOUR_LOGIN:results/my-method
+```
 
-The CLI reads the current main commit, allocates the next numeric version for that benchmark, creates a result-only commit in your personal fork, and opens a PR against main. Internal contributors follow the same path. Input measurements are not rewritten; only publication identity/version are assigned. Repeating an identical submission returns its existing PR. `--dry-run` performs no GitHub writes.
+Replace placeholders and stage only paths actually changed. Use `gh repo fork lexmount/webstone-site --clone=false` and a separate contributor remote if needed; never replace an existing remote or push directly to upstream main. Inspect `git diff --cached` before committing. Include the source report, dataset/scorer identities, execution scope, timing and billing basis and known limitations in the PR body. A skill is guidance for the contributing agent; GitHub remains the submission protocol.
+
+Read [Result versioning](result-versioning.md) and the current catalog before preparing a report. Add the next semantic result version, with matching filename, `id`, `version`, `release.previous`, UTC `release.date`, `release.kind` and English `release.summary`. First release: v1.0.0; new measurements under the same protocol: MINOR; metadata-only: PATCH; changed population/scoring: MAJOR. A new definition requires a separate definition PR first. Do not copy old scores into a new edition as placeholders.
+
+Every new submission needs a public HTTPS `source.url`. Each file contains exactly one benchmark, an existing `definitionId`, actual `taskCount`, method configurations, scores and applicable sample/category counts. Missing metrics are `null`; genuine zeros stay zero. Keep units and independent denominators intact. `datasetDifference` explains the difference from the linked dataset in English. A result-specific `reportUrl` must describe that particular result. Preserve original evidence and quotations separately from display translations.
 
 ## Review and publication
 
-Required checks must validate filenames, references, bounds, denominators, category sums and immutable history, then build the complete website. A result PR may add at most 20 regular JSON reports, each at most 1 MiB, and any required participant URLs. It cannot overwrite, delete or rename a published report, modify scoring definitions, or mix results with application code. Old versions remain downloadable.
+CI uses the trusted base-branch validator to check immutable history, filenames, progression, references, bounds and denominators, then builds the website. Result PRs may add at most 20 regular JSON reports, each at most 1 MiB, and only required new participant URLs. Never overwrite/delete/rename published reports, change existing participant URLs or mix application/definition changes into a result PR.
 
-Maintainers review the public evidence, reference population, reproducibility information and method identities. Passing CI checks structure and consistency; it does not certify scientific truth. Reviewer approval and passing required checks are prerequisites to merging. A changed PR must be reviewed again.
+Run `node scripts/check-result-change.mjs origin/main HEAD` after committing, with a freshly fetched `origin/main`. CI remains authoritative. Follow checks with `gh pr checks NUMBER --repo lexmount/webstone-site`; respond to evidence and configuration review. Passing CI checks consistency, not scientific truth. Maintainers decide when to merge. If another PR consumes your version, merge current upstream main into your contributor branch, allocate the next version again, preserve measurements, rerun checks and request review; never force-push.
 
-After merge, Rainbond rebuilds from main. Verify the new result version and JSON download on the live site. A merged PR or successful webhook delivery alone is not proof of publication.
+After merge, verify Rainbond built the actual merge commit, then check the selected result version, report links and downloaded JSON on the live site. A merged PR does not prove deployment success. Corrections and rollbacks add a new explained edition; they do not modify history.
 
-```sh
-webstone results status 123 --verify-published
-# Another submission won the version number: update this PR and review again.
-webstone results rebase 123
-```
+## Optional CLI / SDK
 
-Rebasing preserves the submitted measurements, updates the publication version against current main and adds a normal merge commit to the contributor's branch. It never force-pushes or edits upstream main. The command only handles the contributor's own open, single-result data PR. It does not replace review.
+`webstone results template|validate|submit|status|rebase` automates this same PR workflow when Webstone is already installed. It is useful in an evaluation pipeline but is not a submission prerequisite. It does not bypass CI or maintainer review. See the [Webstone agent workflow](https://github.com/lexmount/webstone/blob/main/docs/agent-workflows.md) for installation and supported stages. Source-only instructions apply until the corresponding PyPI release is actually published.
 
-Corrections and rollbacks are new result versions with explicit explanations. Preserve the source evidence and explain why the corrected version supersedes earlier numbers; do not silently patch history. If resubmitting a previously published result, include the correction/rollback explanation in the result notes so the public record remains clear.
+## Public data and repository settings
 
-## Public data boundary
+Pending PRs are public too. Keep credentials, private raw logs, customer data and large evidence artifacts outside Git. Supply public evidence links instead. Use your contributor identity, never Rainbond's read-only deployment credential.
 
-All submitted data, including pending PRs, is public. Submit only non-sensitive aggregate results, configurations and public evidence links. Do not include credentials, customer information, private raw logs or large binary artifacts. Keep those outside Git; this repository is not an archive of evaluation worker directories.
-
-## Repository settings
-
-Protect main with at least one reviewer approval and the `Result submission contract` and `Website build` checks. Dismiss stale approvals after updates and disallow direct pushes, force pushes and deletion. These are repository settings; committing a workflow or this document alone does not enable them. The required result check runs the trusted base-branch validator on Git blobs from the candidate, not code supplied by a result contributor. PR jobs have read-only permissions and no deployment credentials.
-
-## Result edition and date
-
-Use semantic result versions and fill `release.summary`; choose `release.kind` from `results`, `protocol` or `metadata`. The CLI allocates the version and previous edition; a blank date proposes the current UTC publication date for reviewer confirmation. See [Result versioning](result-versioning.md). Historical vN files remain immutable.
+Keep PRs, required `Result submission contract`, `Website build` and `ocr-review` checks, conversation resolution and protection against direct/force pushes and deletion. Human approval counts are a maintainer setting; this repository currently does not require a separate human approval. A workflow or this document alone does not configure branch protection. PyPI software publication has its own protected environment and is independent of result submissions.

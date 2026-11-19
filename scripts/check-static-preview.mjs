@@ -17,6 +17,8 @@ assert.match(entry.headers.get("content-type"), /text\/html/);
 assert.match(entry.headers.get("cache-control"), /no-store/);
 const html = await entry.text();
 assert.match(html, /Webstone/);
+assert.ok(html.includes("https://github.com/lexmount/webstone-site"), "Rendered GitHub link must target webstone-site");
+assert.ok(!/github\.com\/lexmount\/browser-eval/i.test(html), "Retired GitHub destinations must not ship");
 const stylesheet = /href="([^"?]+\.css)(?:\?[^"]*)?"/.exec(html)?.[1];
 assert.ok(stylesheet, "The exported page must reference a stylesheet");
 const asset = await request(stylesheet);
@@ -35,6 +37,11 @@ for (const path of ["/submit", "/versioning"]) {
   assert.equal(page.status, 200, path);
   assert.match(page.headers.get("content-type"), /text\/html/);
   assert.match(page.headers.get("cache-control"), /no-store/);
+  if (path === "/submit") {
+    const guide = await page.text();
+    assert.match(guide, /submit-webstone-result/);
+    assert.ok(!guide.includes("Install the CLI"), "Results are submitted through a PR without a required Webstone install");
+  }
 }
 const release = await request("/release.json");
 assert.equal(release.status, 200);
