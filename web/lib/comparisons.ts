@@ -14,6 +14,17 @@ export function quotedCost(provider: Provider): [number, number] | null {
   return null;
 }
 
+export function hasPricingInformation(provider: Provider): boolean {
+  return quotedCost(provider) !== null || provider.pricing?.softwareCost != null;
+}
+
+export const searchBillingUnits = ["requests", "successful searches"] as const;
+
+export function searchBillingUnit(provider: Provider) {
+  const unit = provider.billingDescription?.match(/per 1,000 (requests|successful searches)\b/i)?.[1]?.toLowerCase();
+  return searchBillingUnits.find(option => option === unit);
+}
+
 export function costBounds(provider: Provider, metric?: Metric): [number, number] | null {
   if (!metric) return quotedCost(provider);
   const amount = provider.scores[metric.id];

@@ -158,3 +158,16 @@ test("quoted ranges stay visible when a report defines a USD metric but omits nu
   assert.match(html, /Zero quote · Quoted price \/ 1K: \$0/);
   assert.doesNotMatch(html, /Bubble size represents reported cost/);
 });
+
+test("mixed search quotes size bubbles only within one billing unit", () => {
+  const data = JSON.parse(readFileSync(new URL("../results/lexbench-websearch/lexbench-websearch-v2-report.json", import.meta.url)));
+  const catalog = JSON.parse(readFileSync(new URL("../benchmarks/catalog.json", import.meta.url)));
+  const { resolveBenchmark } = require("../web/lib/results.ts");
+  const html = render(text => text, resolveBenchmark(catalog, data.benchmarks[0]));
+  assert.match(html, /Accuracy, latency and cost/);
+  assert.match(html, /<select aria-label="Billing unit"/);
+  assert.match(html, /Per 1,000 requests/);
+  assert.match(html, /Per 1,000 successful searches/);
+  assert.match(html, /<circle[^>]*fill="white"[^>]*aria-label="Lexmount Search/);
+  assert.match(html, /<circle[^>]*fill="#[0-9a-f]+"[^>]*aria-label="Yuanbao Search/);
+});
