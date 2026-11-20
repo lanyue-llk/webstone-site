@@ -213,3 +213,19 @@ test("switching search billing units keeps every method and rescales only the se
     [globalThis.window, globalThis.document, globalThis.IS_REACT_ACT_ENVIRONMENT] = previous;
   }
 });
+
+
+test("a sole in-unit quote stays visibly distinct from out-of-unit quotes", () => {
+  const data = JSON.parse(readFileSync(new URL("../results/lexbench-websearch/lexbench-websearch-v2-report.json", import.meta.url)));
+  const catalog = JSON.parse(readFileSync(new URL("../benchmarks/catalog.json", import.meta.url)));
+  const { resolveBenchmark } = require("../web/lib/results.ts");
+  const benchmark = resolveBenchmark(catalog, data.benchmarks[0]);
+  const plotData = { ...benchmark, providers: benchmark.providers.filter(provider =>
+    provider.name.startsWith("Lexmount Search") || provider.name.startsWith("Bocha AI Search") || provider.name.startsWith("Browserbase / Parallel Advanced")) };
+  const html = render(text => text, plotData);
+  const chart = html.match(/<article class="insight-card scatter-card">([\s\S]*?)<\/article>/)?.[1];
+  assert.ok(chart);
+  assert.match(chart, /r="6" fill="white"[^>]*aria-label="Lexmount Search/);
+  assert.match(chart, /r="6" fill="#[a-f0-9]+"[^>]*aria-label="Browserbase \/ Parallel Advanced/);
+  assert.match(chart, /Hollow markers have no quote in that unit/);
+});

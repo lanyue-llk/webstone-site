@@ -84,7 +84,7 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
     return bubbleCost(provider) && x !== null && x !== undefined && y !== null && y !== undefined;
   }) : [];
   const showBubbles = !cost && !coverage && (billingUnit
-    ? pricedMethods.length >= 2
+    ? pricedMethods.length > 0
     : hasComparableChartCosts(benchmark.providers, priceMetric));
   let title = showBubbles ? "Accuracy, latency and cost" : "Accuracy and latency";
   if (xMetric?.unit === "mib") title = showBubbles ? "Quality, resources and cost" : "Quality and resources";
@@ -153,7 +153,7 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
         let radius = index < 0 ? 5 : 9;
         if (bubble) {
           radius = 6;
-          if (bounds) radius = costRadius(bounds[1]);
+          if (bounds && (!billingUnit || pricedMethods.length >= 2)) radius = costRadius(bounds[1]);
         }
         const price = costLabel(provider);
         const label = `${provider.name} · ${xLabel}: ${formatX(x)}${upper !== x ? `–${formatX(upper)}` : ""} · ${primary.label}: ${formatMetric(y, primary.unit, primary.decimals)}`;
