@@ -11,7 +11,8 @@ import ReleaseCheck from "./release-check";
 import { RELEASE, BUILT_AT } from "../lib/release.generated";
 import { translator } from "../lib/i18n";
 import { useLanguage } from "../lib/use-language";
-import { decisionMetrics } from "../lib/comparisons";
+import { historicalPublication } from "../lib/historical-publications";
+import { decisionMetrics, hasPricingInformation } from "../lib/comparisons";
 
 const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2 };
 const GITHUB_URL = "https://github.com/lexmount/webstone-site";
@@ -83,6 +84,7 @@ export default function Dashboard() {
   const t = translator(language, catalog, snapshot);
   const result = snapshot?.benchmarks.find(item => item.id === selection.benchmark);
   const benchmark = catalog && result ? resolveBenchmark(catalog, result) : null;
+  const historical = snapshot && !snapshot.release ? historicalPublication(snapshot.id) : undefined;
   const evaluationNotes = benchmark?.notes.filter(note => note !== LEGACY_DATE_NOTE) ?? [];
   const details = catalog?.benchmarks.find(item => item.id === selection.benchmark);
   const tracks = catalog?.tracks.map(item => ({ ...item, benchmarks: catalog.benchmarks.filter(bench => bench.trackId === item.id) })) ?? [];
@@ -95,17 +97,24 @@ export default function Dashboard() {
   const primaryMetric = benchmark?.metrics.find(item => item.id === benchmark.primaryMetric);
   const visibleMetrics = benchmark ? decisionMetrics(benchmark, moreMetrics, selection.metric) : [];
   const leadingMetrics = benchmark && primaryMetric
-    ? [primaryMetric, ...visibleMetrics.filter(item => item.id !== primaryMetric.id && benchmark.leadingMetricIds?.includes(item.id))]
+    ? [primaryMetric, ...visibleMetrics.filter(item => item.id !== primaryMetric.id && isDecisionColumn(item))]
     : [];
   const trailingMetrics = benchmark
-    ? visibleMetrics.filter(item => item.id !== primaryMetric?.id && !benchmark.leadingMetricIds?.includes(item.id))
+    ? visibleMetrics.filter(item => item.id !== primaryMetric?.id && !isDecisionColumn(item))
     : [];
   const metricBest = new Map((benchmark?.metrics ?? []).map(item => [item.id, item.highlightBest === false ? null : bestValue((benchmark?.providers ?? []).map(provider => provider.scores[item.id]), item.direction)]));
   const categoryBest = new Map(categories.map(category => [category.id, bestValue((benchmark?.providers ?? []).map(provider => provider.categoryPassed?.[category.id] ?? null), "desc")]));
   const passedBest = bestValue((benchmark?.providers ?? []).map(provider => provider.passed), "desc");
   const showPassed = showCategories && (benchmark?.providers.some(provider => provider.passed !== null && provider.passed !== undefined) ?? false);
-  const hasPricing = benchmark?.providers.some(provider => provider.pricing !== null && provider.pricing !== undefined) ?? false;
-  const showPricing = hasPricing || !benchmark?.metrics.some(item => item.unit === "usd");
+  const showPricing = benchmark?.providers.some(hasPricingInformation) ?? false;
+  const hasNumericCost = benchmark?.metrics.some(item => item.unit === "usd" && benchmark.providers.some(provider => {
+    const amount = provider.scores[item.id];
+    return amount !== null && amount !== undefined;
+  })) ?? false;
+  function isDecisionColumn(item: Metric) {
+    return benchmark?.leadingMetricIds?.includes(item.id) || ["seconds", "ms", "mib", "usd"].includes(item.unit);
+  }
+
   const tableClass = benchmark?.id === "lexbench-webfetch"
     ? "wide-table lexbench-table"
     : benchmark?.id === "webarena-verified" ? "wide-table arena-table"
@@ -211,13 +220,7 @@ export default function Dashboard() {
               <a href={details.reportUrl} target="_blank" rel="noreferrer" >{t("Evaluation report")}<ArrowUpRight size={13} aria-hidden="true" /></a>
               {benchmark?.reportUrl && benchmark.reportUrl !== details.reportUrl && <a href={benchmark.reportUrl} target="_blank" rel="noreferrer">{t("Version report")}<ArrowUpRight size={13} aria-hidden="true" /></a>}
             </div>}
-            {benchmark && snapshot && <details key={snapshot.id} className="evaluation-notes">
-              <summary>{t("Evaluation notes")}</summary>
-              <p>{t(snapshot.datasetDifference)}</p>
-              {snapshot.release && <p>{t(snapshot.release.summary)}</p>}
-              {evaluationNotes.length > 0 && <ul>{evaluationNotes.map(note => <li key={note}>{t(note)}</li>)}</ul>}
-              <a href="/versioning">{t("Result versioning")}</a>
-            </details>}
+
           </div>
         </div>
         <div className="topbar-actions">
@@ -245,10 +248,17 @@ export default function Dashboard() {
                 {[...versionEntries].reverse().map(item => <option key={item.version} value={canonicalVersion(item.version)}>{canonicalVersion(item.version)}</option>)}
               </select>
             </div>}
-            {entry && <span className="result-published">{entry.dateKind === "released" && entry.date
-              ? <>{t("Version released")} <time dateTime={entry.date}>{entry.date}</time></>
-              : t("Release date not recorded for this historical version.")}</span>}
+            {snapshot?.release && <span className="result-published">{t("Version released")} <time dateTime={snapshot.release.date}>{snapshot.release.date}</time></span>}
+            {historical && <a className="result-published" href={`${GITHUB_URL}/commit/${historical.commit}`} target="_blank" rel="noreferrer">{t("First published in the repository")} <time dateTime={historical.date}>{historical.date}</time> <ArrowUpRight size={12} aria-hidden="true" /></a>}
           </div>
+          {benchmark && snapshot && <details key={snapshot.id} className="evaluation-notes">
+            <summary>{t("Evaluation notes")}</summary>
+            <p>{t(snapshot.datasetDifference)}</p>
+            {snapshot.release && <p>{t(snapshot.release.summary)}</p>}
+            {evaluationNotes.length > 0 && <ul>{evaluationNotes.map(note => <li key={note}>{t(note)}</li>)}</ul>}
+            {!snapshot.release && !historical && <p>{t("Release date not recorded for this historical version.")}</p>}
+            <a href="/versioning">{t("Result versioning")}</a>
+          </details>}
 
           {!benchmark || !metric ? <div className="empty-state">
             <h2>{t(versions.length > 0 ? "No results for this version" : "No results for this benchmark")}</h2>
@@ -263,7 +273,7 @@ export default function Dashboard() {
               </div></div>
               <p className="sample-scope">{benchmark.metrics.filter(item => result?.metricSamples?.[item.id]?.sampleCount !== null && result?.metricSamples?.[item.id]?.sampleCount !== undefined && result.metricSamples[item.id].sampleCount !== benchmark.taskCount).map(item => `${item.label}: ${result!.metricSamples![item.id].sampleCount} ${t("samples")}`).join(" · ")}</p>
               {benchmark.trackId === "websearch" && snapshot?.source.kind === "report-page" && <p className="scope-warning">{t("Different collection dates and concurrency: these timings are not a controlled same-window speed comparison.")}</p>}
-              {!hasPricing && !benchmark.metrics.some(item => item.unit === "usd") && <p className="cost-disclosure">{t("Cost was not disclosed in this report; unknown does not mean free.")}</p>}
+              {!showPricing && !hasNumericCost && <p className="cost-disclosure">{t("Cost was not disclosed in this report.")}</p>}
               <div className="table-scroll">
                 <table className={tableClass} style={{ "--data-columns": categories.length + visibleMetrics.length + Number(showPassed) + Number(showPricing) } as React.CSSProperties}>
                   <caption className="sr-only">{t(benchmark.name)} {t("Leaderboard")}</caption>
@@ -271,21 +281,21 @@ export default function Dashboard() {
                     <th className="rank-cell" scope="col">#</th>
                     <th className="provider-heading" scope="col">{t(benchmark.providerLabel ?? "Browser")}</th>
                     {leadingMetrics.map(metricHeader)}
+                    {showPricing && <th scope="col"><div className="metric-heading"><span>{t("Price / 1K")}</span><InfoTooltip label={t("Price / 1K")} description={t("Quoted prices and ranges are not realized total costs. Software-only prices exclude model usage.")} detailsLabel={t("details")} /></div></th>}
                     {categories.map(category => <th key={category.id} scope="col" className="category-head"><div className="metric-heading"><span>{t(category.name)}<span className="category-total">/{category.total}</span></span><InfoTooltip label={t(category.name)} description={`${category.total} ${t("cases")}. ${t("Pass criteria")}: ${t(category.criterion)}`} detailsLabel={t("details")} /></div></th>)}
                     {trailingMetrics.map(metricHeader)}
-                    {showPricing && <th scope="col"><div className="metric-heading"><span>{t("Price / 1K")}</span><InfoTooltip label={t("Price / 1K")} description={t("Quoted prices and ranges are not realized total costs. Software-only prices exclude model usage.")} detailsLabel={t("details")} /></div></th>}
                     {showPassed && <th className="count-cell" scope="col"><div className="metric-heading"><span>{t("Passed / Total")}</span><InfoTooltip label={t("Passed / Total")} description={`${t("Passed / Total")}: ${benchmark.taskCount}. ${t("Not disclosed in the source")}: —.`} detailsLabel={t("details")} /></div></th>}
                   </tr></thead>
                   <tbody>{providers.map((provider, i) => <tr key={provider.id}>
                     <td className="rank-cell">{provider.scores[metric.id] == null ? "—" : i + 1}</td>
                     <td><div className="provider-cell"><a className="provider-name provider-link" href={catalog?.providerUrls[provider.id]} target="_blank" rel="noopener noreferrer" aria-label={`${provider.name} ${t("project")} (${t("opens in a new tab")})`}><span className={`provider-mark ${provider.id}`} style={{ "--provider-color": providerColors[provider.id] ?? "#64748b" } as React.CSSProperties} aria-hidden="true">{provider.name[0]}</span><span className="provider-label" title={provider.name}><strong>{provider.name.split(" · ")[0]}</strong>{provider.name.includes(" · ") && <small>{provider.name.split(" · ").slice(1).join(" · ")}</small>}</span><ArrowUpRight className="provider-external" size={12} aria-hidden="true" /></a><button className="method-open" aria-label={`${provider.name} · ${t("Method details")}`} aria-haspopup="dialog" onClick={() => setSelectedProvider(provider)}>···</button></div></td>
                     {leadingMetrics.map(item => metricCell(provider, item))}
+                    {showPricing && <td className="numeric"><div className="metric-heading">{provider.pricing && hasPricingInformation(provider) ? <>{t(formatPricing(provider.pricing))}<InfoTooltip label={`${provider.name} · ${t("Billing basis")}`} description={t(provider.pricing.description)} detailsLabel={t("details")} /></> : "—"}</div></td>}
                     {categories.map(category => {
                       const isBest = isBestValue(provider.categoryPassed?.[category.id], categoryBest.get(category.id) ?? null);
                       return <td key={category.id} className={`numeric category-value ${isBest ? "best-value" : ""}`} title={isBest ? t("Best in this column") : undefined}>{provider.categoryPassed?.[category.id] ?? "—"}{isBest && <span className="sr-only"> {t("Best in this column")}</span>}</td>;
                     })}
                     {trailingMetrics.map(item => metricCell(provider, item))}
-                    {showPricing && <td className="numeric"><div className="metric-heading">{provider.pricing ? <>{t(formatPricing(provider.pricing))}<InfoTooltip label={`${provider.name} · ${t("Billing basis")}`} description={t(provider.pricing.description)} detailsLabel={t("details")} /></> : "—"}</div></td>}
                     {showPassed && <td className={`numeric count-cell ${isBestValue(provider.passed, passedBest) ? "best-value" : ""}`} title={isBestValue(provider.passed, passedBest) ? t("Best in this column") : provider.passed == null ? t("Not disclosed in the source") : provider.passedDerivation ? t(provider.passedDerivation) : undefined}>{provider.passed == null ? "—" : <>{provider.passed}<span> / {benchmark.taskCount}</span></>}{isBestValue(provider.passed, passedBest) && <span className="sr-only"> {t("Best in this column")}</span>}</td>}
                   </tr>)}</tbody>
                 </table>
