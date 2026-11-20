@@ -78,8 +78,13 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
   const xMetric = cost ? numericPrices ?? { id: "quoted-price", label: t("Quoted price / 1K"), unit: "usd", direction: "asc" as const } : candidates.find(metric => metric.id === xId) ?? preferred;
   const coverage = !cost && Boolean(benchmark.sourceMatches) && (sourceCoverage || !xMetric);
   if (!coverage && !xMetric) return null;
+  const pricedMethods = billingUnit ? benchmark.providers.filter(provider => {
+    const x = provider.scores[xMetric?.id ?? ""];
+    const y = provider.scores[primary.id];
+    return bubbleCost(provider) && x !== null && x !== undefined && y !== null && y !== undefined;
+  }) : [];
   const showBubbles = !cost && !coverage && (billingUnit
-    ? benchmark.providers.filter(provider => bubbleCost(provider) && provider.scores[primary.id] != null && provider.scores[xMetric!.id] != null).length >= 2
+    ? pricedMethods.length >= 2
     : hasComparableChartCosts(benchmark.providers, priceMetric));
   let title = showBubbles ? "Accuracy, latency and cost" : "Accuracy and latency";
   if (xMetric?.unit === "mib") title = showBubbles ? "Quality, resources and cost" : "Quality and resources";
@@ -124,7 +129,10 @@ function Scatter({ benchmark, selected, t, cost = false, sourceCoverage = false 
   if (coverage) high = 100;
   const xPosition = (value: number) => 60 + ((log ? Math.log10(value) : value) - low) / (high - low || 1) * 360;
   const yMaximum = qualityScale(primary);
-  const xLabel = coverage ? t("Original source coverage") : cost && billingUnit ? billingLabel : t(xMetric!.label);
+  let xLabel: string;
+  if (coverage) xLabel = t("Original source coverage");
+  else if (cost && billingUnit) xLabel = billingLabel;
+  else xLabel = t(xMetric!.label);
   function formatX(value: number) {
     if (coverage) return `${value.toFixed(1)}%`;
     if (cost && !numericPrices) return `$${Number(value.toPrecision(3))}`;

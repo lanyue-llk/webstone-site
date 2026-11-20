@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
+import { Window } from "happy-dom";
 
 const require = createRequire(import.meta.url);
 for (const extension of [".ts", ".tsx"]) require.extensions[extension] = (module, file) => {
@@ -159,15 +160,56 @@ test("quoted ranges stay visible when a report defines a USD metric but omits nu
   assert.doesNotMatch(html, /Bubble size represents reported cost/);
 });
 
-test("mixed search quotes size bubbles only within one billing unit", () => {
+test("switching search billing units keeps every method and rescales only the selected quotes", async () => {
   const data = JSON.parse(readFileSync(new URL("../results/lexbench-websearch/lexbench-websearch-v2-report.json", import.meta.url)));
   const catalog = JSON.parse(readFileSync(new URL("../benchmarks/catalog.json", import.meta.url)));
   const { resolveBenchmark } = require("../web/lib/results.ts");
-  const html = render(text => text, resolveBenchmark(catalog, data.benchmarks[0]));
-  assert.match(html, /Accuracy, latency and cost/);
-  assert.match(html, /<select aria-label="Billing unit"/);
-  assert.match(html, /Per 1,000 requests/);
-  assert.match(html, /Per 1,000 successful searches/);
-  assert.match(html, /<circle[^>]*fill="white"[^>]*aria-label="Lexmount Search/);
-  assert.match(html, /<circle[^>]*fill="#[0-9a-f]+"[^>]*aria-label="Yuanbao Search/);
+  const benchmark = resolveBenchmark(catalog, data.benchmarks[0]);
+
+  const win = new Window();
+  const previous = [globalThis.window, globalThis.document, globalThis.IS_REACT_ACT_ENVIRONMENT];
+  [globalThis.window, globalThis.document, globalThis.IS_REACT_ACT_ENVIRONMENT] = [win, win.document, true];
+  const container = win.document.createElement("div");
+  win.document.body.append(container);
+  const root = require("react-dom/client").createRoot(container);
+  const largestRadius = Math.sqrt(416);
+
+  function markers() {
+    return [...container.querySelectorAll(".insight-grid .scatter-card svg circle[aria-label]")].map(marker => ({
+      label: marker.getAttribute("aria-label"), radius: Number(marker.getAttribute("r")),
+      hollow: marker.getAttribute("fill") === "white",
+      position: [marker.getAttribute("cx"), marker.getAttribute("cy")],
+    }));
+  }
+
+  function assertMarker(values, label, radius, hollow) {
+    const marker = values.find(value => value.label.startsWith(label));
+    assert.ok(marker, label);
+    assert.equal(marker.hollow, hollow, label);
+    assert.ok(Math.abs(marker.radius - radius) < 0.0001, `${label}: radius ${marker.radius}, expected ${radius}`);
+  }
+
+  try {
+    await React.act(async () => root.render(React.createElement(Insights, { benchmark, t: text => text })));
+    const selector = container.querySelector('.insight-grid select[aria-label="Billing unit"]');
+    assert.equal(selector.value, "successful searches");
+    const initial = markers();
+    assert.equal(initial.length, 9);
+    assertMarker(initial, "Browserbase / Parallel Advanced", largestRadius, false);
+    assertMarker(initial, "Lexmount Search", 6, true);
+
+    await React.act(async () => {
+      selector.value = "requests";
+      selector.dispatchEvent(new win.Event("change", { bubbles: true }));
+    });
+    const requests = markers();
+    assert.deepEqual(requests.map(({ label, position }) => [label, position]), initial.map(({ label, position }) => [label, position]));
+    assertMarker(requests, "Browserbase / Parallel Advanced", 6, true);
+    assertMarker(requests, "Bocha AI Search", largestRadius, false);
+    assertMarker(requests, "Lexmount Search", Math.sqrt(16 + .75 / 8.99 * 400), false);
+  } finally {
+    await React.act(async () => root.unmount());
+    await win.happyDOM.close();
+    [globalThis.window, globalThis.document, globalThis.IS_REACT_ACT_ENVIRONMENT] = previous;
+  }
 });

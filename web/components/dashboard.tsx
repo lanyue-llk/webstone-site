@@ -107,7 +107,10 @@ export default function Dashboard() {
   const passedBest = bestValue((benchmark?.providers ?? []).map(provider => provider.passed), "desc");
   const showPassed = showCategories && (benchmark?.providers.some(provider => provider.passed !== null && provider.passed !== undefined) ?? false);
   const showPricing = benchmark?.providers.some(hasPricingInformation) ?? false;
-  const hasNumericCost = benchmark?.metrics.some(item => item.unit === "usd" && benchmark.providers.some(provider => provider.scores[item.id] != null)) ?? false;
+  const hasNumericCost = benchmark?.metrics.some(item => item.unit === "usd" && benchmark.providers.some(provider => {
+    const amount = provider.scores[item.id];
+    return amount !== null && amount !== undefined;
+  })) ?? false;
   function isDecisionColumn(item: Metric) {
     return benchmark?.leadingMetricIds?.includes(item.id) || ["seconds", "ms", "mib", "usd"].includes(item.unit);
   }

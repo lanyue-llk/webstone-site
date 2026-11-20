@@ -15,7 +15,8 @@ export function quotedCost(provider: Provider): [number, number] | null {
 }
 
 export function hasPricingInformation(provider: Provider): boolean {
-  return quotedCost(provider) !== null || provider.pricing?.softwareCost != null;
+  const softwareCost = provider.pricing?.softwareCost;
+  return quotedCost(provider) !== null || (softwareCost !== null && softwareCost !== undefined);
 }
 
 export const searchBillingUnits = ["requests", "successful searches"] as const;
