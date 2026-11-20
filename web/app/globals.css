@@ -432,7 +432,7 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
 .comparison-table th, .comparison-table td { padding: 9px 16px; text-align: left; border-bottom: 1px solid #e7eee8; background: white; }
 .comparison-table thead th { vertical-align: top; background: #f3f7f3; }
 .comparison-table tbody tr:last-child > * { border-bottom: 0; }
-.comparison-table tr > :first-child { position: sticky; left: 0; z-index: 1; min-width: 155px; max-width: 230px; color: #26392e; }
+.comparison-table tr > :first-child { position: sticky; left: 0; z-index: 1; min-width: 155px; max-width: 230px; color: #26392e; white-space: normal; overflow-wrap: anywhere; }
 .comparison-table tr > :not(:first-child) { min-width: 150px; border-left: 1px solid #e7eee8; }
 .plot-heading { font-weight: 650; margin-bottom: 4px; }
 .plot-metric, .comparison-table select { display: block; font-size: 12px; color: #41594a; min-height: 23px; }
