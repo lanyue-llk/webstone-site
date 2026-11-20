@@ -17,6 +17,10 @@ test("English is the default and explicit Chinese selection translates reusable 
   assert.equal(translator("zh", catalog)("Web Fetch"), "网页获取");
   assert.equal(translator("zh", catalog)("Page-hit macro F1"), "页面命中宏平均 F1");
   assert.equal(translator("zh", catalog)("LexBench SWDE"), "LexBench SWDE");
+  assert.equal(translator("zh")("Unable to load results. Please try again."), "加载结果失败，请重试。");
+  for (const info of catalog.benchmarks) {
+    assert.notEqual(translator("zh", catalog)(info.providerLabel), info.providerLabel, info.id);
+  }
   for (const benchmark of catalog.benchmarks) {
     assert.ok(catalog.translations?.zh[benchmark.description], benchmark.id);
     for (const definition of benchmark.definitions) {

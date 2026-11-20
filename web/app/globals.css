@@ -428,7 +428,7 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
 .comparison-empty { margin: 12px 0; color: #55645b; font-size: 13px; }
 .comparison-scroll { overflow-x: auto; border: 1px solid #dce5dd; border-radius: 8px; }
 .comparison-scroll:focus-visible { outline: 2px solid #286449; outline-offset: 3px; }
-.comparison-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+.comparison-table { table-layout: auto; width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
 .comparison-table th, .comparison-table td { padding: 9px 16px; text-align: left; border-bottom: 1px solid #e7eee8; background: white; }
 .comparison-table thead th { vertical-align: top; background: #f3f7f3; }
 .comparison-table tbody tr:last-child > * { border-bottom: 0; }
