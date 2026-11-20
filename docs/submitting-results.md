@@ -4,16 +4,7 @@ Results are pull requests in [lexmount/webstone-site](https://github.com/lexmoun
 
 ## Ask your agent
 
-Install the [submit-webstone-result skill](../.agents/skills/submit-webstone-result/SKILL.md) in your agent's skills directory, then ask it to submit your measured results. For Codex, copy the skill from a fresh site checkout:
-
-```sh
-gh repo clone lexmount/webstone-site
-cd webstone-site
-mkdir -p "$HOME/.codex/skills"
-mkdir "$HOME/.codex/skills/submit-webstone-result" && cp .agents/skills/submit-webstone-result/SKILL.md "$HOME/.codex/skills/submit-webstone-result/SKILL.md"
-```
-
-If that destination already exists, inspect its source and update it deliberately instead of nesting another copy. Other agents use their own supported skills directory. The skill guides preparation, validation, a fork PR, review fixes and live verification. It never generates measurements, merges PRs or publishes datasets automatically.
+Use the [copyable instruction in the README](../README.md#for-agents). If your agent has no skill installer, copy the complete [SKILL.md](../.agents/skills/submit-webstone-result/SKILL.md) into its `submit-webstone-result/` skills directory and ask it to follow the file. Inspect an existing installation before replacing it.
 
 ## Direct PR workflow
 

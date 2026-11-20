@@ -6,17 +6,13 @@ Twelve local benchmark views across four Tracks are published on this site. A fi
 
 ## For agents
 
-Submit existing measurements through a GitHub PR; Webstone/Python installation is optional. Install the [submission skill](.agents/skills/submit-webstone-result/SKILL.md) into your agent's skills root, then ask it to prepare, validate and submit your result. The [PR guide](docs/submitting-results.md) owns the exact current format, version rules and review process.
+Copy this into your agent:
 
-```sh
-gh repo clone lexmount/webstone-site
-cd webstone-site
-mkdir -p "$HOME/.codex/skills"
-# Refuse to overwrite an existing skill; inspect it before upgrading.
-mkdir "$HOME/.codex/skills/submit-webstone-result" && cp .agents/skills/submit-webstone-result/SKILL.md "$HOME/.codex/skills/submit-webstone-result/SKILL.md"
+```text
+Install and use the submission skill at https://github.com/lexmount/webstone-site/blob/main/.agents/skills/submit-webstone-result/SKILL.md to submit [my measured results and public evidence] as a PR to lexmount/webstone-site.
 ```
 
-Other agents use their equivalent skills directory. Git/GitHub and Node.js 22.13+ support direct result submission. For running evaluations, scoring, reports, sharing and dataset proposals, use the [Webstone workflow skill and CLI](https://github.com/lexmount/webstone/blob/main/docs/agent-workflows.md).
+See the [PR guide](docs/submitting-results.md) for versioning and validation. GitHub, Git and Node.js are sufficient.
 
 ## Benchmarks
 
