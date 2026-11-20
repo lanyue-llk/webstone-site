@@ -1,7 +1,7 @@
 import test from "node:test";
 import { initialLanguage, translator } from "./i18n.ts";
 import { clearLegacyCache, LEGACY_CACHE_RESET_KEY, shouldReloadRelease } from "./release.ts";
-import { categoryRate, costBounds, decisionMetrics, hasComparableChartCosts, quotedCost, qualityScale } from "./comparisons.ts";
+import { categoryRate, costBounds, decisionMetrics, quotedCost, qualityScale } from "./comparisons.ts";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { benchmarkEntries, bestValue, compareVersions, isBestValue, latestEntry, selectEntry, reportEntries, formatMetric, formatPricing, sumCategoryPasses, resolveBenchmark, sortProviders, type Catalog, type Provider, type Snapshot } from "./results.ts";
@@ -14,9 +14,13 @@ test("English is the default and explicit Chinese selection translates reusable 
   assert.equal(initialLanguage("zh"), "zh");
   assert.equal(translator("en", catalog)("Download Report"), "Download Report");
   assert.equal(translator("zh", catalog)("Download Report"), "下载报告");
-  assert.equal(translator("zh", catalog)("Web Fetch"), "Web Fetch");
-  assert.equal(translator("zh", catalog)("Page-hit macro F1"), "Page-hit macro F1");
+  assert.equal(translator("zh", catalog)("Web Fetch"), "网页获取");
+  assert.equal(translator("zh", catalog)("Page-hit macro F1"), "页面命中宏平均 F1");
   assert.equal(translator("zh", catalog)("LexBench SWDE"), "LexBench SWDE");
+  assert.equal(translator("zh")("Unable to load results. Please try again."), "加载结果失败，请重试。");
+  for (const info of catalog.benchmarks) {
+    assert.notEqual(translator("zh", catalog)(info.providerLabel), info.providerLabel, info.id);
+  }
   for (const benchmark of catalog.benchmarks) {
     assert.ok(catalog.translations?.zh[benchmark.description], benchmark.id);
     for (const definition of benchmark.definitions) {
@@ -103,15 +107,12 @@ test("compact tables keep the ranking metric and charts preserve natural scales 
   assert.deepEqual(quotedCost({ ...providers[0], pricing: { min: 0, max: 0, description: "No charge" } }), [0, 0]);
 });
 
-test("chart cost sizing preserves zero and excludes mixed billing and undisclosed totals", () => {
+test("cost values preserve zero and keep quoted ranges separate from numeric price metrics", () => {
   const mixed = readSnapshot("lexbench-websearch/lexbench-websearch-v2-report.json").benchmarks[0];
   const metric = mixed.metrics.find(item => item.unit === "usd")!;
   assert.ok(mixed.providers.some(provider => costBounds(provider, metric) !== null));
-  assert.equal(hasComparableChartCosts(mixed.providers, metric), false);
-  assert.equal(hasComparableChartCosts(providers), false);
 
   const reference = { ...providers[0], pricing: { min: 0, max: 0, description: "No charge" } };
-  assert.equal(hasComparableChartCosts([reference]), true);
   assert.equal(costBounds(reference, metric), null);
   assert.deepEqual(costBounds(reference), [0, 0]);
 });

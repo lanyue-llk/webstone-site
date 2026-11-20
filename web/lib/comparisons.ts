@@ -32,10 +32,6 @@ export function costBounds(provider: Provider, metric?: Metric): [number, number
   return amount === null || amount === undefined ? null : [amount, amount];
 }
 
-export function hasComparableChartCosts(providers: Provider[], metric?: Metric): boolean {
-  return metric?.highlightBest !== false && providers.some(provider => costBounds(provider, metric) !== null);
-}
-
 export function qualityMetrics(benchmark: Benchmark) {
   return benchmark.metrics.filter(item => ["ratio", "percent", "score"].includes(item.unit) && !item.signed && item.direction === "desc");
 }
