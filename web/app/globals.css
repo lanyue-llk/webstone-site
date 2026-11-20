@@ -373,16 +373,6 @@ h1 { font-size: 30px; line-height: 1.2; }
 .evaluation-notes { margin: 12px 0 0; max-width: 1000px; font-size: 12px; line-height: 1.7; color: #667368; }
 .evaluation-notes summary { width: fit-content; cursor: pointer; color: #3c654c; padding: 4px 0; }.evaluation-notes ul { padding-left: 18px; }.evaluation-notes li { margin: 5px 0; }
 .insights-section { margin-top: 30px; }.insights-section .section-heading { margin-bottom: 12px; align-items: center; }.insights-section h2 { font-size: 20px; }
-.comparison-limit { font-size: 11px; color: #77837a; }
-.comparison-methods { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-.comparison-methods label { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border: 1px solid #e0e7df; border-radius: 4px; font-size: 11px; color: #5e6e62; background: white; }
-.comparison-methods label:has(input:checked) { color: var(--series-color); border-color: var(--series-color); }.comparison-methods input { accent-color: var(--series-color); }.comparison-methods small { color: #919991; }
-.insight-grid.single-chart { grid-template-columns: minmax(0, 900px); justify-content: center; }.insight-card { padding: 18px; }.card-heading select { max-width: 170px; border: 1px solid #dbe4db; border-radius: 4px; background: white; color: #54715c; padding: 4px; font-size: 11px; }
-.comparison-figure { margin: 0; }.comparison-figure svg { display: block; width: 100%; height: 320px; overflow: visible; }.comparison-figure figcaption, .chart-note { font-size: 11px; color: #7a857d; line-height: 1.6; }
-.radar-grid { fill: none; stroke: #e1e9e1; stroke-width: 1; }.radar-axis { stroke: #dde6dd; stroke-width: 1; }.radar-shape { fill: currentColor; fill-opacity: .09; stroke: currentColor; stroke-width: 2; }
-.axis-label { font-size: 12px; fill: #596b5e; }.axis-tick { font-size: 11px; fill: #718078; }
-.point-number { font-size: 10px; font-weight: 600; fill: white; pointer-events: none; }
-.series-number { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--series-color); color: white; font-size: 10px; }
 @media (max-width: 760px) { .topbar { grid-template-columns: minmax(0, 1fr); }.topbar-actions { margin-left: 0; } }
 @media (max-width: 760px) { .wide-table { --rank-width: 28px; --provider-width: 150px; width: calc(178px + var(--data-columns) * 110px); min-width: calc(178px + var(--data-columns) * 110px); }.wide-table tbody tr { height: 44px; }.wide-table th, .wide-table td { padding: 5px 7px; }.comparison-figure svg { height: 280px; }.comparison-methods { max-height: 150px; overflow-y: auto; }.insights-section .section-heading { flex-direction: row; gap: 8px; } }
 @media (max-width: 600px) { .topbar-actions { width: 100%; justify-content: flex-start; }.comparison-figure svg { height: 250px; } }
@@ -416,21 +406,46 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
 .dialog-heading .icon-button { width: 30px; height: 30px; border: 1px solid #e1e7df; border-radius: 50%; background: #f6f8f4; }
 .method-meta { margin: 0 0 12px; }.method-meta > div { margin-bottom: 10px; }
 .method-metrics { margin: 0; gap: 0 20px; }.method-metrics > div { padding: 10px 0; }.method-metrics dd { margin: 2px 0 0; font-size: 16px; }
-.insight-grid { align-items: stretch; }.insight-card { display: flex; flex-direction: column; }.insight-card .chart-note { margin-top: 10px; }.insight-card .card-heading { margin-bottom: 8px; }.comparison-figure svg { height: 340px; }
 @media (max-width: 760px) {
   .topbar-actions { justify-content: flex-start; }
   .benchmark-tabs-bar { padding: 8px 18px 0; gap: 10px; }.benchmark-tabs-bar .benchmark-navigation { gap: 14px; }.benchmark-tabs-bar .benchmark-navigation button { font-size: 12px; padding: 10px 0; }
   .topbar { padding-top: 14px; padding-bottom: 12px; }.site-updated { text-align: left; }
-  .method-dialog { padding: 18px; }.comparison-figure svg { height: 260px; }
+  .method-dialog { padding: 18px; }
 }
-.profile-details, .coverage-details { margin-top: 16px; font-size: 12px; color: #44624b; }
-.profile-details > summary, .coverage-details > summary { cursor: pointer; padding: 8px 0; }
-.profile-details .insight-card, .coverage-details .insight-card { max-width: 720px; }
-.chart-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-.bubble-legend { margin: 10px 0 0; font-size: 11px; line-height: 1.7; color: #5d705f; }
 
 @media (max-width: 760px) { .wide-table { --data-column-width: 110px; } }
 
-/* Keep axis and selected-method labels readable in both comparison cards. */
 .axis-label, .axis-tick { font-size: 14px; }
-.point-number { font-size: 13px; }
+
+/* Each measure has its own scale. All measures use the same method order. */
+.insights-section > h2 { margin: 0 0 12px; }
+.comparison-filter { margin-bottom: 10px; color: #355845; font-size: 13px; }
+.comparison-filter summary { width: fit-content; padding: 5px 0; cursor: pointer; }
+.comparison-filter summary span { margin-left: 5px; color: #617369; font-variant-numeric: tabular-nums; }
+.comparison-methods { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; }
+.comparison-methods label { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid #dde7df; border-radius: 5px; background: white; }
+.comparison-methods input { accent-color: #286449; }
+.comparison-empty { margin: 12px 0; color: #55645b; font-size: 13px; }
+.comparison-scroll { overflow-x: auto; border: 1px solid #dce5dd; border-radius: 8px; }
+.comparison-scroll:focus-visible { outline: 2px solid #286449; outline-offset: 3px; }
+.comparison-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+.comparison-table th, .comparison-table td { padding: 9px 16px; text-align: left; border-bottom: 1px solid #e7eee8; background: white; }
+.comparison-table thead th { vertical-align: top; background: #f3f7f3; }
+.comparison-table tbody tr:last-child > * { border-bottom: 0; }
+.comparison-table tr > :first-child { position: sticky; left: 0; z-index: 1; min-width: 155px; max-width: 230px; color: #26392e; }
+.comparison-table tr > :not(:first-child) { min-width: 150px; border-left: 1px solid #e7eee8; }
+.plot-heading { font-weight: 650; margin-bottom: 4px; }
+.plot-metric, .comparison-table select { display: block; font-size: 12px; color: #41594a; min-height: 23px; }
+.comparison-table select { max-width: 100%; background: white; padding: 2px 4px; border: 1px solid #d4e1d7; border-radius: 4px; }
+.plot-scale { display: flex; justify-content: space-between; gap: 8px; margin-top: 5px; color: #55645b; font-size: 11px; font-weight: 400; }
+.plot-value { display: block; color: #203b2d; font-weight: 600; }
+.plot-unavailable { color: #58695f; }
+.plot-axis { position: relative; display: block; margin: 6px 3px 2px; height: 2px; background: #e2ebe4; }
+.plot-dot, .plot-range { background: #22775a; position: absolute; left: var(--low); top: 50%; }
+.plot-dot { width: 7px; height: 7px; border-radius: 50%; transform: translate(-50%, -50%); }
+.plot-range { width: calc(var(--high) - var(--low)); min-width: 2px; height: 6px; border-radius: 3px; transform: translateY(-50%); }
+@media (max-width: 760px) {
+  .comparison-table th, .comparison-table td { padding: 7px 10px; }
+  .comparison-table tr > :first-child { min-width: 115px; max-width: 145px; }
+  .comparison-table tr > :not(:first-child) { min-width: 145px; }
+}

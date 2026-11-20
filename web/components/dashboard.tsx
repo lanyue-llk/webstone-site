@@ -11,6 +11,7 @@ import ReleaseCheck from "./release-check";
 import { RELEASE, BUILT_AT } from "../lib/release.generated";
 import { translator } from "../lib/i18n";
 import { useLanguage } from "../lib/use-language";
+import { historicalResultCopy } from "../lib/result-copy";
 import { historicalPublication } from "../lib/historical-publications";
 import { decisionMetrics, hasPricingInformation } from "../lib/comparisons";
 
@@ -85,7 +86,8 @@ export default function Dashboard() {
   const result = snapshot?.benchmarks.find(item => item.id === selection.benchmark);
   const benchmark = catalog && result ? resolveBenchmark(catalog, result) : null;
   const historical = snapshot && !snapshot.release ? historicalPublication(snapshot.id) : undefined;
-  const evaluationNotes = benchmark?.notes.filter(note => note !== LEGACY_DATE_NOTE) ?? [];
+  const historicalCopy = snapshot ? historicalResultCopy(snapshot.id, language) : null;
+  const evaluationNotes = historicalCopy?.notes ?? benchmark?.notes.filter(note => note !== LEGACY_DATE_NOTE).map(t) ?? [];
   const details = catalog?.benchmarks.find(item => item.id === selection.benchmark);
   const tracks = catalog?.tracks.map(item => ({ ...item, benchmarks: catalog.benchmarks.filter(bench => bench.trackId === item.id) })) ?? [];
   const track = tracks.find(item => item.id === details?.trackId);
@@ -180,8 +182,8 @@ export default function Dashboard() {
     <a className="skip-link" href="#main">{t("Skip to results")}</a>
     {menuOpen && <button className="sidebar-scrim" aria-label={t("Close navigation")} onClick={() => setMenuOpen(false)} />}
     <aside className={`sidebar ${menuOpen ? "is-open" : ""}`}>
-      <a href="/" className="brand" aria-label={t("Webstone home")}><span className="brand-heading"><Layers3 size={24} strokeWidth={1.8} /><span>Webstone</span></span><span className="brand-tagline">{t("Benchmarks for AI agents' web tools")}</span></a>
-      <div className="sidebar-label">{t("TRACKS")}</div>
+      <a href="/" className="brand" aria-label={t("Webstone home")}><span className="brand-heading"><Layers3 size={24} strokeWidth={1.8} /><span>Webstone</span></span></a>
+      <div className="sidebar-label">{t("Tracks")}</div>
       <nav aria-label={t("Tracks")}>{tracks.map(item => {
         const Icon = TRACK_ICONS[item.id] ?? Layers3;
         if (item.url) return <a key={item.id} className="nav-item" href={item.url} target="_blank" rel="noopener noreferrer" aria-label={`${t(item.name)} (${t("opens in a new tab")})`}>
@@ -225,7 +227,7 @@ export default function Dashboard() {
         </div>
         <div className="topbar-actions">
           {entry && <a className="download-link" href={`/results/${entry.file}`} download aria-label={t("Download Report")}><ArrowDownToLine size={17} aria-hidden="true" /><span>{t("Download Report")}</span></a>}
-          <a className="submit-result-link" href="/submit">{t("SUBMIT YOUR RESULT")}</a>
+          <a className="submit-result-link" href="/submit">{t("Submit results")}</a>
           <span className="site-updated">{t("Website updated")} <time dateTime={BUILT_AT}>{BUILT_AT.slice(0, 16).replace("T", " ")} UTC</time></span>
         </div>
       </header>
@@ -253,9 +255,9 @@ export default function Dashboard() {
           </div>
           {benchmark && snapshot && <details key={snapshot.id} className="evaluation-notes">
             <summary>{t("Evaluation notes")}</summary>
-            <p>{t(snapshot.datasetDifference)}</p>
+            <p>{historicalCopy?.scope ?? t(snapshot.datasetDifference)}</p>
             {snapshot.release && <p>{t(snapshot.release.summary)}</p>}
-            {evaluationNotes.length > 0 && <ul>{evaluationNotes.map(note => <li key={note}>{t(note)}</li>)}</ul>}
+            {evaluationNotes.length > 0 && <ul>{evaluationNotes.map(note => <li key={note}>{note}</li>)}</ul>}
             {!snapshot.release && !historical && <p>{t("Release date not recorded for this historical version.")}</p>}
             <a href="/versioning">{t("Result versioning")}</a>
           </details>}
@@ -264,15 +266,14 @@ export default function Dashboard() {
             <h2>{t(versions.length > 0 ? "No results for this version" : "No results for this benchmark")}</h2>
             {versions.length > 0 && <button className="text-button" onClick={() => chooseVersion(versions.at(-1)!)}>{t("View latest version")}<ArrowRight size={14} /></button>}
           </div> : <>
-            {details?.searchGroup && <p className="scope-warning">{t("Each layer is scored independently. Scores cannot be added or read as incremental gains.")}</p>}
             <section id="results" className="leaderboard" aria-label={`${t(benchmark.name)} ${t("Leaderboard")}`}>
               <h2 className="sr-only">{t("Leaderboard")}</h2>
               <div className="table-toolbar"><span>{benchmark.providerCount} {t("methods")} · {benchmark.taskCount.toLocaleString()} {t("cases")}</span><div className="column-views" role="group" aria-label={t("Table columns")}>
                 {benchmark.categories.length > 0 && <button aria-pressed={showCategories} onClick={() => setShowCategories(current => !current)}>{t("Category breakdown")}</button>}
                 {benchmark.metrics.some(item => !decisionMetrics(benchmark, false, selection.metric).includes(item)) && <button aria-pressed={moreMetrics} onClick={() => setMoreMetrics(current => !current)}>{t("More metrics")}</button>}
               </div></div>
-              <p className="sample-scope">{benchmark.metrics.filter(item => result?.metricSamples?.[item.id]?.sampleCount !== null && result?.metricSamples?.[item.id]?.sampleCount !== undefined && result.metricSamples[item.id].sampleCount !== benchmark.taskCount).map(item => `${item.label}: ${result!.metricSamples![item.id].sampleCount} ${t("samples")}`).join(" · ")}</p>
-              {benchmark.trackId === "websearch" && snapshot?.source.kind === "report-page" && <p className="scope-warning">{t("Different collection dates and concurrency: these timings are not a controlled same-window speed comparison.")}</p>}
+              <p className="sample-scope">{benchmark.metrics.filter(item => result?.metricSamples?.[item.id]?.sampleCount !== null && result?.metricSamples?.[item.id]?.sampleCount !== undefined && result.metricSamples[item.id].sampleCount !== benchmark.taskCount).map(item => `${t(item.label)}: ${result!.metricSamples![item.id].sampleCount} ${t("samples")}`).join(" · ")}</p>
+              {benchmark.trackId === "websearch" && snapshot?.source.kind === "report-page" && <p className="sample-scope">{t("Latency comes from separate runs with different concurrency.")}</p>}
               {!showPricing && !hasNumericCost && <p className="cost-disclosure">{t("Cost was not disclosed in this report.")}</p>}
               <div className="table-scroll">
                 <table className={tableClass} style={{ "--data-columns": categories.length + visibleMetrics.length + Number(showPassed) + Number(showPricing) } as React.CSSProperties}>
@@ -288,7 +289,7 @@ export default function Dashboard() {
                   </tr></thead>
                   <tbody>{providers.map((provider, i) => <tr key={provider.id}>
                     <td className="rank-cell">{provider.scores[metric.id] == null ? "—" : i + 1}</td>
-                    <td><div className="provider-cell"><a className="provider-name provider-link" href={catalog?.providerUrls[provider.id]} target="_blank" rel="noopener noreferrer" aria-label={`${provider.name} ${t("project")} (${t("opens in a new tab")})`}><span className={`provider-mark ${provider.id}`} style={{ "--provider-color": providerColors[provider.id] ?? "#64748b" } as React.CSSProperties} aria-hidden="true">{provider.name[0]}</span><span className="provider-label" title={provider.name}><strong>{provider.name.split(" · ")[0]}</strong>{provider.name.includes(" · ") && <small>{provider.name.split(" · ").slice(1).join(" · ")}</small>}</span><ArrowUpRight className="provider-external" size={12} aria-hidden="true" /></a><button className="method-open" aria-label={`${provider.name} · ${t("Method details")}`} aria-haspopup="dialog" onClick={() => setSelectedProvider(provider)}>···</button></div></td>
+                    <td><div className="provider-cell"><a className="provider-name provider-link" href={catalog?.providerUrls[provider.id]} target="_blank" rel="noopener noreferrer" aria-label={`${provider.name} ${t("project")} (${t("opens in a new tab")})`}><span className={`provider-mark ${provider.id}`} style={{ "--provider-color": providerColors[provider.id] ?? "#64748b" } as React.CSSProperties} aria-hidden="true">{provider.name[0]}</span><span className="provider-label" title={provider.name}><strong>{provider.name.split(" · ")[0]}</strong>{provider.name.includes(" · ") && <small>{t(provider.name.split(" · ").slice(1).join(" · "))}</small>}</span><ArrowUpRight className="provider-external" size={12} aria-hidden="true" /></a><button className="method-open" aria-label={`${provider.name} · ${t("Method details")}`} aria-haspopup="dialog" onClick={() => setSelectedProvider(provider)}>···</button></div></td>
                     {leadingMetrics.map(item => metricCell(provider, item))}
                     {showPricing && <td className="numeric"><div className="metric-heading">{provider.pricing && hasPricingInformation(provider) ? <>{t(formatPricing(provider.pricing))}<InfoTooltip label={`${provider.name} · ${t("Billing basis")}`} description={t(provider.pricing.description)} detailsLabel={t("details")} /></> : "—"}</div></td>}
                     {categories.map(category => {

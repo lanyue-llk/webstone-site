@@ -2,6 +2,7 @@ name: Website and result submissions
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
 
@@ -45,6 +46,26 @@ jobs:
           else
             echo 'Bootstrapping result validation; subsequent submissions use the merged base validator.'
           fi
+
+  copy-review:
+    name: Bilingual copy review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require editorial review for changes to site copy
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          files=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" -- 'web/app/*.tsx' 'web/components/*.tsx' 'web/lib/i18n.ts' 'web/lib/result-copy.ts' 'benchmarks/catalog.json' 'results/')
+          if [ -z "$files" ]; then exit 0; fi
+          jq -er '.pull_request.body // ""' "$GITHUB_EVENT_PATH" |
+            grep -Fxi -- '- [x] Website copy reviewed in English and Chinese using the repository’s `humanizer` and `humanizer-chinese` skills.'
 
   website:
     name: Website build
