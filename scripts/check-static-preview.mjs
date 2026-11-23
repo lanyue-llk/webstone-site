@@ -32,16 +32,15 @@ assert.equal(reset.headers.get("clear-site-data"), '"cache"');
 assert.match(reset.headers.get("cache-control"), /no-store/);
 assert.equal(await reset.text(), "");
 
-for (const path of ["/submit", "/versioning"]) {
-  const page = await request(path);
-  assert.equal(page.status, 200, path);
-  assert.match(page.headers.get("content-type"), /text\/html/);
-  assert.match(page.headers.get("cache-control"), /no-store/);
-  if (path === "/submit") {
-    const guide = await page.text();
-    assert.match(guide, /submit-webstone-result/);
-    assert.ok(!guide.includes("Install the CLI"), "Results are submitted through a PR without a required Webstone install");
-  }
+const versioning = await request("/versioning");
+assert.equal(versioning.status, 200);
+assert.match(versioning.headers.get("content-type"), /text\/html/);
+assert.match(versioning.headers.get("cache-control"), /no-store/);
+
+for (const path of ["/submit", "/submit/"]) {
+  const redirect = await fetch(`${origin}${path}`, { redirect: "manual" });
+  assert.equal(redirect.status, 302);
+  assert.equal(redirect.headers.get("location"), "https://github.com/lexmount/webstone-site#for-agents");
 }
 const release = await request("/release.json");
 assert.equal(release.status, 200);
