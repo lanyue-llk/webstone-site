@@ -81,7 +81,11 @@ test("radar includes mean latency, memory and disclosed costs, with lower values
   const unknown = extraction.providers.find(provider => provider.pricing?.min == null);
   assert.ok(quote.value(ranged)[0] < quote.value(ranged)[1]);
   assert.equal(quote.value(unknown), null);
-  assert.match(render(extraction), /class="radar-range"/);
+  const html = render(extraction);
+  assert.match(html, /class="radar-range"/);
+  assert.equal((html.match(/class="radar-shape"/g) ?? []).length,
+    extraction.providers.filter(provider => provider.pricing?.min != null &&
+      provider.pricing.min === provider.pricing.max).length);
 });
 
 test("the home overview counts search layers as views and shares articles with their benchmark pages", async () => {

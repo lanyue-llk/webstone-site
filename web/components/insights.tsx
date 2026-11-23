@@ -77,19 +77,21 @@ export default function Insights({ benchmark, t }: Props) {
             if (hidden.includes(provider.id)) return null;
             const label = profileLabel(provider);
             const locations = values.map((value, i) => value && point(i, value[0] * radius));
-            const complete = locations.every(value => value !== null);
+            const isExact = values.map(value => value !== null && value[0] === value[1]);
+            const complete = isExact.every(Boolean);
             return <g key={provider.id} className="radar-series" style={{ color: colors[index % colors.length] }}
               tabIndex={0} aria-label={label}>
               <title>{label}</title>
               {complete && values.length >= 3 && <polygon className="radar-shape" points={locations.join(" ")} />}
               {locations.map((location, i) => {
                 if (!location) return null;
-                const next = locations[(i + 1) % locations.length];
+                const nextIndex = (i + 1) % locations.length;
+                const next = locations[nextIndex];
                 const [x, y] = location;
                 const bounds = values[i]!;
                 const [upperX, upperY] = point(i, bounds[1] * radius);
                 return <g key={axes[i].id}>
-                  {!complete && next && <line className="radar-edge" x1={x} y1={y} x2={next[0]} y2={next[1]} />}
+                  {!complete && isExact[i] && isExact[nextIndex] && next && <line className="radar-edge" x1={x} y1={y} x2={next[0]} y2={next[1]} />}
                   {bounds[0] !== bounds[1] && <>
                     <line className="radar-range" x1={x} y1={y} x2={upperX} y2={upperY} />
                     <circle className="radar-dot" cx={upperX} cy={upperY} r="2.5" />
