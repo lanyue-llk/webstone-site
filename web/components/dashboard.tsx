@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowDownToLine, ArrowRight, ArrowUpRight, Bot, FileJson2, Globe2, Layers3, Menu, Search } from "lucide-react";
+import { ArrowDown, ArrowDownToLine, ArrowRight, ArrowUpRight, Layers3, Menu } from "lucide-react";
 import { canonicalVersion, benchmarkEntries, bestValue, formatMetric, formatPricing, isBestValue, latestEntry, reportEntries, resolveBenchmark, selectEntry, sortProviders, type Catalog, type Entry, type Metric, type Provider, type ReportFile, type Snapshot } from "../lib/results";
 import { providerColors } from "../lib/presentation";
 import InfoTooltip from "./info-tooltip";
@@ -15,7 +15,8 @@ import { historicalResultCopy } from "../lib/result-copy";
 import { historicalPublication } from "../lib/historical-publications";
 import { decisionMetrics, hasPricingInformation } from "../lib/comparisons";
 
-const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2 };
+import Home, { EvaluationArticles, TRACK_ICONS } from "./home";
+import { benchmarkHref, SUBMISSION_URL } from "../lib/overview";
 const GITHUB_URL = "https://github.com/lexmount/webstone-site";
 const LEGACY_DATE_NOTE = "The evaluation date was not supplied; the displayed date is the date of import.";
 type Selection = { benchmark: string; version: string; metric: string };
@@ -24,7 +25,7 @@ export default function Dashboard() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [entries, setEntries] = useState<Entry[] | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
-  const [selection, setSelection] = useState<Selection>({ benchmark: "lexbench-webfetch", version: "", metric: "passRate" });
+  const [selection, setSelection] = useState<Selection>({ benchmark: "", version: "", metric: "" });
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -49,7 +50,8 @@ export default function Dashboard() {
         setSnapshots(records);
         const params = new URLSearchParams(window.location.search);
         const candidate = params.get("benchmark");
-        const benchmark = benchmarkCatalog.benchmarks.some(item => item.id === candidate) ? candidate! : benchmarkCatalog.benchmarks[0].id;
+        const benchmark = benchmarkCatalog.benchmarks.find(item => item.id === candidate)?.id ?? "";
+        if (!benchmark) return;
         const requestedVersion = params.get("version");
         const selectedEntry = requestedVersion
           ? selectEntry(resultEntries, requestedVersion, benchmark)
@@ -73,7 +75,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (!entries) return;
+    if (!entries || !selection.benchmark) return;
     const params = new URLSearchParams({ benchmark: selection.benchmark });
     if (selection.version) params.set("version", selection.version);
     params.set("metric", selection.metric);
@@ -192,7 +194,7 @@ export default function Dashboard() {
         return <div key={item.id} className="nav-track"><button
           className={`nav-item ${track?.id === item.id ? "active" : ""}`}
           aria-current={track?.id === item.id ? "page" : undefined}
-          onClick={() => track?.id === item.id ? setMenuOpen(false) : chooseBenchmark(item.benchmarks[0].id)}
+          onClick={() => { if (track?.id === item.id) setMenuOpen(false); else if (!selection.benchmark) window.location.assign(benchmarkHref(item.benchmarks[0].id)); else chooseBenchmark(item.benchmarks[0].id); }}
         ><Icon size={17} /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span></button>
 
         </div>;
@@ -213,7 +215,7 @@ export default function Dashboard() {
               }}>{bench.name}</button>;
             })}
           </div>}</div>
-      <header className="topbar">
+      {selection.benchmark && <header className="topbar">
         <div className="title-group">
           <div className="benchmark-heading"><h1>{details ? t(details.name) : "Webstone"}</h1>
             {details && <p className="benchmark-description">{t(details.description)}</p>}
@@ -227,15 +229,15 @@ export default function Dashboard() {
         </div>
         <div className="topbar-actions">
           {entry && <a className="download-link" href={`/results/${entry.file}`} download aria-label={t("Download Report")}><ArrowDownToLine size={17} aria-hidden="true" /><span>{t("Download Report")}</span></a>}
-          <a className="submit-result-link" href="/submit">{t("Submit results")}</a>
+          <a className="submit-result-link" href={SUBMISSION_URL} target="_blank" rel="noreferrer">{t("Submit results")} <ArrowUpRight size={13} aria-hidden="true" /></a>
           <span className="site-updated">{t("Website updated")} <time dateTime={BUILT_AT}>{BUILT_AT.slice(0, 16).replace("T", " ")} UTC</time></span>
         </div>
-      </header>
+      </header>}
 
       <main id="main" className="main-content">
         {!entries && !error && <div className="loading-panel" role="status">{t("Loading…")}</div>}
         {error && <div className="empty-state" role="alert"><p>{t(error)}</p><button className="text-button" onClick={() => window.location.reload()}>{t("Retry")}</button></div>}
-        {entries && <>
+        {entries && catalog && (!selection.benchmark ? <Home catalog={catalog} snapshots={snapshots} t={t} /> : <>
           <div className="results-controls">
             {details?.searchGroup ? <div className="search-selectors">
               <div className="layer-control" role="group" aria-label={t("Output layer")}>{(["L1", "L2", "L3"] as const).map((layer, index) => <button key={layer} aria-pressed={details.outputLayer === layer} onClick={() => {
@@ -275,7 +277,7 @@ export default function Dashboard() {
               <p className="sample-scope">{benchmark.metrics.filter(item => result?.metricSamples?.[item.id]?.sampleCount !== null && result?.metricSamples?.[item.id]?.sampleCount !== undefined && result.metricSamples[item.id].sampleCount !== benchmark.taskCount).map(item => `${t(item.label)}: ${result!.metricSamples![item.id].sampleCount} ${t("samples")}`).join(" · ")}</p>
               {benchmark.trackId === "websearch" && snapshot?.source.kind === "report-page" && <p className="sample-scope">{t("Latency comes from separate runs with different concurrency.")}</p>}
               {!showPricing && !hasNumericCost && <p className="cost-disclosure">{t("Cost was not disclosed in this report.")}</p>}
-              <div className="table-scroll">
+              <div className="table-scroll" tabIndex={0} role="region" aria-label={t("Leaderboard")}>
                 <table className={tableClass} style={{ "--data-columns": categories.length + visibleMetrics.length + Number(showPassed) + Number(showPricing) } as React.CSSProperties}>
                   <caption className="sr-only">{t(benchmark.name)} {t("Leaderboard")}</caption>
                   <thead><tr>
@@ -304,9 +306,10 @@ export default function Dashboard() {
 
             </section>
             <Insights key={`${benchmark.id}-${selection.version}`} benchmark={benchmark} t={t} />
+            {details && <EvaluationArticles catalog={catalog} snapshots={snapshots} current={details} t={t} />}
             <MethodDetails provider={selectedProvider} benchmark={benchmark} t={t} onClose={() => setSelectedProvider(null)} />
           </>}
-        </>}
+        </>)}
       </main>
     </div>
   </div>;

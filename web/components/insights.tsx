@@ -1,45 +1,24 @@
 "use client";
 
 import { useId, useState } from "react";
-import { categoryRate, qualityMetrics, qualityScale } from "../lib/comparisons";
-import { formatMetric, sortProviders, type Benchmark, type Provider } from "../lib/results";
+import { radarAxes } from "../lib/radar";
+import { sortProviders, type Benchmark, type Provider } from "../lib/results";
 
 type Props = { benchmark: Benchmark; t: (text: string) => string };
-type Axis = { id: string; label: string; value: (provider: Provider) => number | null; display: (provider: Provider) => string };
-const radius = 116;
+const radius = 123;
 const colors = ["#007d64", "#5163a8", "#ad5229", "#925c95", "#247a9c", "#926b18",
   "#ac4e67", "#507d35", "#674bc1", "#4d7373", "#aa4944", "#4e5c70"];
 
-function radarAxes(benchmark: Benchmark): Axis[] {
-  if (benchmark.categories.length >= 3) return benchmark.categories.map(category => ({
-    id: category.id, label: category.name,
-    value: provider => categoryRate(provider, category.id, category.total),
-    display: provider => `${provider.categoryPassed?.[category.id]} / ${category.total}`,
-  }));
-  return qualityMetrics(benchmark).map(metric => ({
-    id: metric.id, label: metric.label,
-    value: provider => {
-      const score = provider.scores[metric.id];
-      if (score === null || score === undefined) return null;
-      return score / qualityScale(metric);
-    },
-    display: provider => formatMetric(provider.scores[metric.id], metric.unit, metric.decimals),
-  }));
-}
-
 export default function Insights({ benchmark, t }: Props) {
   const [hidden, setHidden] = useState<string[]>([]);
+  const [categories, setCategories] = useState(false);
   const descriptionId = useId();
-  const axes = radarAxes(benchmark).map(axis => ({ ...axis, label: t(axis.label) }));
+  const axes = radarAxes(benchmark, categories).map(axis => ({ ...axis, label: t(axis.label) }));
   const primary = benchmark.metrics.find(metric => metric.id === benchmark.primaryMetric);
-  if (axes.length < 3 || !primary) return null;
+  if (!primary || !benchmark.providers.length || axes.length === 0) return null;
 
-  const providers = sortProviders(benchmark.providers, primary.id, primary.direction).flatMap(provider => {
-    const values = axes.map(axis => axis.value(provider));
-    if (!values.every(value => value !== null)) return [];
-    return [{ provider, values }];
-  });
-  if (providers.length === 0) return null;
+  const providers = sortProviders(benchmark.providers, primary.id, primary.direction)
+    .map(provider => ({ provider, values: axes.map(axis => axis.value(provider)) }));
 
   function point(index: number, distance: number) {
     const angle = -Math.PI / 2 + index * Math.PI * 2 / axes.length;
@@ -52,7 +31,14 @@ export default function Insights({ benchmark, t }: Props) {
     [methodName(provider), ...axes.map(axis => `${axis.label}: ${axis.display(provider)}`)].join(" · ");
 
   return <section id="insights" className="insights-section" aria-labelledby="comparison-heading">
-    <h2 id="comparison-heading">{t("Capability profile")}</h2>
+    <div className="radar-heading">
+      <h2 id="comparison-heading">{t("Capability profile")}</h2>
+      {benchmark.categories.length >= 3 && <div className="column-views" role="group" aria-label={t("Chart metrics")}>
+        <button type="button" aria-pressed={!categories} onClick={() => setCategories(false)}>{t("Key metrics")}</button>
+        <button type="button" aria-pressed={categories} onClick={() => setCategories(true)}>{t("Category breakdown")}</button>
+      </div>}
+    </div>
+    <div className="radar-layout">
     <div className="radar-legend" role="group" aria-label={t("Methods to compare")}>
       {providers.map(({ provider }, index) => <label key={provider.id} style={{ color: colors[index % colors.length] }}>
         <input type="checkbox" checked={!hidden.includes(provider.id)} onChange={event => {
@@ -64,11 +50,11 @@ export default function Insights({ benchmark, t }: Props) {
     </div>
     <figure className="radar-figure">
       <div className="radar-scroll" tabIndex={0} role="region" aria-label={t("Capability profile")}>
-        <svg viewBox="-260 -180 520 360" role="img" aria-label={t("Capability profile")} aria-describedby={descriptionId}>
+        <svg viewBox="-285 -173 570 346" role="img" aria-label={t("Capability profile")} aria-describedby={descriptionId}>
           <desc id={descriptionId}>{visible.map(({ provider }) => profileLabel(provider)).join(". ")}</desc>
           {[.25, .5, .75, 1].map(level => <g key={level}>
             <polygon points={ring(level)} className="radar-grid" />
-            <text x="5" y={-radius * level + 12} className="radar-tick">{level * 100}%</text>
+            <text x="5" y={-radius * level + 12} className="radar-tick">{level * 100}</text>
           </g>)}
           {axes.map((axis, index) => {
             const [x, y] = point(index, radius);
@@ -90,17 +76,39 @@ export default function Insights({ benchmark, t }: Props) {
           {providers.map(({ provider, values }, index) => {
             if (hidden.includes(provider.id)) return null;
             const label = profileLabel(provider);
-            return <g key={provider.id} className="radar-series" style={{ color: colors[index % colors.length] }}>
-              <polygon className="radar-shape" points={values.map((value, i) => point(i, value * radius).join(",")).join(" ")}
-                tabIndex={0} aria-label={label}>
-                <title>{label}</title>
-              </polygon>
+            const locations = values.map((value, i) => value && point(i, value[0] * radius));
+            const isExact = values.map(value => value !== null && value[0] === value[1]);
+            const complete = isExact.every(Boolean);
+            return <g key={provider.id} className="radar-series" style={{ color: colors[index % colors.length] }}
+              tabIndex={0} aria-label={label}>
+              <title>{label}</title>
+              {complete && values.length >= 3 && <polygon className="radar-shape" points={locations.join(" ")} />}
+              {locations.map((location, i) => {
+                if (!location) return null;
+                const nextIndex = (i + 1) % locations.length;
+                const next = locations[nextIndex];
+                const [x, y] = location;
+                const bounds = values[i]!;
+                const [upperX, upperY] = point(i, bounds[1] * radius);
+                return <g key={axes[i].id}>
+                  {!complete && isExact[i] && isExact[nextIndex] && next && <line className="radar-edge" x1={x} y1={y} x2={next[0]} y2={next[1]} />}
+                  {bounds[0] !== bounds[1] && <>
+                    <line className="radar-range" x1={x} y1={y} x2={upperX} y2={upperY} />
+                    <circle className="radar-dot" cx={upperX} cy={upperY} r="2.5" />
+                  </>}
+                  <circle className="radar-dot" cx={x} cy={y} r="2.5" />
+                </g>;
+              })}
             </g>;
           })}
         </svg>
       </div>
       {visible.length === 0 && <p role="status">{t("Select a method to show its results.")}</p>}
-      {benchmark.categories.length < 3 && <figcaption>{t("Each axis is shown as a percentage of the metric’s maximum.")}</figcaption>}
+      <figcaption>
+        {t(categories ? "Each axis shows the share of cases passed." : "Quality is shown as a share of the maximum. Lower latency, memory and price plot farther out when reported.")}
+        {!categories && axes.some(axis => axis.id === "quoted-price") && <> {t("Price ranges are marked on the price axis.")}</>}
+      </figcaption>
     </figure>
+    </div>
   </section>;
 }

@@ -6,6 +6,13 @@ import { formatMetric, formatPricing, type Benchmark, type Provider } from "../l
 
 export default function MethodDetails({ provider, benchmark, t, onClose }: { provider: Provider | null; benchmark: Benchmark; t: (text: string) => string; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const pressedBackdrop = useRef(false);
+  function isBackdrop(event: React.MouseEvent<HTMLDialogElement>) {
+    const { left, right, top, bottom } = event.currentTarget.getBoundingClientRect();
+    return event.target === event.currentTarget &&
+      (event.clientX < left || event.clientX > right || event.clientY < top || event.clientY > bottom);
+  }
+
   useEffect(() => {
     if (provider && !dialog.current?.open) dialog.current?.showModal();
     else if (!provider && dialog.current?.open) dialog.current.close();
@@ -14,7 +21,9 @@ export default function MethodDetails({ provider, benchmark, t, onClose }: { pro
     const score = provider?.scores[metric.id];
     return score !== null && score !== undefined;
   });
-  return <dialog ref={dialog} className="method-dialog" aria-labelledby="method-dialog-title" onClose={onClose}>
+  return <dialog ref={dialog} className="method-dialog" aria-labelledby="method-dialog-title" onClose={onClose}
+    onPointerDown={event => { pressedBackdrop.current = isBackdrop(event); }}
+    onClick={event => { if (pressedBackdrop.current && isBackdrop(event)) event.currentTarget.close(); }}>
     {provider && <>
       <div className="dialog-heading"><h2 id="method-dialog-title">{provider.name}</h2><button autoFocus className="icon-button" aria-label={t("Close details")} onClick={() => dialog.current?.close()}><X size={18} /></button></div>
       {provider.description !== provider.name && <p className="method-description">{t(provider.description)}</p>}

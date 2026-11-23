@@ -68,7 +68,7 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 - URL state uses `?benchmark=<id>&version=vX.Y.Z&metric=<id>`. Ignore and drop legacy `date` parameters. When a version does not contain the currently selected metric, fall back to that version's default metric and direction.
 - Show the evaluation scope in the selected language beside the result version. Use `datasetDifference` unless there is separate display copy for a historical result. Keep the Dataset and Evaluation report links visible.
 - The default table shows a compact set of quality and resource metrics; All metrics and Categories reveal detail without discarding data. All visible data columns are equal width: the tables use `table-layout: fixed` with a minimum width, so the table scrolls horizontally only when the container is narrower than that minimum. Do not reintroduce auto layout.
-- Row heights are fixed: header and rows 46px on desktop; rows 44px below 760px. Numeric cells remain single-line. Method names may use a second line for configuration.
+- Row heights are fixed: header and rows 46px on desktop; rows 44px below 760px. Numeric cells remain single-line. Method names and configurations wrap when needed so the full name stays visible.
 - The first two columns stay sticky while the table scrolls sideways.
 - Output size, timings collected under incomparable conditions and quotes with incomparable billing bases use catalog `highlightBest: false`: allow numeric sorting without declaring a winner.
 - Highlight the best value in each comparable column independently, using the metric's `direction`. Category pass counts and `Passed / Total` use the highest value. Ties are all highlighted; a column with fewer than two disclosed values or identical values has no winner. `null` and `—` are excluded; real `0` and negative signed deltas participate. Use deep-green bold text on a very light green background and include a screen-reader `Best in this column` label. Do not highlight an entire row.
@@ -84,7 +84,7 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 
 ## Result submissions
 
-- Internal and external result contributors use the same personal-fork PR flow. A Webstone installation is optional. The site's submission CTA opens `/submit`; it must not be disguised as a generic repository/source link.
+- Internal and external result contributors use the same personal-fork PR flow. A Webstone installation is optional. The homepage offers a copyable submission prompt. Submission links open the agent instructions in the webstone-site README, and legacy `/submit` links redirect there.
 - Published report files are immutable once merged. Corrections and rollbacks append a new version and explain the change. Result-only PRs may add participant URLs but cannot change definitions or application code.
 - `scripts/check-result-change.mjs` is the trusted base-branch PR boundary. It must inspect candidate Git blobs without running submitted code or receiving deployment credentials. Keep it separate from the ordinary unprivileged website build.
 - New submissions require public HTTPS evidence URLs. Local CLI preflight is not evidence verification; reviewers check measurement provenance and methodology before approval.

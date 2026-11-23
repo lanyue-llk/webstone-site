@@ -1,0 +1,104 @@
+"use client";
+
+import { useState } from "react";
+import { ArrowRight, ArrowUpRight, BookOpenText, Bot, Clipboard, FileJson2, Globe2, Layers3, Search } from "lucide-react";
+import { benchmarkHref, evaluationArticles, SUBMISSION_SKILL, SUBMISSION_URL, trackOverview } from "../lib/overview";
+import type { BenchmarkInfo, Catalog, Snapshot } from "../lib/results";
+
+type Props = { catalog: Catalog; snapshots: Snapshot[]; t: (value: string) => string };
+export const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2 };
+
+export function EvaluationArticles({ catalog, snapshots, t, current }: Props & { current?: BenchmarkInfo }) {
+  const articles = evaluationArticles(catalog, snapshots, current);
+  if (articles.length === 0) return null;
+  return <section className="evaluation-articles" aria-labelledby="articles-heading">
+    <h2 id="articles-heading">{t("Evaluation articles")}</h2>
+    <div className="article-grid">{articles.map(article => {
+      const Icon = TRACK_ICONS[article.track.id] ?? BookOpenText;
+      return <article key={article.source} className="article-card" data-track={article.track.id}>
+        <div className="article-meta"><Icon size={18} aria-hidden="true" /><time dateTime={article.date}>{t("Results first published")} · {article.date}</time></div>
+        <h3><a href={article.href} target="_blank" rel="noreferrer">{t(article.title)} <ArrowUpRight size={15} aria-hidden="true" /><span className="sr-only"> ({t("opens in a new tab")})</span></a></h3>
+        <p>{t(article.summary)}</p>
+        <div className="article-tags">
+          <a href={benchmarkHref(article.trackLanding.id)}>{t(article.track.name)}</a>
+          {article.benchmarks.map(benchmark => <a key={benchmark.id} href={benchmarkHref(benchmark.id)}>{t(benchmark.name)}</a>)}
+        </div>
+      </article>;
+    })}</div>
+  </section>;
+}
+
+export default function Home({ catalog, snapshots, t }: Props) {
+  const tracks = trackOverview(catalog);
+  const count = tracks.reduce((sum, track) => sum + track.benchmarks.length, 0);
+  const maxViews = Math.max(1, ...tracks.map(track => track.views.length));
+  const firstBenchmark = tracks.flatMap(track => track.benchmarks)[0];
+  const [copyStatus, setCopyStatus] = useState("");
+  const prompt = t("Install the Webstone submission skill at {skill} and use it to submit these benchmark results and public evidence as a pull request to lexmount/webstone-site.").replace("{skill}", SUBMISSION_SKILL);
+
+  async function copyPrompt() {
+    const field = document.getElementById("submission-prompt");
+    try {
+      await navigator.clipboard.writeText(prompt);
+    } catch {
+      const selection = window.getSelection();
+      if (!field || !selection) return;
+      field.focus();
+      const range = document.createRange();
+      range.selectNodeContents(field);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      setCopyStatus("Select and copy the prompt below.");
+      return;
+    }
+    setCopyStatus("Prompt copied");
+  }
+
+  return <div className="overview">
+    <section className="overview-hero">
+      <div>
+        <h1>Webstone</h1>
+        <p>{t("Benchmarks for the tools agents use on the web.")}</p>
+        <div className="overview-actions">
+          {firstBenchmark && <a href={benchmarkHref(firstBenchmark.id)} className="overview-primary">{t("Explore leaderboards")} <ArrowRight size={17} aria-hidden="true" /></a>}
+          <a href="#submit-results">{t("Submit results")}</a>
+        </div>
+      </div>
+      <dl className="overview-stats">
+        <div><dt>{t("Local tracks")}</dt><dd>{tracks.length}</dd></div>
+        <div><dt>{t("Benchmarks")}</dt><dd>{count}</dd></div>
+        <div><dt>{t("Result editions")}</dt><dd>{snapshots.length}</dd></div>
+      </dl>
+    </section>
+    <section className="track-overview" aria-labelledby="track-overview-heading">
+      <h2 id="track-overview-heading">{t("Explore by track")}</h2>
+      <div className="track-overview-grid">{tracks.map(track => {
+        const Icon = TRACK_ICONS[track.id] ?? Layers3;
+        const landing = track.benchmarks[0];
+        if (!landing) return null;
+        return <div key={track.id} className="track-card" data-track={track.id}>
+          <h3><a href={benchmarkHref(landing.id)}><Icon size={18} aria-hidden="true" />{t(track.name)}<ArrowRight size={15} aria-hidden="true" /></a></h3>
+          <div className="track-volume" aria-label={`${track.views.length} ${t("Benchmark views")}`}>
+            {Array.from({ length: maxViews }, (_, index) => <span key={index} className={index < track.views.length ? "filled" : ""} aria-hidden="true" />)}
+          </div>
+          <p className="track-volume-label">{track.views.length} {t("benchmark views")}</p>
+          <ul>{track.benchmarks.map(benchmark => <li key={benchmark.id}><a href={benchmarkHref(benchmark.id)}>{t(benchmark.name)}</a></li>)}</ul>
+        </div>;
+      })}</div>
+    </section>
+    <EvaluationArticles catalog={catalog} snapshots={snapshots} t={t} />
+    <section className="overview-submit" id="submit-results" aria-labelledby="submission-heading">
+      <div>
+        <h2 id="submission-heading">{t("Submit results")}</h2>
+        <p>{t("Give your agent the prompt and your measured results.")}</p>
+        <a href={SUBMISSION_URL} target="_blank" rel="noreferrer">{t("Submission instructions on GitHub")} <ArrowUpRight size={14} aria-hidden="true" /></a>
+      </div>
+      <div className="prompt-panel">
+        <button type="button" onClick={copyPrompt}><Clipboard size={16} aria-hidden="true" />{t(copyStatus === "Prompt copied" ? copyStatus : "Copy prompt")}</button>
+        <span className="sr-only" role="status">{copyStatus && t(copyStatus)}</span>
+        <p id="submission-prompt" tabIndex={-1}>{prompt}</p>
+        {copyStatus === "Select and copy the prompt below." && <p className="copy-hint">{t("Prompt selected. Use your device’s copy command.")}</p>}
+      </div>
+    </section>
+  </div>;
+}
