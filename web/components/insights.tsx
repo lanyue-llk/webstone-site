@@ -63,42 +63,44 @@ export default function Insights({ benchmark, t }: Props) {
       </label>)}
     </div>
     <figure className="radar-figure">
-      <svg viewBox="-260 -180 520 360" role="img" aria-label={t("Capability profile")} aria-describedby={descriptionId}>
-        <desc id={descriptionId}>{visible.map(({ provider }) => profileLabel(provider)).join(". ")}</desc>
-        {[.25, .5, .75, 1].map(level => <g key={level}>
-          <polygon points={ring(level)} className="radar-grid" />
-          <text x="5" y={-radius * level + 12} className="radar-tick">{level * 100}%</text>
-        </g>)}
-        {axes.map((axis, index) => {
-          const [x, y] = point(index, radius);
-          const [labelX, labelY] = point(index, radius + 25);
-          const words = axis.label.split(" ");
-          const split = Math.ceil(words.length / 2);
-          const lines = words.length > 1 && axis.label.length > 17
-            ? [words.slice(0, split).join(" "), words.slice(split).join(" ")] : [axis.label];
-          let anchor: "middle" | "start" | "end" = "middle";
-          if (labelX > 10) anchor = "start";
-          if (labelX < -10) anchor = "end";
-          return <g key={axis.id}>
-            <line x1="0" y1="0" x2={x} y2={y} className="radar-axis" />
-            <text x={labelX} y={labelY} textAnchor={anchor} className="radar-label">
-              {lines.map((line, i) => <tspan key={line} x={labelX} dy={i === 0 ? 0 : 14}>{line}</tspan>)}
-            </text>
-          </g>;
-        })}
-        {providers.map(({ provider, values }, index) => {
-          if (hidden.includes(provider.id)) return null;
-          const label = profileLabel(provider);
-          return <g key={provider.id} className="radar-series" style={{ color: colors[index % colors.length] }}>
-            <polygon className="radar-shape" points={values.map((value, i) => point(i, value * radius).join(",")).join(" ")}
-              tabIndex={0} aria-label={label}>
-              <title>{label}</title>
-            </polygon>
-          </g>;
-        })}
-      </svg>
-      {benchmark.categories.length < 3 && <figcaption>{t("Each axis is shown as a percentage of the metric’s maximum.")}</figcaption>}
+      <div className="radar-scroll" tabIndex={0} role="region" aria-label={t("Capability profile")}>
+        <svg viewBox="-260 -180 520 360" role="img" aria-label={t("Capability profile")} aria-describedby={descriptionId}>
+          <desc id={descriptionId}>{visible.map(({ provider }) => profileLabel(provider)).join(". ")}</desc>
+          {[.25, .5, .75, 1].map(level => <g key={level}>
+            <polygon points={ring(level)} className="radar-grid" />
+            <text x="5" y={-radius * level + 12} className="radar-tick">{level * 100}%</text>
+          </g>)}
+          {axes.map((axis, index) => {
+            const [x, y] = point(index, radius);
+            const [labelX, labelY] = point(index, radius + 25);
+            const words = axis.label.split(" ");
+            const split = Math.ceil(words.length / 2);
+            const lines = words.length > 1 && axis.label.length > 17
+              ? [words.slice(0, split).join(" "), words.slice(split).join(" ")] : [axis.label];
+            let anchor: "middle" | "start" | "end" = "middle";
+            if (labelX > 10) anchor = "start";
+            if (labelX < -10) anchor = "end";
+            return <g key={axis.id}>
+              <line x1="0" y1="0" x2={x} y2={y} className="radar-axis" />
+              <text x={labelX} y={labelY} textAnchor={anchor} className="radar-label">
+                {lines.map((line, i) => <tspan key={line} x={labelX} dy={i === 0 ? 0 : 14}>{line}</tspan>)}
+              </text>
+            </g>;
+          })}
+          {providers.map(({ provider, values }, index) => {
+            if (hidden.includes(provider.id)) return null;
+            const label = profileLabel(provider);
+            return <g key={provider.id} className="radar-series" style={{ color: colors[index % colors.length] }}>
+              <polygon className="radar-shape" points={values.map((value, i) => point(i, value * radius).join(",")).join(" ")}
+                tabIndex={0} aria-label={label}>
+                <title>{label}</title>
+              </polygon>
+            </g>;
+          })}
+        </svg>
+      </div>
       {visible.length === 0 && <p role="status">{t("Select a method to show its results.")}</p>}
+      {benchmark.categories.length < 3 && <figcaption>{t("Each axis is shown as a percentage of the metric’s maximum.")}</figcaption>}
     </figure>
   </section>;
 }
