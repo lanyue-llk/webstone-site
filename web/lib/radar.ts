@@ -10,7 +10,7 @@ type Axis = {
 };
 
 function point(value: number | null | undefined): Bounds | null {
-  return value == null ? null : [value, value];
+  return value === null || value === undefined ? null : [value, value];
 }
 
 function metricAxis(metric: Metric): Axis {
@@ -27,7 +27,11 @@ function resourceAxis(axis: Axis, providers: Provider[]): Axis | null {
   if (!values.length) return null;
   const min = Math.min(...values);
   const max = Math.max(...values);
-  const scale = (value: number) => min > 0 ? min / value : max > 0 ? 1 - value / max : 1;
+  const scale = (value: number) => {
+    if (min > 0) return min / value;
+    if (max > 0) return 1 - value / max;
+    return 1;
+  };
 
   return {
     ...axis,
@@ -43,11 +47,13 @@ export function radarAxes(benchmark: Benchmark, categories = false): Axis[] {
     id: category.id,
     label: category.name,
     value: provider => point(categoryRate(provider, category.id, category.total)),
-    display: provider => provider.categoryPassed?.[category.id] == null
-      ? "—" : `${provider.categoryPassed[category.id]} / ${category.total}`,
+    display: provider => {
+      const passed = provider.categoryPassed?.[category.id];
+      return typeof passed === "number" ? `${passed} / ${category.total}` : "—";
+    },
   }));
 
-  const hasValues = (metric: Metric) => benchmark.providers.some(provider => provider.scores[metric.id] != null);
+  const hasValues = (metric: Metric) => benchmark.providers.some(provider => typeof provider.scores[metric.id] === "number");
   const quality = qualityMetrics(benchmark).filter(hasValues)
     .sort((a, b) => Number(b.id === benchmark.primaryMetric) - Number(a.id === benchmark.primaryMetric));
   const timing = benchmark.metrics.filter(metric => ["ms", "seconds"].includes(metric.unit) && hasValues(metric));
@@ -71,7 +77,7 @@ export function radarAxes(benchmark: Benchmark, categories = false): Axis[] {
       const axis = metricAxis(metric);
       return { ...axis, value: (provider: Provider) => {
         const score = provider.scores[metric.id];
-        return score == null ? null : point(score / qualityScale(metric));
+        return typeof score === "number" ? point(score / qualityScale(metric)) : null;
       } };
     }),
     ...resources.flatMap(axis => resourceAxis(axis, benchmark.providers) ?? []),

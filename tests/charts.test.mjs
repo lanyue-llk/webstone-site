@@ -77,14 +77,14 @@ test("radar includes mean latency, memory and disclosed costs, with lower values
 
   const { benchmark: extraction } = load("lexbench-swde");
   const quote = radarAxes(extraction).find(axis => axis.id === "quoted-price");
-  const ranged = extraction.providers.find(provider => provider.pricing?.min != null && provider.pricing.min < provider.pricing.max);
-  const unknown = extraction.providers.find(provider => provider.pricing?.min == null);
+  const ranged = extraction.providers.find(provider => typeof provider.pricing?.min === "number" && provider.pricing.min < provider.pricing.max);
+  const unknown = extraction.providers.find(provider => typeof provider.pricing?.min !== "number");
   assert.ok(quote.value(ranged)[0] < quote.value(ranged)[1]);
   assert.equal(quote.value(unknown), null);
   const html = render(extraction);
   assert.match(html, /class="radar-range"/);
   assert.equal((html.match(/class="radar-shape"/g) ?? []).length,
-    extraction.providers.filter(provider => provider.pricing?.min != null &&
+    extraction.providers.filter(provider => typeof provider.pricing?.min === "number" &&
       provider.pricing.min === provider.pricing.max).length);
 });
 
