@@ -288,3 +288,8 @@ test("checker deadlines cancel both stalled HTTPS stages", {timeout:6000}, async
     } finally {clearTimeout(guard);}
   }
 });
+
+
+test("copyright chrome cannot make a login-only entry readable", async () => {
+  await assert.rejects(check(publication({},'<form><input type="password"><button>Sign in</button></form><footer>Copyright 2026</footer>')), /authentication|denies access/);
+});

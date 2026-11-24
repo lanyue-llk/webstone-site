@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
@@ -424,7 +425,8 @@ test("release verification rejects relaxed or stale script policies", async () =
 
 test("inline script hashes use HTML attributes and browser script text", async () => {
   const {inlineScriptHashes}=await import('../scripts/secure-export.mjs');
-  const expected=inlineScriptHashes('<script>run()</script>');
+  const expected=["'sha256-"+createHash('sha256').update('run()').digest('base64')+"'"];
+  assert.deepEqual(inlineScriptHashes('<script>run()</script>'),expected);
   assert.deepEqual(inlineScriptHashes('<script data-src="example">run()</script>'),expected);
   assert.deepEqual(inlineScriptHashes('<script data-label="a > b">run()</script>'),expected);
   assert.deepEqual(inlineScriptHashes('<script SRC="/external.js">run()</script>'),[]);
