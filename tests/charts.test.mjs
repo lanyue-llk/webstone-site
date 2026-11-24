@@ -394,6 +394,8 @@ test("report links select distinct published language editions and identify a mi
   assert.deepEqual(reportDestination({urls,originalLanguage:'zh'},urls.zh,'en'),{href:urls.en,language:'en'});
   assert.deepEqual(reportDestination({urls,originalLanguage:'zh'},urls.zh,'zh'),{href:urls.zh,language:'zh'});
   assert.deepEqual(reportDestination({urls:{zh:urls.zh},originalLanguage:'zh'},urls.zh,'en'),{href:urls.zh,language:'zh'});
+  assert.deepEqual(reportDestination({},urls.zh,'en'),{href:urls.zh,language:undefined});
+  assert.deepEqual(reportDestination({originalLanguage:'ja'},urls.zh,'en'),{href:urls.zh,language:undefined});
 });
 
 test("compact columns preserve ranking and disclosed resources without inventing missing measurements", () => {

@@ -46,7 +46,10 @@ const reports: Record<string, ReportMetadata> = reportMetadata.reports;
 
 export function reportDestination(metadata: Pick<ReportMetadata, "urls" | "originalLanguage">, fallback: string, language: Language) {
   const available = metadata.urls?.[language];
-  return { href: available ?? fallback, language: available ? language : (["en", "zh"].includes(metadata.originalLanguage ?? "") ? metadata.originalLanguage : undefined) };
+  if (available) return { href: available, language };
+  const originalLanguage = metadata.originalLanguage;
+  if (originalLanguage === "en" || originalLanguage === "zh") return { href: fallback, language: originalLanguage };
+  return { href: fallback, language: undefined };
 }
 
 export function evaluationReports(catalog: Catalog, snapshots: Snapshot[], current?: BenchmarkInfo, language: Language = "en") {
