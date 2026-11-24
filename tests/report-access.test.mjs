@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { checkReportAccess, reportLinks } from "../scripts/check-report-access.mjs";
+import { anonymousRequest, checkReportAccess, reportLinks } from "../scripts/check-report-access.mjs";
 
 const address = "https://reports.example.org/report";
 const html = body => new Response(body, { headers: { "content-type": "text/html" } });
@@ -84,4 +84,27 @@ test("connections use the validated addresses instead of a second DNS lookup", a
     assert.deepEqual(pinned, [{address:'93.184.216.34',family:4}]);
     return html('<h1>Measured results</h1>');
   });
+});
+
+
+test("empty application roots and script-only redirects do not count as reports", async () => {
+  for (const body of ['<html><body><div id="app"></div></body></html>', "<script>location.href='/login'</script>"]) await assert.rejects(check(async () => html(body)), /no readable content/);
+});
+
+test("anonymous transport handles empty HTTP responses without uncaught exceptions", async () => {
+  const { EventEmitter } = await import("node:events");
+  for (const status of [204, 205, 304]) {
+    const transport = (_url, _options, callback) => {
+      const req = new EventEmitter();
+      req.end = () => {
+        const response = new EventEmitter();
+        response.statusCode = status; response.headers = {};
+        callback(response); response.emit("end");
+      };
+      return req;
+    };
+    const response = await anonymousRequest(address, {}, transport);
+    assert.equal(response.status, status);
+    assert.equal(await response.text(), "");
+  }
 });

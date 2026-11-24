@@ -19,9 +19,9 @@ export function reportLinks(catalog, snapshots, metadata) {
   ].filter(Boolean))];
 }
 
-function anonymousRequest(address, options) {
+export function anonymousRequest(address, options, transport = httpsRequest) {
   return new Promise((resolve, reject) => {
-    const req = httpsRequest(address, { lookup: options.lookup, signal: options.signal }, response => {
+    const req = transport(address, { lookup: options.lookup, signal: options.signal }, response => {
       const chunks = [];
       let size = 0;
       response.on("data", chunk => {
@@ -30,7 +30,12 @@ function anonymousRequest(address, options) {
         else chunks.push(chunk);
       });
       response.on("error", reject);
-      response.on("end", () => resolve(new Response(Buffer.concat(chunks), { status: response.statusCode, headers: response.headers })));
+      response.on("end", () => {
+        try {
+          const body = [204, 205, 304].includes(response.statusCode) ? null : Buffer.concat(chunks);
+          resolve(new Response(body, { status: response.statusCode, headers: response.headers }));
+        } catch (error) { reject(error); }
+      });
     });
     req.on("error", reject);
     req.end();
@@ -68,6 +73,7 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       if (!/text\/html/i.test(type)) throw new Error("Expected a readable HTML report or PDF");
       const visible = body.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
       const denied = visible.length < 4000 && /sign in to view this work|you are not signed in|sign in, then try opening|authentication required|需要登录|登录后.{0,8}(?:查看|访问)/i.test(visible);
+      if (!visible.trim() && !/id=["\']artifact-delivery-config["\']/.test(body) && !/<iframe\b/i.test(body)) throw new Error("Report has no readable content");
       const denialHeading = /<(?:h[1-3]|title)\b[^>]*>\s*(?:Access denied|Forbidden|Authentication required|Sign in(?: to (?:view|continue|access)[^<]*)?|需要登录|请先登录|无权访问)\s*<\//i.test(body);
       if (denialHeading || denied || /<meta[^>]+Sign in to view this work/i.test(body) || /<input[^>]+type=["']password/i.test(body)) throw new Error("Anonymous reader received a sign-in or access-denied page");
       return { url, body, pdf: false };

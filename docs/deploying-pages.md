@@ -1,6 +1,6 @@
 # Deploying Webstone Site
 
-The public site is a static export on Cloudflare Pages. The project is `lexmount-webstone`, its production branch is `main`, and its default address is https://lexmount-webstone.pages.dev. The custom domain is `webstone.lexmount.com`.
+The public site is a static export on Cloudflare Pages. The project is `lexmount-webstone`, its production branch is `main`, and its default address is https://lexmount-webstone.pages.dev. The custom domain is `webstone.lexmount.io`.
 
 ## Release from a tag
 
@@ -53,7 +53,7 @@ A successful upload is not the final check. Run the verification script against 
 
 ## Custom domain
 
-Add `webstone.lexmount.com` under the Pages project's custom domains before creating the DNS record. The company DNS administrator only needs to add:
+Add `webstone.lexmount.io` under the Pages project's custom domains before creating the DNS record. The company DNS administrator only needs to add:
 
 | Type | Name | Target | TTL | Proxy |
 | --- | --- | --- | --- | --- |
