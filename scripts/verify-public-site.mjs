@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { inlineScriptHashes } from "./secure-export.mjs";
 import { setTimeout } from "node:timers/promises";
 
 const origin = process.env.SITE_ORIGIN;
@@ -30,6 +31,8 @@ assert.doesNotMatch(policy.split(";").find(part => part.includes("script-src")) 
 assert.match(policy, /frame-ancestors 'none'/);
 const html = await entry.text();
 assert.match(html, /Webstone/);
+const scriptSources = new Set((policy.split(";").find(part => /^\s*script-src\s/.test(part)) ?? "").trim().split(/\s+/).slice(1));
+for (const hash of inlineScriptHashes(html)) assert.ok(scriptSources.has(hash), "Published CSP must authorize every inline script: " + hash);
 const stylesheet = /href="([^"?]+\.css)(?:\?[^"]*)?"/.exec(html)?.[1];
 assert.ok(stylesheet);
 const asset = await request(stylesheet);

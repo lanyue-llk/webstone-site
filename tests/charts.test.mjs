@@ -300,7 +300,12 @@ test("every published benchmark edition shares table and radar controls in both 
           const initialColumns = table.querySelectorAll("th").length;
           await React.act(async () => more.click());
           assert.ok(table.querySelectorAll("th").length > initialColumns, report.id);
-          await React.act(async () => more.click());
+          const extra = definition.metrics.find(item => !decisionMetrics(definition, false, definition.primaryMetric).some(metric => metric.id === item.id));
+          const extraHeader = [...table.querySelectorAll("th")].find(header => header.querySelector(".sort-button")?.textContent === extra.label);
+          await React.act(async () => extraHeader.querySelector(".sort-button").click());
+          const collapse = [...container.querySelectorAll(".table-controls button")].find(button => button.textContent === "More metrics");
+          assert.ok(collapse, report.id + " can collapse after sorting an extra column");
+          await React.act(async () => collapse.click());
           assert.equal(table.querySelectorAll("th").length, initialColumns, report.id);
         }
         assert.equal(container.querySelector('a[href="https://huggingface.co/datasets?author=Lexmount"]')?.textContent, "Datasets", report.id);
@@ -362,6 +367,40 @@ test("homepage copy actions copy the correct skill without displaying long promp
     assert.ok(copied[0].includes(EVALUATION_SKILL)); assert.ok(copied[1].includes(SUBMISSION_SKILL));
     assert.ok(!win.document.body.textContent.includes(EVALUATION_SKILL));
     assert.equal(win.document.querySelectorAll('textarea').length,0);
+  } finally {
+    await React.act(async()=>root.unmount());await win.happyDOM.close();
+    [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=prior;
+    if(prior[3])Object.defineProperty(globalThis,'navigator',prior[3]);else delete globalThis.navigator;
+  }
+});
+
+
+test("compact columns preserve ranking and disclosed resources without inventing missing measurements", () => {
+  const {decisionMetrics}=require('../web/lib/comparisons.ts');
+  const metric=(id,unit)=>({id,unit});
+  const benchmark={primaryMetric:"quality",leadingMetricIds:["leading"],metrics:[metric("quality","ratio"),metric("time","ms"),metric("other","ratio"),metric("leading","ratio")],providers:[{scores:{quality:1,time:null,other:0.5,leading:null}}]};
+  const ids=(expanded=false,selected="quality")=>decisionMetrics(benchmark,expanded,selected).map(item=>item.id);
+  assert.deepEqual(ids(),["quality","leading"]);
+  benchmark.providers[0].scores.time=0;assert.deepEqual(ids(),["quality","time","leading"]);
+  benchmark.providers[0].scores.time=10;assert.deepEqual(ids(),["quality","time","leading"]);
+  benchmark.providers[0].scores.time=null;assert.deepEqual(ids(false,"other"),["quality","other","leading"]);
+  assert.deepEqual(ids(true),["quality","time","other","leading"]);
+});
+
+test("repeated denied clipboard attempts focus and select the manual prompt each time", async () => {
+  const Home=require('../web/components/home.tsx').default;
+  const win=new Window();const prior=[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT,Object.getOwnPropertyDescriptor(globalThis,'navigator')];
+  [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+  Object.defineProperty(globalThis,'navigator',{configurable:true,value:{clipboard:{writeText:async()=>{throw Error("Denied");}}}});
+  const root=require('react-dom/client').createRoot(win.document.body);
+  try {
+    await React.act(async()=>root.render(React.createElement(Home,{catalog,snapshots:[],t:text=>text})));
+    const button=win.document.querySelector('#run-evaluation button');
+    for(let attempt=0;attempt<2;attempt++) {
+      button.focus();await React.act(async()=>button.click());
+      const field=win.document.querySelector('#evaluation-prompt');
+      assert.equal(win.document.activeElement,field);assert.equal(field.selectionStart,0);assert.equal(field.selectionEnd,field.value.length);
+    }
   } finally {
     await React.act(async()=>root.unmount());await win.happyDOM.close();
     [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=prior;
