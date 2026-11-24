@@ -1,6 +1,5 @@
 import { Worker } from "node:worker_threads";
 import { createGunzip, createBrotliDecompress, createInflate } from "node:zlib";
-import { createHash } from "node:crypto";
 import { request as httpsRequest } from "node:https";
 import { lookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
@@ -150,7 +149,7 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       if (document.charset && !/^(?:utf-?8|us-ascii)$/i.test(document.charset)) throw new Error("Reports must use UTF-8 encoding");
       if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
 
-      return { url, ...document };
+      return { url, headers: response.headers, ...document };
     }
     throw new Error("Too many redirects");
   }
@@ -185,6 +184,8 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
   }
   async function resource(url, serviceOrigin, depth) {
     await visit("entry", url, depth, async () => {
+      // Yours serves the owner's uploaded file directly after the public manifest.
+      // This gate checks anonymous delivery, not the report's prose, examples or forms.
       const response = await retrieve(url, "entry");
       if (!/text\/html/i.test(response.type)) throw new Error("Expected an HTML report entry");
       if (/text\/html/i.test(response.type)) {
@@ -199,6 +200,9 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
   async function preview(url, depth) {
     await visit("preview", url, depth, async () => {
       const page = await retrieve(url);
+      const frameOptions = (page.headers.get("x-frame-options") ?? "").trim().toLowerCase();
+      const policy = page.headers.get("content-security-policy") ?? "";
+      if (frameOptions === "deny" || /(?:^|;)\s*frame-ancestors\s+'none'(?:\s|;|$)/i.test(policy)) throw new Error("Report preview blocks embedding in its public share");
       const config = page.deliveryConfig;
       if (!config || typeof config.file !== "string" || !config.file) throw new Error("Anonymous preview did not expose its report delivery manifest");
       const manifestUrl = new URL(config.manifestUrl, page.url);
@@ -230,7 +234,8 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       });
       if (!previews.length) throw new Error("Public share has no report-service preview");
       for (const target of previews) await preview(target.href, depth);
-      await embedded(page, page.url, depth);
+      const otherFrames = page.frames.filter(frame => frame.srcdoc !== undefined || !previews.some(target => target.href === new URL(frame.src, base).href));
+      await embedded({ ...page, frames: otherFrames }, page.url, depth);
     });
   }
   await share(address, 0);
