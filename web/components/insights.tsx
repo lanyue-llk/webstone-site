@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import MetricSelector from "./metric-selector";
 import { radarAxes } from "../lib/radar";
 import { sortProviders, type Benchmark, type Provider } from "../lib/results";
 
@@ -11,11 +12,14 @@ const colors = ["#007d64", "#5163a8", "#ad5229", "#925c95", "#247a9c", "#926b18"
 
 export default function Insights({ benchmark, t }: Props) {
   const [hidden, setHidden] = useState<string[]>([]);
-  const [categories, setCategories] = useState(false);
+  const [selectedMetrics, setSelectedMetrics] = useState<string[] | null>(null);
   const descriptionId = useId();
-  const axes = radarAxes(benchmark, categories).map(axis => ({ ...axis, label: t(axis.label) }));
+  const availableAxes = radarAxes(benchmark);
+  const defaultIds = availableAxes.filter(axis => axis.defaultSelected).map(axis => axis.id);
+  const selectedIds = selectedMetrics ?? defaultIds;
+  const axes = availableAxes.filter(axis => selectedIds.includes(axis.id)).map(axis => ({ ...axis, label: t(axis.label) }));
   const primary = benchmark.metrics.find(metric => metric.id === benchmark.primaryMetric);
-  if (!primary || !benchmark.providers.length || axes.length === 0) return null;
+  if (!primary || !benchmark.providers.length) return null;
 
   const providers = sortProviders(benchmark.providers, primary.id, primary.direction)
     .map(provider => ({ provider, values: axes.map(axis => axis.value(provider)) }));
@@ -33,10 +37,8 @@ export default function Insights({ benchmark, t }: Props) {
   return <section id="insights" className="insights-section" aria-labelledby="comparison-heading">
     <div className="radar-heading">
       <h2 id="comparison-heading">{t("Capability profile")}</h2>
-      {benchmark.categories.length >= 3 && <div className="column-views" role="group" aria-label={t("Chart metrics")}>
-        <button type="button" aria-pressed={!categories} onClick={() => setCategories(false)}>{t("Key metrics")}</button>
-        <button type="button" aria-pressed={categories} onClick={() => setCategories(true)}>{t("Category breakdown")}</button>
-      </div>}
+      <MetricSelector label="Chart metrics" options={availableAxes} selectedIds={selectedIds}
+        defaultIds={defaultIds} onChange={setSelectedMetrics} t={t} />
     </div>
     <div className="radar-layout">
     <div className="radar-legend" role="group" aria-label={t("Methods to compare")}>
@@ -50,7 +52,7 @@ export default function Insights({ benchmark, t }: Props) {
     </div>
     <figure className="radar-figure">
       <div className="radar-scroll" tabIndex={0} role="region" aria-label={t("Capability profile")}>
-        <svg viewBox="-285 -173 570 346" role="img" aria-label={t("Capability profile")} aria-describedby={descriptionId}>
+        {axes.length >= 3 ? <svg viewBox="-285 -173 570 346" role="img" aria-label={t("Capability profile")} aria-describedby={descriptionId}>
           <desc id={descriptionId}>{visible.map(({ provider }) => profileLabel(provider)).join(". ")}</desc>
           {[.25, .5, .75, 1].map(level => <g key={level}>
             <polygon points={ring(level)} className="radar-grid" />
@@ -101,11 +103,11 @@ export default function Insights({ benchmark, t }: Props) {
               })}
             </g>;
           })}
-        </svg>
+        </svg> : <p className="chart-empty" role="status">{t("Select at least three metrics for a radar chart.")}</p>}
       </div>
       {visible.length === 0 && <p role="status">{t("Select a method to show its results.")}</p>}
       <figcaption>
-        {t(categories ? "Each axis shows the share of cases passed." : "Quality is shown as a share of the maximum. Lower latency, memory and measured cost plot farther out when reported.")}
+        {t("Quality and category axes show a share of the maximum. Lower latency, memory and measured cost plot farther out when reported.")}
       </figcaption>
     </figure>
     </div>

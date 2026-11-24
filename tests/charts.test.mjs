@@ -33,8 +33,8 @@ test("Web Fetch compares overall quality and timings without adding a second tab
   const { snapshot, benchmark } = load("lexbench-webfetch");
   const html = render(benchmark, translator("zh", catalog, snapshot));
   assert.match(html, /role="img" aria-label="能力对比"/);
-  assert.deepEqual(radarAxes(benchmark).map(axis => axis.id), ["passRate", "requestRate", "totalMean", "totalP95"]);
-  assert.equal(radarAxes(benchmark, true).length, 7);
+  assert.deepEqual(radarAxes(benchmark).filter(axis => axis.defaultSelected).map(axis => axis.id), ["passRate", "requestRate", "totalMean", "totalP95"]);
+  assert.equal(radarAxes(benchmark).filter(axis => axis.id.startsWith("category:")).length, 7);
   assert.equal((html.match(/class="radar-shape"/g) ?? []).length, 6);
   assert.doesNotMatch(html, /<table|<select|disabled/);
 });
@@ -124,9 +124,13 @@ test("the radar starts with all series and lets readers hide or show each one", 
     assert.match(container.textContent, /Select a method to show its results/);
     for (const filter of filters.slice(0, 5)) await React.act(async () => filter.click());
     assert.equal(container.querySelectorAll(".radar-shape").length, 5);
-    const categories = [...container.querySelectorAll("button")].find(button => button.textContent === "Category breakdown");
-    await React.act(async () => categories.click());
-    assert.equal(container.querySelectorAll(".radar-axis").length, 7);
+    const metricOptions = [...container.querySelectorAll(".metric-selector-panel label")];
+    const median = metricOptions.find(option => option.textContent === "P50 latency").querySelector("input");
+    await React.act(async () => median.click());
+    assert.equal(container.querySelectorAll(".radar-axis").length, 5);
+    const reset = container.querySelector(".metric-selector-panel button");
+    await React.act(async () => reset.click());
+    assert.equal(container.querySelectorAll(".radar-axis").length, 4);
     assert.equal(container.querySelectorAll(".radar-shape").length, 5);
   } finally {
     await React.act(async () => root.unmount());
@@ -244,6 +248,84 @@ test("the dashboard exposes two repository guides and preserves each pricing val
   } finally {
     await React.act(async () => root.unmount());
     await win.happyDOM.close();
+    [globalThis.window, globalThis.document, globalThis.fetch, globalThis.IS_REACT_ACT_ENVIRONMENT] = previous;
+  }
+});
+
+test("every published benchmark edition shares table and radar controls in both languages", async () => {
+  const { prepareData, discoverResults } = await import("../scripts/prepare-data.mjs");
+  const { fileURLToPath } = await import("node:url");
+  await prepareData();
+  const Dashboard = require("../web/components/dashboard.tsx").default;
+  const { RELEASE } = require("../web/lib/release.generated.ts");
+  const files = await discoverResults(fileURLToPath(new URL("../results", import.meta.url)), catalog);
+  const reports = files.map(({ file }) => ({ file, report: JSON.parse(readFileSync(new URL("../results/" + file, import.meta.url))) }));
+  const previous = [globalThis.window, globalThis.document, globalThis.fetch, globalThis.IS_REACT_ACT_ENVIRONMENT];
+
+  try {
+    for (const { report } of reports) {
+      const id = report.benchmarks[0].id;
+      const win = new Window({ url: "https://webstone.test/?benchmark=" + id + "&version=" + report.version });
+      [globalThis.window, globalThis.document, globalThis.IS_REACT_ACT_ENVIRONMENT] = [win, win.document, true];
+      globalThis.fetch = async input => {
+        const path = String(input);
+        let data = { release: RELEASE };
+        if (path.includes("/benchmarks/catalog.json")) data = catalog;
+        if (path.includes("/results/reports.json")) data = reports;
+        return new Response(JSON.stringify(data), { headers: { "content-type": "application/json" } });
+      };
+      const container = win.document.createElement("div");
+      win.document.body.append(container);
+      const root = require("react-dom/client").createRoot(container);
+      try {
+        await React.act(async () => root.render(React.createElement(Dashboard)));
+        const table = container.querySelector("table");
+        assert.equal(table.className, "wide-table", report.id);
+        assert.equal(container.querySelectorAll(".metric-selector").length, 2, report.id);
+        assert.equal(table.querySelectorAll("th")[1].textContent, "Method", report.id);
+        assert.ok(container.querySelector("#reports"), report.id);
+        for (const row of table.querySelectorAll("tbody tr")) assert.equal(row.children.length, table.querySelectorAll("th").length, report.id);
+
+        const tableMenu = container.querySelector(".table-controls .metric-selector");
+        const initialColumns = table.querySelectorAll("th").length;
+        const inputs = [...tableMenu.querySelectorAll("input")];
+        const option = inputs.find(input => !input.disabled && !input.checked) ?? inputs.find(input => !input.disabled);
+        assert.ok(option, report.id);
+        const wasChecked = option.checked;
+        await React.act(async () => option.click());
+        assert.equal(table.querySelectorAll("th").length, initialColumns + (wasChecked ? -1 : 1), report.id);
+        await React.act(async () => tableMenu.querySelector("button").click());
+        assert.equal(table.querySelectorAll("th").length, initialColumns, report.id);
+
+        const chartMenu = container.querySelector(".radar-heading .metric-selector");
+        const initialAxes = container.querySelectorAll(".radar-axis").length;
+        assert.ok(initialAxes >= 3, report.id);
+        for (const input of [...chartMenu.querySelectorAll("input")].filter(input => input.checked)) {
+          await React.act(async () => input.click());
+        }
+        assert.equal(container.querySelectorAll(".radar-axis").length, 0, report.id);
+        assert.match(container.querySelector(".chart-empty").textContent, /at least three/, report.id);
+        await React.act(async () => chartMenu.querySelector("button").click());
+        assert.equal(container.querySelectorAll(".radar-axis").length, initialAxes, report.id);
+
+        const summary = tableMenu.querySelector("summary");
+        tableMenu.open = true;
+        await React.act(async () => container.dispatchEvent(new win.PointerEvent("pointerdown", { bubbles: true })));
+        assert.ok(!tableMenu.open, report.id);
+        tableMenu.open = true;
+        await React.act(async () => summary.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+        assert.ok(!tableMenu.open, report.id);
+
+        await React.act(async () => [...container.querySelectorAll(".language-control button")].find(button => button.textContent === "中文").click());
+        assert.equal(table.querySelectorAll("th")[1].textContent, "方案", report.id);
+        assert.match(chartMenu.querySelector("summary").textContent, /图表指标/, report.id);
+        assert.match(tableMenu.querySelector("summary").textContent, /表格指标/, report.id);
+      } finally {
+        await React.act(async () => root.unmount());
+        await win.happyDOM.close();
+      }
+    }
+  } finally {
     [globalThis.window, globalThis.document, globalThis.fetch, globalThis.IS_REACT_ACT_ENVIRONMENT] = previous;
   }
 });
