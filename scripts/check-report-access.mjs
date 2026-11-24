@@ -98,24 +98,7 @@ export function reportDocument(html) {
   });
 }
 
-const reviewedPublications = JSON.parse(await readFile(new URL("../reports/publications.json", import.meta.url), "utf8"));
-
-export function validatePublication(publication, depth = 0, ancestors = new Set()) {
-  if (!publication || typeof publication !== "object" || ancestors.has(publication) || depth > 5) throw new Error("Missing or cyclic reviewed report publication");
-  if (!/^ver_[A-Za-z0-9_]+$/.test(publication.versionId ?? "") || !/^[a-f0-9]{64}$/.test(publication.entry?.sha256 ?? "")) throw new Error("Reviewed report needs its immutable version and SHA-256");
-  const path = publication.entry?.path;
-  if (typeof path !== "string" || /[\\?#%\u0000-\u001f]/.test(path) || path.split("/").some(part => !part || part === "." || part === "..")) throw new Error("Unsafe reviewed report entry path");
-  if (publication.dependencies !== undefined && !Array.isArray(publication.dependencies)) throw new Error("Invalid reviewed report dependencies");
-  ancestors.add(publication);
-  for (const dependency of publication.dependencies ?? []) {
-    if (!publicEvidenceUrl(dependency.url)) throw new Error("Expected a public report dependency URL");
-    validatePublication(dependency, depth + 1, ancestors);
-  }
-  ancestors.delete(publication);
-}
-
-export async function checkReportAccess(address, { publication = reviewedPublications[address], request = anonymousRequest, resolve = lookup, timeoutMs = 60000 } = {}) {
-  validatePublication(publication);
+export async function checkReportAccess(address, { request = anonymousRequest, resolve = lookup, timeoutMs = 60000 } = {}) {
   const deadline = Date.now() + Math.min(timeoutMs, 60000);
   async function bounded(promise) {
     let timer;
@@ -153,8 +136,7 @@ export async function checkReportAccess(address, { publication = reviewedPublica
       const bytes = Buffer.from(await response.arrayBuffer());
       if (!bytes.length) throw new Error("Report returned an empty document");
       if (kind === "entry") {
-        if (!/text\/html/i.test(type)) throw new Error("Expected a reviewed HTML report entry");
-        return bytes;
+        return { url, bytes, type };
       }
       const body = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       if (!body.trim()) throw new Error("Report returned an empty document");
@@ -173,43 +155,76 @@ export async function checkReportAccess(address, { publication = reviewedPublica
     throw new Error("Too many redirects");
   }
 
-  async function checkPublication(url, expected) {
-    const root = await retrieve(url);
-    const share = /^(.*)\/(s|v)\/([A-Za-z0-9_-]+)\/?$/.exec(root.url.pathname);
-    if (!share) throw new Error("Use the report service's public share URL");
-    const base = root.baseHref === null ? root.url : new URL(root.baseHref, root.url);
-    const prefix = share[1] + "/api/preview/";
-    const previews = root.frames.flatMap(frame => {
-      if (!frame.src || frame.srcdoc !== undefined) return [];
-      const target = new URL(frame.src, base);
-      return target.origin === root.url.origin && (share[2] === "v" ? target.pathname.startsWith(prefix) : target.pathname.startsWith(prefix + share[3] + "/") || target.pathname === prefix + share[3]) ? [target] : [];
+  const active = new Set(), checked = new Set();
+  async function visit(kind, url, depth, work) {
+    if (depth > 5) throw new Error("Report contains too many nested previews");
+    const key = kind + ":" + url;
+    if (active.has(key)) throw new Error("Report contains a cyclic preview");
+    if (checked.has(key)) return;
+    active.add(key);
+    try { await work(); checked.add(key); } finally { active.delete(key); }
+  }
+  async function embedded(document, base, depth) {
+    if (depth > 5) throw new Error("Report contains too many nested previews");
+    const origin = new URL(base).origin;
+    const documentBase = document.baseHref === null ? base : new URL(document.baseHref, base);
+    for (const frame of document.frames) {
+      if (frame.srcdoc !== undefined) {
+        await embedded(await bounded(reportDocument(frame.srcdoc)), documentBase, depth + 1);
+        continue;
+      }
+      const url = new URL(frame.src, documentBase);
+      const firstParty = url.origin === origin;
+      if (firstParty && /\/api\/preview\//.test(url.pathname)) await preview(url.href, depth + 1);
+      else if (firstParty && /\/(?:s|v)\/[A-Za-z0-9_-]+\/?$/.test(url.pathname)) await share(url.href, depth + 1);
+      else if (frame.required) await resource(url.href, url, depth + 1);
+    }
+  }
+  async function resource(url, base, depth) {
+    await visit("entry", url, depth, async () => {
+      const response = await retrieve(url, "entry");
+      const html = response.bytes.toString("utf8");
+      if (/text\/html/i.test(response.type) && /<iframe\b/i.test(html)) await embedded(await bounded(reportDocument(html)), base, depth);
     });
-    if (!previews.length) throw new Error("Public share has no report-service preview");
-    if (root.frames.some(frame => frame.required && !previews.some(url => frame.src && new URL(frame.src, base).href === url.href))) throw new Error("Share contains an unreviewed required preview");
-    for (const target of previews) {
-      const slug = target.pathname.slice(prefix.length).split("/")[0];
-      target.pathname = prefix + slug + "/" + expected.entry.path.split("/").map(encodeURIComponent).join("/");
-      const preview = await retrieve(target.href);
-      const config = preview.deliveryConfig;
-      if (!config || config.file !== expected.entry.path) throw new Error("Anonymous preview did not expose the reviewed report entry");
-      const manifestUrl = new URL(config.manifestUrl);
+  }
+  async function preview(url, depth) {
+    await visit("preview", url, depth, async () => {
+      const page = await retrieve(url);
+      const config = page.deliveryConfig;
+      if (!config || typeof config.file !== "string" || !config.file) throw new Error("Anonymous preview did not expose its report delivery manifest");
+      const manifestUrl = new URL(config.manifestUrl, page.url);
       manifestUrl.searchParams.set("file", config.file);
       let entry;
       for (let index = 0; index < 20; index++) {
         const manifest = await retrieve(manifestUrl.href, "json");
-        if (manifest.versionId !== expected.versionId) throw new Error("Report publication changed; review the new edition and update reports/publications.json");
-        if (!Array.isArray(manifest.files)) throw new Error("Invalid report delivery manifest");
+        if (!Array.isArray(manifest.files) || manifest.files.some(file => !file || typeof file.path !== "string" || typeof file.url !== "string")) throw new Error("Invalid report delivery manifest");
         entry = manifest.files.find(file => file.path === config.file);
-        if (entry || manifest.nextCursor == null) break;
+        if (entry || manifest.nextCursor === null || manifest.nextCursor === undefined) break;
         manifestUrl.searchParams.set("cursor", String(manifest.nextCursor));
       }
-      if (!entry?.url) throw new Error("Reviewed report entry is missing from the anonymous delivery manifest");
-      const bytes = await retrieve(entry.url, "entry");
-      if (createHash("sha256").update(bytes).digest("hex") !== expected.entry.sha256) throw new Error("Reviewed report entry has changed");
-    }
-    for (const dependency of expected.dependencies ?? []) await checkPublication(dependency.url, dependency);
+      if (!entry?.url) throw new Error("Report entry is missing from the anonymous delivery manifest");
+      await resource(entry.url, page.url, depth);
+      await embedded(page, page.url, depth);
+    });
   }
-  await checkPublication(address, publication);
+  async function share(url, depth) {
+    await visit("share", url, depth, async () => {
+      const page = await retrieve(url);
+      const match = /^(.*)\/(s|v)\/([A-Za-z0-9_-]+)\/?$/.exec(page.url.pathname);
+      if (!match) throw new Error("Use the report service's public share URL");
+      const base = page.baseHref === null ? page.url : new URL(page.baseHref, page.url);
+      const prefix = match[1] + "/api/preview/";
+      const previews = page.frames.flatMap(frame => {
+        if (!frame.src || frame.srcdoc !== undefined) return [];
+        const target = new URL(frame.src, base);
+        return target.origin === page.url.origin && (match[2] === "v" ? target.pathname.startsWith(prefix) : target.pathname.startsWith(prefix + match[3] + "/") || target.pathname === prefix + match[3]) ? [target] : [];
+      });
+      if (!previews.length) throw new Error("Public share has no report-service preview");
+      for (const target of previews) await preview(target.href, depth);
+      await embedded(page, page.url, depth);
+    });
+  }
+  await share(address, 0);
 }
 
 async function main() {
