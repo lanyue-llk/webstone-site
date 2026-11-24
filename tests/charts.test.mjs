@@ -241,7 +241,9 @@ test("the dashboard exposes two repository guides and preserves each pricing val
     assert.deepEqual(links.map(link => link.getAttribute("href")), [EVALUATION_URL, SUBMISSION_URL, "https://huggingface.co/datasets?author=Lexmount"]);
     assert.ok(links.every(link => link.querySelector("svg") && link.textContent.trim()));
     const star = container.querySelector(".sidebar-footer .nav-star");
-    assert.ok(star); assert.equal(new URL(star.href).pathname, "/lexmount/webstone"); assert.equal(new URL(star.href).hash, "");
+    assert.ok(star);
+    assert.equal(star.href, "https://github.com/lexmount/webstone");
+    assert.equal(container.querySelector(".brand img").getAttribute("src"), "/brand/webstone.png");
     assert.match(star.getAttribute("aria-label"), /Star Webstone/);
     const groups = [...container.querySelectorAll(".grouped-navigation > .nav-group")];
     assert.deepEqual(groups.map(group => group.querySelector("h2").textContent), ["Web Tools", "Browser Capabilities", "Browser Automation"]);
@@ -469,7 +471,7 @@ test("the homepage offers the evaluation repository star and translates the deve
   try {
     win.document.body.innerHTML=renderToStaticMarkup(React.createElement(Home,{catalog,snapshots:[],t:translator('zh',catalog,null)}));
     const star=win.document.querySelector('.overview-star');
-    assert.equal(new URL(star.href).pathname,'/lexmount/webstone');assert.equal(new URL(star.href).hash,'');
+    assert.equal(star.href,'https://github.com/lexmount/webstone');
     assert.match(star.textContent,/Star/);
     assert.match(win.document.querySelector('.overview-star-note').textContent,/觉得 Webstone 有用/);
     assert.match([...win.document.querySelectorAll('.upcoming-overview')].map(item=>item.textContent).join(' '),/Browser Automation/);

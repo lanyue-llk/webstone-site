@@ -403,12 +403,16 @@ test("explicit metric ranges bound scores and confidence intervals", () => {
 
 
 test("navigation groups reject orphaned or duplicate placements and premature published tracks", () => {
-  const invalid=structuredClone(catalog);invalid.tracks[0].groupId='missing';
-  assert.throws(()=>validateCatalog(invalid),/Unknown track navigation group/);
-  const duplicate=structuredClone(catalog);duplicate.navigationGroups[1].id=duplicate.navigationGroups[0].id;
-  assert.throws(()=>validateCatalog(duplicate),/Duplicate navigation group/);
-  const malformed=structuredClone(catalog);malformed.navigationGroups[0].upcoming=[null];
-  assert.throws(()=>validateCatalog(malformed),/upcoming track/);
-  const premature=structuredClone(catalog);premature.navigationGroups[0].upcoming[0].id=premature.tracks[0].id;
-  assert.throws(()=>validateCatalog(premature),/separate from published tracks/);
+  const invalid = structuredClone(catalog);
+  invalid.tracks[0].groupId = "missing";
+  assert.throws(() => validateCatalog(invalid), /Unknown track navigation group/);
+  const duplicate = structuredClone(catalog);
+  duplicate.navigationGroups[1].id = duplicate.navigationGroups[0].id;
+  assert.throws(() => validateCatalog(duplicate), /Duplicate navigation group/);
+  const malformed = structuredClone(catalog);
+  malformed.navigationGroups[0].upcoming = [null];
+  assert.throws(() => validateCatalog(malformed), /upcoming track/);
+  const premature = structuredClone(catalog);
+  premature.navigationGroups[0].upcoming[0].id = premature.tracks[0].id;
+  assert.throws(() => validateCatalog(premature), /separate from published tracks/);
 });
