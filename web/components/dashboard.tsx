@@ -15,7 +15,7 @@ import { historicalResultCopy } from "../lib/result-copy";
 import { historicalPublication } from "../lib/historical-publications";
 import { decisionMetrics, hasPricingInformation } from "../lib/comparisons";
 
-import Home, { EvaluationArticles, TRACK_ICONS } from "./home";
+import Home, { EvaluationReports, TRACK_ICONS } from "./home";
 import { benchmarkHref, SUBMISSION_URL } from "../lib/overview";
 const GITHUB_URL = "https://github.com/lexmount/webstone-site";
 const LEGACY_DATE_NOTE = "The evaluation date was not supplied; the displayed date is the date of import.";
@@ -221,8 +221,7 @@ export default function Dashboard() {
             {details && <p className="benchmark-description">{t(details.description)}</p>}
             {details && <div className="benchmark-links">
               <a href={details.datasetUrl} target="_blank" rel="noreferrer" aria-label={`${t("Dataset")}: ${details.datasetName}`}>{t("Dataset")}<ArrowUpRight size={13} aria-hidden="true" /></a>
-              <a href={details.reportUrl} target="_blank" rel="noreferrer" >{t("Evaluation report")}<ArrowUpRight size={13} aria-hidden="true" /></a>
-              {benchmark?.reportUrl && benchmark.reportUrl !== details.reportUrl && <a href={benchmark.reportUrl} target="_blank" rel="noreferrer">{t("Version report")}<ArrowUpRight size={13} aria-hidden="true" /></a>}
+              <a href="#reports">{t("Reports")}<ArrowDown size={13} aria-hidden="true" /></a>
             </div>}
 
           </div>
@@ -255,14 +254,11 @@ export default function Dashboard() {
             {snapshot?.release && <span className="result-published">{t("Version released")} <time dateTime={snapshot.release.date}>{snapshot.release.date}</time></span>}
             {historical && <a className="result-published" href={`${GITHUB_URL}/commit/${historical.commit}`} target="_blank" rel="noreferrer">{t("First published in the repository")} <time dateTime={historical.date}>{historical.date}</time> <ArrowUpRight size={12} aria-hidden="true" /></a>}
           </div>
-          {benchmark && snapshot && <details key={snapshot.id} className="evaluation-notes">
-            <summary>{t("Evaluation notes")}</summary>
-            <p>{historicalCopy?.scope ?? t(snapshot.datasetDifference)}</p>
-            {snapshot.release && <p>{t(snapshot.release.summary)}</p>}
-            {evaluationNotes.length > 0 && <ul>{evaluationNotes.map(note => <li key={note}>{note}</li>)}</ul>}
-            {!snapshot.release && !historical && <p>{t("Release date not recorded for this historical version.")}</p>}
-            <a href="/versioning">{t("Result versioning")}</a>
-          </details>}
+          {benchmark && snapshot && <div className="evaluation-scope">
+            <span>{t("Evaluation scope")} · {benchmark.taskCount.toLocaleString()} {t("cases")}</span>
+            <InfoTooltip label={t("Evaluation scope")} description={[historicalCopy?.scope ?? t(snapshot.datasetDifference), snapshot.release ? t(snapshot.release.summary) : "", ...evaluationNotes].filter(Boolean).join(" ")}
+              detailsLabel={t("details")} />
+          </div>}
 
           {!benchmark || !metric ? <div className="empty-state">
             <h2>{t(versions.length > 0 ? "No results for this version" : "No results for this benchmark")}</h2>
@@ -306,7 +302,7 @@ export default function Dashboard() {
 
             </section>
             <Insights key={`${benchmark.id}-${selection.version}`} benchmark={benchmark} t={t} />
-            {details && <EvaluationArticles catalog={catalog} snapshots={snapshots} current={details} t={t} />}
+            {details && <EvaluationReports key={selection.benchmark} catalog={catalog} snapshots={snapshots} current={details} t={t} />}
             <MethodDetails provider={selectedProvider} benchmark={benchmark} t={t} onClose={() => setSelectedProvider(null)} />
           </>}
         </>)}
