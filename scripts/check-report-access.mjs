@@ -164,13 +164,13 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
     active.add(key);
     try { await work(); checked.add(key); } finally { active.delete(key); }
   }
-  async function embedded(document, base, depth) {
+  async function embedded(document, base, depth, serviceOrigin = new URL(base).origin) {
     if (depth > 5) throw new Error("Report contains too many nested previews");
-    const origin = new URL(base).origin;
+    const origin = serviceOrigin;
     const documentBase = document.baseHref === null ? base : new URL(document.baseHref, base);
     for (const frame of document.frames) {
       if (frame.srcdoc !== undefined) {
-        await embedded(await bounded(reportDocument(frame.srcdoc)), documentBase, depth + 1);
+        await embedded(await bounded(reportDocument(frame.srcdoc)), documentBase, depth + 1, origin);
         continue;
       }
       const url = new URL(frame.src, documentBase);
@@ -183,8 +183,13 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
   async function resource(url, base, depth) {
     await visit("entry", url, depth, async () => {
       const response = await retrieve(url, "entry");
-      const html = response.bytes.toString("utf8");
-      if (/text\/html/i.test(response.type) && /<iframe\b/i.test(html)) await embedded(await bounded(reportDocument(html)), base, depth);
+      if (/text\/html/i.test(response.type)) {
+        const html = new TextDecoder("utf-8", { fatal: true }).decode(response.bytes);
+        const document = await bounded(reportDocument(html));
+        if (document.charset && !/^(?:utf-?8|us-ascii)$/i.test(document.charset)) throw new Error("Reports must use UTF-8 encoding");
+        if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
+        await embedded(document, response.url, depth, new URL(base).origin);
+      }
     });
   }
   async function preview(url, depth) {
