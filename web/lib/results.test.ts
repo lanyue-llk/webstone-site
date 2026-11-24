@@ -14,7 +14,7 @@ test("English is the default and explicit Chinese selection translates reusable 
   assert.equal(initialLanguage("zh"), "zh");
   assert.equal(translator("en", catalog)("Download Report"), "Download Report");
   assert.equal(translator("zh", catalog)("Download Report"), "下载报告");
-  assert.equal(translator("zh", catalog)("Web Fetch"), "网页获取");
+  assert.equal(translator("zh", catalog)("Web Fetch"), "Web Fetch");
   assert.equal(translator("zh", catalog)("Page-hit macro F1"), "页面命中宏平均 F1");
   assert.equal(translator("zh", catalog)("LexBench SWDE"), "LexBench SWDE");
   assert.equal(translator("zh")("Unable to load results. Please try again."), "加载结果失败，请重试。");
@@ -49,10 +49,16 @@ test("legacy HTTP cache is cleared once without removing stored preferences", as
   assert.equal(values.get("webstone-language"), "zh");
 });
 
+test("static hosting can clear legacy cache with a successful response and the cache-only header", async () => {
+  const values = new Map<string, string>();
+  assert.equal(await clearLegacyCache(() => ({ getItem: key => values.get(key) ?? null, setItem: (key, value) => { values.set(key, value); } }),
+    async () => ({ status: 200, headers: { get: () => '"cache"' } })), true);
+});
+
 test("failed or unsupported cache resets remain retryable and do not break release checks", async () => {
   const values = new Map<string, string>();
   const storage = () => ({ getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); } });
-  for (const response of [{ status: 404, header: null }, { status: 200, header: '"cache"' }, { status: 204, header: null }]) {
+  for (const response of [{ status: 404, header: null }, { status: 200, header: null }, { status: 204, header: null }]) {
     assert.equal(await clearLegacyCache(storage, async () => ({ status: response.status, headers: { get: () => response.header } })), false);
     assert.equal(values.has(LEGACY_CACHE_RESET_KEY), false);
   }
@@ -91,7 +97,10 @@ test("compact tables keep the ranking metric and charts preserve natural scales 
     const benchmark = readSnapshot(`${info.id}/${name}`).benchmarks[0];
     const visible = decisionMetrics(benchmark, false, benchmark.primaryMetric);
     assert.ok(visible.some(metric => metric.id === benchmark.primaryMetric));
-    for (const metric of benchmark.metrics.filter(item => ["seconds", "ms", "mib", "usd"].includes(item.unit))) assert.ok(visible.includes(metric));
+    for (const metric of benchmark.metrics.filter(item => ["seconds", "ms", "mib", "usd"].includes(item.unit))) {
+      const disclosed = benchmark.providers.some(provider => typeof provider.scores[metric.id] === "number");
+      assert.equal(visible.includes(metric), disclosed || metric.id === benchmark.primaryMetric);
+    }
     assert.deepEqual(decisionMetrics(benchmark, true, benchmark.primaryMetric), benchmark.metrics);
   }
   const usefulness = catalog.benchmarks.flatMap(info => info.definitions.flatMap(definition => definition.metrics)).find(metric => metric.id === "usefulness")!;

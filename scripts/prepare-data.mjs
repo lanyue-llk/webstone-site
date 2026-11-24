@@ -53,6 +53,21 @@ export function validateCatalog(catalog) {
   if (!catalog.providerUrls || typeof catalog.providerUrls !== "object" || Array.isArray(catalog.providerUrls) || !Object.keys(catalog.providerUrls).length || !Object.values(catalog.providerUrls).every(httpsUrl)) throw new Error("Missing or invalid provider project URL");
   uniqueIds(catalog.tracks, "track");
   uniqueIds(catalog.benchmarks, "benchmark");
+  if (catalog.navigationGroups !== undefined) {
+    uniqueIds(catalog.navigationGroups, "navigation group");
+    const upcoming = [];
+    for (const group of catalog.navigationGroups) {
+      if (![group.name, group.description].every(value => typeof value === "string" && value.trim())) throw new Error("Missing navigation group information");
+      if (group.upcoming !== undefined && !Array.isArray(group.upcoming)) throw new Error("Invalid upcoming tracks");
+      for (const item of group.upcoming ?? []) {
+        if (!record(item) || ![item.name, item.description].every(value => typeof value === "string" && value.trim()) || catalog.tracks.some(track => track.id === item.id)) throw new Error("An upcoming track must be separate from published tracks");
+        upcoming.push(item);
+      }
+    }
+    if (upcoming.length) uniqueIds(upcoming, "upcoming track");
+    if (catalog.tracks.some(track => !catalog.navigationGroups.some(group => group.id === track.groupId))) throw new Error("Unknown track navigation group");
+  }
+
   for (const track of catalog.tracks) {
     if (track.url !== undefined && !httpsUrl(track.url)) throw new Error("Invalid external track URL");
     const hasBenchmarks = catalog.benchmarks.some(benchmark => benchmark.trackId === track.id);
@@ -222,20 +237,21 @@ export async function discoverResults(inputRoot, catalog) {
   return files;
 }
 
-async function releaseFingerprint(files) {
+export async function releaseFingerprint(files, sourceRoot = root) {
   const hash = createHash("sha256");
   async function add(relative) {
-    hash.update(relative).update("\0").update(await readFile(path.join(root, relative))).update("\0");
+    hash.update(relative).update("\0").update(await readFile(path.join(sourceRoot, relative))).update("\0");
   }
   async function visit(relative) {
-    for (const name of (await readdir(path.join(root, relative))).sort()) {
+    for (const name of (await readdir(path.join(sourceRoot, relative))).sort()) {
       if (name === "release.generated.ts" || /\.test\./.test(name)) continue;
+      if (relative === "web/public" && ["benchmarks", "results", "release.json"].includes(name)) continue;
       const child = path.join(relative, name);
-      if ((await lstat(path.join(root, child))).isDirectory()) await visit(child);
+      if ((await lstat(path.join(sourceRoot, child))).isDirectory()) await visit(child);
       else await add(child);
     }
   }
-  for (const folder of ["web/app", "web/components", "web/lib"]) await visit(folder);
+  for (const folder of ["web/app", "web/components", "web/lib", "web/public"]) await visit(folder);
   for (const file of ["benchmarks/catalog.json", "reports/metadata.json", "web/next.config.ts", "web/package.json", "package-lock.json"]) await add(file);
   for (const file of files) await add(`results/${file.file}`);
   return hash.digest("hex");

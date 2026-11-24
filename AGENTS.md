@@ -67,21 +67,21 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 - Each Benchmark opens on its highest version. A version explicitly requested through the URL is shown even when it does not exist, with an English empty state and a `View latest version` action; never silently fall back. A Benchmark with no results also gets an empty state, without an undefined version or a broken latest link.
 - URL state uses `?benchmark=<id>&version=vX.Y.Z&metric=<id>`. Ignore and drop legacy `date` parameters. When a version does not contain the currently selected metric, fall back to that version's default metric and direction.
 - Show the evaluation scope in the selected language beside the result version. Use `datasetDifference` unless there is separate display copy for a historical result. Keep the Dataset and Evaluation report links visible.
-- The default table shows a compact set of quality and resource metrics; Table metrics selects visible numeric columns; Category breakdown reveals category counts without discarding data. All visible data columns are equal width: the tables use `table-layout: fixed` with a minimum width, so the table scrolls horizontally only when the container is narrower than that minimum. Do not reintroduce auto layout.
+- The default table shows a compact set of quality and resource metrics; More metrics reveals the remaining numeric columns; Category breakdown reveals category counts without discarding data. All visible data columns are equal width: the tables use `table-layout: fixed` with a minimum width, so the table scrolls horizontally only when the container is narrower than that minimum. Do not reintroduce auto layout.
 - Row heights are fixed: header and rows 46px on desktop; rows 44px below 760px. Numeric cells remain single-line. Method names and configurations wrap when needed so the full name stays visible.
 - The first two columns stay sticky while the table scrolls sideways.
 - Output size, timings collected under incomparable conditions and quotes with incomparable billing bases use catalog `highlightBest: false`: allow numeric sorting without declaring a winner.
 - Highlight the best value in each comparable column independently, using the metric's `direction`. Category pass counts and `Passed / Total` use the highest value. Ties are all highlighted; a column with fewer than two disclosed values or identical values has no winner. `null` and `—` are excluded; real `0` and negative signed deltas participate. Use deep-green bold text on a very light green background and include a screen-reader `Best in this column` label. Do not highlight an entire row.
 - Highlight the whole header of the currently sorted column with a light green background, darker bold text, the direction arrow and `aria-sort`. Changing sort direction must not mark the worst value as best.
-- English is the first-visit default. Support a complete explicit English/Chinese switch, persist the preference locally and update the document language. The catalog owns translations of reusable definitions; reports own translations of new version-specific text. Historical edits live in `web/lib/result-copy.ts`. Official project, model and Dataset names retain their original spelling.
+- English is the first-visit default. Support a complete explicit English/Chinese switch, persist the preference locally and update the document language. The catalog owns translations of reusable definitions; reports own translations of new version-specific text. Historical edits live in `web/lib/result-copy.ts`. Official project, model and Dataset names, navigation group names and Track names retain their English spelling in both languages. Translate descriptions and actions.
 - Default result display text remains English. Preserve original source quotations and provenance; supply display translations separately rather than rewriting original evidence.
 - The download link must show `Download Report` in English and its Chinese translation in Chinese, including on mobile, and use the same accessible name as its visible label. It downloads the file for the selected version. Do not add a hover tooltip or rely on one to explain the action.
-- All local Tracks and Benchmarks share the same table geometry, typography, controls and capability-profile layout. Use the shared metric selector for table columns and radar axes. Data availability may change the available options; do not introduce Track-specific styling or alternate controls. Keep the ranking column visible, offer a reset, and require at least three axes to draw a radar chart.
+- All local Tracks and Benchmarks share the same table geometry, typography, controls and capability-profile layout. Use the shared metric selector for radar axes; tables use the common More metrics and Category breakdown buttons. Data availability may change the available options; do not introduce Track-specific styling or alternate controls. Keep the ranking column visible. Radar controls offer a reset and require at least three axes to draw a chart.
 - Keep the dependency surface small; prefer plain CSS in `globals.css` over new UI packages.
 
 ## Security
 
-- No tokens, keys or credentials in code, data, documentation or commits. `.env*` files stay local. The GitHub link at the bottom of the navigation always points to `https://github.com/lexmount/webstone-site`.
+- No tokens, keys or credentials in code, data, documentation or commits. `.env*` files stay local. Navigation distinguishes the evaluation repository (`lexmount/webstone`), result submissions (`lexmount/webstone-site`) and Datasets. Star links point to `lexmount/webstone`.
 
 ## Result submissions
 
@@ -94,10 +94,15 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 
 - Match Benchmark names to the official Hugging Face Dataset Card. Modified third-party datasets retain the LexBench prefix; untouched mirrors retain the upstream name. LexBench Zyte Product Extraction includes a separate source-qualified annotation layer, so retains its prefix; do not claim existing scores use that layer without report evidence.
 - Name the selected Benchmark once in the main content. Avoid repeating titles, primary metrics, counts or generic sorting instructions in large summary blocks. Put protocol, population and provenance detail in Evaluation notes, with important comparability warnings visible.
-- Comparison charts must add information beyond ranking: multidimensional profiles, or quality against comparable latency/resource use. Allow selection of up to three methods; label scales and preserve missing values. Do not invent composite scores or treat unmatched execution conditions as controlled comparisons.
+- Comparison charts must add information beyond ranking: multidimensional profiles, or quality against comparable latency/resource use. Allow readers to select methods; label scales and preserve missing values. Do not invent composite scores or treat unmatched execution conditions as controlled comparisons.
 
 ## Website copy
 
 - For every change to reader-facing text, read `.agents/skills/humanizer/SKILL.md` and `.agents/skills/humanizer-chinese/SKILL.md`. Review the English and Chinese together in the rendered page, including labels, accessibility text, empty states, and text drawn from the catalog or a report. Remove repeated explanations. Keep the facts needed to interpret the results.
 - Preserve published result files and source quotations. Put editorial changes to old results in the display copy. Keep metric names, units, sample counts and billing basis accurate in both languages.
 - Mark the bilingual copy check in the PR after review. The website check requires that attestation for changes to copy-bearing source files. Reviewers check the rendered text against the underlying data.
+
+## Public delivery
+
+- Reports and blog links must open for an anonymous reader, including embedded previews. Run `npm run check:reports` before publishing. CI checks them on PRs, main updates and daily; HTTP 200 alone does not prove access. Never broaden access without the owner’s authorization.
+- Cloudflare Pages publishes `web/out` through the tag-triggered `pages-release.yml` workflow. Tags must be on main history. See `docs/deploying-pages.md` for the established release and verification commands. Keep its `_headers` and `_redirects` behavior consistent with the optional Nginx deployment. Verify the public domain, data, downloads, report access and release identity before shutting down a previous host.

@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, writeFile, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { prepareData, discoverResults, parseReportFile, validateSnapshot, validateCatalog } from "../scripts/prepare-data.mjs";
+import { releaseFingerprint, prepareData, discoverResults, parseReportFile, validateSnapshot, validateCatalog } from "../scripts/prepare-data.mjs";
 
 const catalog = JSON.parse(readFileSync(new URL("../benchmarks/catalog.json", import.meta.url), "utf8"));
 const files = await discoverResults(fileURLToPath(new URL("../results/", import.meta.url)), catalog);
@@ -34,7 +34,11 @@ test("report directories are discovered and their declared provenance is validat
 });
 
 test("external tracks use safe HTTPS links and cannot own local benchmark tables", () => {
-  assert.equal(catalog.tracks.find(track => track.id === "browserarena").url, "https://browserarena.dev.lexmount.net/");
+  for (const track of catalog.tracks.filter(track => track.url)) {
+    const destination = new URL(track.url);
+    assert.equal(destination.protocol, "https:");
+    assert.equal(destination.username + destination.password, "");
+  }
   for (const url of ["javascript:alert(1)", "http://example.com", "https://user:password@example.com", ""]) {
     const invalid = structuredClone(catalog);
     invalid.tracks.find(track => track.id === "browserarena").url = url;
@@ -395,4 +399,39 @@ test("explicit metric ranges bound scores and confidence intervals", () => {
   report.benchmarks[0].providers[0].scores.passRate = 90;
   report.benchmarks[0].providers[0].confidenceIntervals = { passRate: { lower: 85, upper: 96, level: .95 } };
   assert.throws(() => validateSnapshot(report, entry, bounded), /Invalid confidence interval/);
+});
+
+
+test("navigation groups reject orphaned or duplicate placements and premature published tracks", () => {
+  const invalid = structuredClone(catalog);
+  invalid.tracks[0].groupId = "missing";
+  assert.throws(() => validateCatalog(invalid), /Unknown track navigation group/);
+  const duplicate = structuredClone(catalog);
+  duplicate.navigationGroups[1].id = duplicate.navigationGroups[0].id;
+  assert.throws(() => validateCatalog(duplicate), /Duplicate navigation group/);
+  const malformed = structuredClone(catalog);
+  malformed.navigationGroups[0].upcoming = [null];
+  assert.throws(() => validateCatalog(malformed), /upcoming track/);
+  const premature = structuredClone(catalog);
+  premature.navigationGroups[0].upcoming[0].id = premature.tracks[0].id;
+  assert.throws(() => validateCatalog(premature), /separate from published tracks/);
+});
+
+
+test("static brand changes update the release while generated delivery files do not", async () => {
+  const folder = await mkdtemp(path.join(tmpdir(), "webstone-assets-"));
+  try {
+    for (const file of ["web/app/page.tsx", "web/components/card.tsx", "web/lib/labels.ts", "web/public/brand/webstone.png", "benchmarks/catalog.json", "reports/metadata.json", "web/next.config.ts", "web/package.json", "package-lock.json"]) {
+      await mkdir(path.dirname(path.join(folder, file)), { recursive: true });
+      await writeFile(path.join(folder, file), "initial content");
+    }
+    const first = await releaseFingerprint([], folder);
+    await writeFile(path.join(folder, "web/public/brand/webstone.png"), "updated brand image");
+    const second = await releaseFingerprint([], folder);
+    assert.notEqual(second, first);
+    await mkdir(path.join(folder, "web/public/results"), { recursive: true });
+    await writeFile(path.join(folder, "web/public/results/reports.json"), "generated data");
+    await writeFile(path.join(folder, "web/public/release.json"), "generated release");
+    assert.equal(await releaseFingerprint([], folder), second);
+  } finally { await rm(folder, { recursive: true, force: true }); }
 });

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
-    "build": "next build"
+    "build": "next build",
+    "postbuild": "node ../scripts/secure-export.mjs"
   },
   "dependencies": {
     "next": "16.4.6",

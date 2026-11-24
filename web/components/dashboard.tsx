@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowDownToLine, ArrowRight, ArrowUpRight, Layers3, Menu } from "lucide-react";
+import { ArrowDown, ArrowDownToLine, ArrowRight, ArrowUpRight, CircleDashed, Layers3, Menu, Star } from "lucide-react";
 import { canonicalVersion, benchmarkEntries, bestValue, formatMetric, formatPricing, isBestValue, latestEntry, reportEntries, resolveBenchmark, selectEntry, sortProviders, type Catalog, type Entry, type Metric, type Provider, type ReportFile, type Snapshot } from "../lib/results";
 import { providerColors } from "../lib/presentation";
 import InfoTooltip from "./info-tooltip";
 import Insights from "./insights";
-import MetricSelector from "./metric-selector";
 import MethodDetails from "./method-details";
 import ReleaseCheck from "./release-check";
 import { RELEASE, BUILT_AT } from "../lib/release.generated";
@@ -17,7 +16,7 @@ import { historicalPublication } from "../lib/historical-publications";
 import { decisionMetrics, hasPricingInformation } from "../lib/comparisons";
 
 import Home, { EvaluationReports, TRACK_ICONS } from "./home";
-import { benchmarkHref, EVALUATION_URL, SUBMISSION_URL } from "../lib/overview";
+import { benchmarkHref, DATASETS_URL, EVALUATION_URL, SUBMISSION_URL, WEBSTONE_REPOSITORY_URL, navigationGroups } from "../lib/overview";
 const GITHUB_URL = "https://github.com/lexmount/webstone-site";
 const LEGACY_DATE_NOTE = "The evaluation date was not supplied; the displayed date is the date of import.";
 type Selection = { benchmark: string; version: string; metric: string };
@@ -33,7 +32,7 @@ export default function Dashboard() {
   const [language, chooseLanguage] = useLanguage();
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [showCategories, setShowCategories] = useState(false);
-  const [selectedMetrics, setSelectedMetrics] = useState<string[] | null>(null);
+  const [moreMetrics, setMoreMetrics] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -92,7 +91,8 @@ export default function Dashboard() {
   const historicalCopy = snapshot ? historicalResultCopy(snapshot.id, language) : null;
   const evaluationNotes = historicalCopy?.notes ?? benchmark?.notes.filter(note => note !== LEGACY_DATE_NOTE).map(t) ?? [];
   const details = catalog?.benchmarks.find(item => item.id === selection.benchmark);
-  const tracks = catalog?.tracks.map(item => ({ ...item, benchmarks: catalog.benchmarks.filter(bench => bench.trackId === item.id) })) ?? [];
+  const groups = catalog ? navigationGroups(catalog) : [];
+  const tracks = groups.flatMap(group => group.tracks);
   const track = tracks.find(item => item.id === details?.trackId);
   const metric = benchmark?.metrics.find(item => item.id === selection.metric) ?? benchmark?.metrics.find(item => item.id === benchmark.primaryMetric) ?? benchmark?.metrics[0];
   const versionEntries = entries ? benchmarkEntries(entries, selection.benchmark) : [];
@@ -100,9 +100,7 @@ export default function Dashboard() {
   const providers = benchmark && metric ? sortProviders(benchmark.providers, metric.id, direction) : [];
   const categories = showCategories ? benchmark?.categories ?? [] : [];
   const primaryMetric = benchmark?.metrics.find(item => item.id === benchmark.primaryMetric);
-  const defaultMetricIds = benchmark ? decisionMetrics(benchmark, false, selection.metric).map(item => item.id) : [];
-  const visibleMetrics = benchmark?.metrics.filter(item => item.id === benchmark.primaryMetric ||
-    (selectedMetrics ?? defaultMetricIds).includes(item.id)) ?? [];
+  const visibleMetrics = benchmark ? decisionMetrics(benchmark, moreMetrics, selection.metric) : [];
   const leadingMetrics = benchmark && primaryMetric
     ? [primaryMetric, ...visibleMetrics.filter(item => item.id !== primaryMetric.id && isDecisionColumn(item))]
     : [];
@@ -124,7 +122,7 @@ export default function Dashboard() {
 
   function chooseBenchmark(id: string) {
     setShowCategories(false);
-    setSelectedMetrics(null);
+    setMoreMetrics(false);
     const latest = entries ? latestEntry(entries, id) : null;
     const version = latest ? canonicalVersion(latest.version) : "";
     const selectedResult = snapshots.find(record => record.id === latest?.id)?.benchmarks.find(item => item.id === id);
@@ -137,7 +135,7 @@ export default function Dashboard() {
   }
 
   function chooseVersion(version: string) {
-    setSelectedMetrics(null);
+    setMoreMetrics(false);
     setShowCategories(false);
     setSelectedProvider(null);
     const selectedEntry = entries ? selectEntry(entries, version, selection.benchmark) : null;
@@ -181,9 +179,8 @@ export default function Dashboard() {
     <a className="skip-link" href="#main">{t("Skip to results")}</a>
     {menuOpen && <button className="sidebar-scrim" aria-label={t("Close navigation")} onClick={() => setMenuOpen(false)} />}
     <aside className={`sidebar ${menuOpen ? "is-open" : ""}`}>
-      <a href="/" className="brand" aria-label={t("Webstone home")}><span className="brand-heading"><Layers3 size={24} strokeWidth={1.8} /><span>Webstone</span></span></a>
-      <div className="sidebar-label">{t("Tracks")}</div>
-      <nav aria-label={t("Tracks")}>{tracks.map(item => {
+      <a href="/" className="brand" aria-label={t("Webstone home")}><span className="brand-heading"><span className="brand-mark" aria-hidden="true"><img src="/brand/webstone.png" alt="" width={1536} height={820} /></span><span>Webstone</span></span></a>
+      <nav className="grouped-navigation" aria-label={t("Benchmark navigation")}>{groups.map(group => <section key={group.id} className="nav-group" aria-labelledby={`navigation-${group.id}`}><h2 id={`navigation-${group.id}`}>{t(group.name)}</h2>{group.tracks.map(item => {
         const Icon = TRACK_ICONS[item.id] ?? Layers3;
         if (item.url) return <a key={item.id} className="nav-item" href={item.url} target="_blank" rel="noopener noreferrer" aria-label={`${t(item.name)} (${t("opens in a new tab")})`}>
           <Icon size={17} aria-hidden="true" /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span><ArrowUpRight className="track-external" size={14} aria-hidden="true" />
@@ -195,7 +192,9 @@ export default function Dashboard() {
         ><Icon size={17} /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span></button>
 
         </div>;
-      })}</nav>
+      })}{group.upcoming.map(item => <div key={item.id} className="nav-upcoming">
+        <CircleDashed size={16} aria-hidden="true" /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span><span className="upcoming-badge">{t("Coming soon")}</span>
+      </div>)}</section>)}</nav>
       <div className="sidebar-guides">
         <a href={EVALUATION_URL} target="_blank" rel="noreferrer" aria-label={`${t("Run an evaluation")} · lexmount/webstone`}>
           <Github /><span>{t("Run an evaluation")}<small>webstone</small></span><ArrowUpRight size={13} aria-hidden="true" />
@@ -203,9 +202,13 @@ export default function Dashboard() {
         <a href={SUBMISSION_URL} target="_blank" rel="noreferrer" aria-label={`${t("Submit results")} · lexmount/webstone-site`}>
           <Github /><span>{t("Submit results")}<small>webstone-site</small></span><ArrowUpRight size={13} aria-hidden="true" />
         </a>
+        <a href={DATASETS_URL} target="_blank" rel="noreferrer" aria-label={t("Datasets")}>
+          <img src="/huggingface.svg" width="20" height="20" alt="" aria-hidden="true" /><span>{t("Datasets")}</span><ArrowUpRight size={13} aria-hidden="true" />
+        </a>
       </div>
       <div className="sidebar-footer">
         <div className="language-control" role="group" aria-label="Language / 语言"><button lang="en" aria-pressed={language === "en"} onClick={() => chooseLanguage("en")}>EN</button><button lang="zh" aria-pressed={language === "zh"} onClick={() => chooseLanguage("zh")}>中文</button></div>
+        <a className="nav-star" href={WEBSTONE_REPOSITORY_URL} target="_blank" rel="noreferrer" aria-label={t("Star Webstone on GitHub")}><Star size={14} aria-hidden="true" />Star<ArrowUpRight size={12} aria-hidden="true" /></a>
       </div>
     </aside>
 
@@ -272,14 +275,13 @@ export default function Dashboard() {
               <h2 className="sr-only">{t("Leaderboard")}</h2>
               <div className="table-toolbar"><span>{benchmark.providerCount} {t("methods")} · {benchmark.taskCount.toLocaleString()} {t("cases")}</span><div className="column-views table-controls" role="group" aria-label={t("Table columns")}>
                 {benchmark.categories.length > 0 && <button aria-pressed={showCategories} onClick={() => setShowCategories(current => !current)}>{t("Category breakdown")}</button>}
-                <MetricSelector label="Table metrics" options={benchmark.metrics} selectedIds={visibleMetrics.map(item => item.id)}
-                  defaultIds={defaultMetricIds} requiredIds={[benchmark.primaryMetric]} t={t} onChange={ids => {
-                    setSelectedMetrics(ids);
-                    if (!ids.includes(selection.metric)) {
-                      setSelection(current => ({ ...current, metric: benchmark.primaryMetric }));
-                      setDirection(primaryMetric?.direction ?? "desc");
-                    }
-                  }} />
+                {benchmark.metrics.some(item => !decisionMetrics(benchmark, false, benchmark.primaryMetric).includes(item)) && <button aria-pressed={moreMetrics} onClick={() => {
+                  if (moreMetrics && !decisionMetrics(benchmark, false, benchmark.primaryMetric).some(item => item.id === selection.metric)) {
+                    setSelection(current => ({ ...current, metric: benchmark.primaryMetric }));
+                    setDirection(primaryMetric?.direction ?? "desc");
+                  }
+                  setMoreMetrics(current => !current);
+                }}>{t("More metrics")}</button>}
               </div></div>
               <p className="sample-scope">{benchmark.metrics.filter(item => result?.metricSamples?.[item.id]?.sampleCount !== null && result?.metricSamples?.[item.id]?.sampleCount !== undefined && result.metricSamples[item.id].sampleCount !== benchmark.taskCount).map(item => `${t(item.label)}: ${result!.metricSamples![item.id].sampleCount} ${t("samples")}`).join(" · ")}</p>
               {benchmark.trackId === "websearch" && snapshot?.source.kind === "report-page" && <p className="sample-scope">{t("Latency comes from separate runs with different concurrency.")}</p>}

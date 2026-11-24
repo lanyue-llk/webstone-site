@@ -1,6 +1,10 @@
 # Webstone
 
-The companion website for [Webstone](https://github.com/lexmount/webstone), publishing browser, search and structured extraction benchmark results in sortable tables.
+<img src="web/public/brand/webstone.png" alt="Webstone" width="640">
+
+The official [Webstone leaderboard](https://webstone.lexmount.io): published benchmark results, method comparisons and evaluation reports.
+
+[Run evaluations with Webstone](https://github.com/lexmount/webstone). Submit measured results through this repository.
 
 Twelve local benchmark views across four Tracks are published on this site. A fifth Track, BrowserArena, opens the independently deployed benchmark site in a new tab. The evaluation harness is [lexmount/webstone](https://github.com/lexmount/webstone).
 
@@ -154,7 +158,17 @@ python3 -m http.server 5173 --bind 127.0.0.1 --directory web/out
 
 Open <http://127.0.0.1:5173>. The output is plain static files and needs no Next.js runtime; do not use `next start`.
 
-## Docker and manual Rainbond deployment
+## Deployment
+
+### Cloudflare Pages
+
+The public site uses Cloudflare Pages. Merge into `main`, then push a new `vMAJOR.MINOR.PATCH` tag to run tests, check report access and publish the static export. Main pushes alone do not publish. See [Pages deployment](docs/deploying-pages.md) for initial authorization, GitHub settings, domain configuration, verification and manual recovery.
+
+Report links must open without signing in. `npm run check:reports` makes anonymous HTTPS requests through each share page, delivery manifest and required report file, including embedded reports. Private or missing files and redirects to sign-in block publication. CI runs the check on PRs, main updates and daily. Report updates can keep the same public link; the check does not lock file versions or score report content. Open the report in a signed-out browser when adding a link. Review its measurements separately from link availability.
+
+The export includes Pages cache headers and the submission redirect. Verify the deployed release, leaderboard data and report downloads before retiring a previous host.
+
+### Docker and optional Rainbond hosting
 
 The root `Dockerfile` installs locked dependencies with Node.js 22, runs tests, regenerates the bundled results and exports the static site. The final Nginx image serves only the exported files on HTTP port `8080` using `deploy/nginx.conf`. Generated local build files and environment files are excluded by `.dockerignore`.
 
@@ -167,7 +181,7 @@ docker run --rm -p 8080:8080 webstone-site:local
 
 Open <http://127.0.0.1:8080>.
 
-For manual Rainbond deployment directly from GitHub:
+For optional Rainbond deployment directly from GitHub:
 
 1. Commit and push the latest code, catalog, result files and these deployment files to the branch Rainbond will build. With a protected `main`, merge the pull request first.
 2. In the target Rainbond application, create a component from source code using `https://github.com/lexmount/webstone-site.git` and the published branch, normally `main`. A private repository needs GitHub repository-read authorization configured in Rainbond.
@@ -195,11 +209,11 @@ CI serves the actual static export through this Nginx configuration and checks e
 
 English is the first-visit default. An explicit EN / 中文 selection persists locally and updates document language. The catalog owns translations of reusable names, descriptions and metric definitions; each report owns translations of its version-specific scope and notes. Original source quotations and provenance are preserved, including historical non-English notes with a separate English display translation.
 
-The dashboard keeps one leaderboard per benchmark and adds a compact scope summary, method details and two selected charts. Charts use only disclosed values from the selected result version: quality with published confidence intervals, category pass counts, source-match composition or timing percentiles. Missing values stay missing, timing units stay distinct, and confidence intervals do not establish statistical significance. Search collection dates/concurrency and request-versus-successful-search billing bases are disclosed. The shared Track blog stays visible alongside any version-specific source report.
+Every benchmark uses the same table, metric selectors and capability profile. Users choose visible columns, radar axes and methods to compare. Missing measurements stay missing; quoted prices are separate from measured costs and stay outside the radar. Reports appear below the capability profile and on the homepage.
 
 ### BrowserArena
 
-The catalog's `browserarena` Track links to <https://browserarena.dev.lexmount.net/> in a new tab. Its lifecycle, proxy, throughput and CAPTCHA views retain their own navigation and history. An external Track has a verified HTTPS `url` and no local benchmark definitions or result files. It is a regular hyperlink; no filesystem symlink, iframe or proxy is involved.
+The catalog's `browserarena` Track links to <https://browserarena.ai/> in a new tab. Its lifecycle, proxy, throughput and CAPTCHA views retain their own navigation and history. An external Track has a verified HTTPS `url` and no local benchmark definitions or result files. It is a regular hyperlink; no filesystem symlink, iframe or proxy is involved.
 
 ### Public repository scope
 
@@ -241,6 +255,6 @@ Tokens are only ever used outside this repository and are never stored in data, 
 
 ## Reviewed result submissions
 
-Use the [submission skill](.agents/skills/submit-webstone-result/SKILL.md) and [PR guide](docs/submitting-results.md). An agent prepares public measured JSON and opens a fork PR; Git, GitHub and Node.js are sufficient. Webstone CLI/SDK helpers are optional. Published results are immutable and corrections add a new edition. CI validates the contract; maintainers control merging and Rainbond deployment. See [Webstone](https://github.com/lexmount/webstone) for the broader evaluation, report and dataset workflow.
+Use the [submission skill](.agents/skills/submit-webstone-result/SKILL.md) and [PR guide](docs/submitting-results.md). An agent prepares public measured JSON and opens a fork PR; Git, GitHub and Node.js are sufficient. Webstone CLI/SDK helpers are optional. Published results are immutable and corrections add a new edition. CI validates the contract; maintainers control merging and publication. See [Webstone](https://github.com/lexmount/webstone) for the broader evaluation, report and dataset workflow.
 
 New result editions record a UTC release date. The website shows its own update time separately. See [Result versioning](docs/result-versioning.md).

@@ -34,7 +34,7 @@ CI uses the trusted base-branch validator to check immutable history, filenames,
 
 Run `node scripts/check-result-change.mjs origin/main HEAD` after committing, with a freshly fetched `origin/main`. CI remains authoritative. Follow checks with `gh pr checks NUMBER --repo lexmount/webstone-site`; respond to evidence and configuration review. Passing CI checks consistency, not scientific truth. Maintainers decide when to merge. If another PR consumes your version, merge current upstream main into your contributor branch, allocate the next version again, preserve measurements, rerun checks and request review; never force-push.
 
-After merge, verify Rainbond built the actual merge commit, then check the selected result version, report links and downloaded JSON on the live site. A merged PR does not prove deployment success. Corrections and rollbacks add a new explained edition; they do not modify history.
+After merge, verify the public site deployed the actual merge commit, then check the selected result version, report links and downloaded JSON on the live site. A merged PR does not prove deployment success. Corrections and rollbacks add a new explained edition; they do not modify history.
 
 ## Optional CLI / SDK
 
@@ -42,6 +42,6 @@ After merge, verify Rainbond built the actual merge commit, then check the selec
 
 ## Public data and repository settings
 
-Pending PRs are public too. Keep credentials, private raw logs, customer data and large evidence artifacts outside Git. Supply public evidence links instead. Use your contributor identity, never Rainbond's read-only deployment credential.
+Pending PRs are public too. Keep credentials, private raw logs, customer data and large evidence artifacts outside Git. Supply public evidence links instead. Reports must open without signing in; run `npm run check:reports` to check the page and any embedded preview. Use your contributor identity, never Rainbond's read-only deployment credential.
 
-Keep PRs, required `Result submission contract`, `Website build` and `ocr-review` checks, conversation resolution and protection against direct/force pushes and deletion. Human approval counts are a maintainer setting; this repository currently does not require a separate human approval. A workflow or this document alone does not configure branch protection. PyPI software publication has its own protected environment and is independent of result submissions.
+Keep PRs, required `Result submission contract`, `Website build`, `Anonymous report access` and `ocr-review` checks, conversation resolution and protection against direct/force pushes and deletion. Human approval counts are a maintainer setting; this repository currently does not require a separate human approval. A workflow or this document alone does not configure branch protection. PyPI software publication has its own protected environment and is independent of result submissions.

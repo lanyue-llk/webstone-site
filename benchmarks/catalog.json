@@ -45,32 +45,68 @@
     "bocha-ai": "https://github.com/Bocha-Labs/bocha-skills",
     "bocha-summary": "https://github.com/Bocha-Labs/bocha-skills"
   },
+  "navigationGroups": [
+    {
+      "id": "web-tools",
+      "name": "Web Tools",
+      "description": "Search, extraction and content retrieval APIs.",
+      "upcoming": [
+        {
+          "id": "webfetch-api",
+          "name": "Web Fetch API",
+          "description": "Content retrieval services"
+        }
+      ]
+    },
+    {
+      "id": "browsers",
+      "name": "Browser Capabilities",
+      "description": "Browser retrieval and task replay."
+    },
+    {
+      "id": "browser-automation",
+      "name": "Browser Automation",
+      "description": "Browser tasks performed by agents.",
+      "upcoming": [
+        {
+          "id": "browser-use",
+          "name": "Browser Use",
+          "description": "Browser agents"
+        }
+      ]
+    }
+  ],
   "tracks": [
     {
       "id": "webfetch",
       "name": "Web Fetch",
-      "description": "Content retrieval"
+      "description": "Content retrieval",
+      "groupId": "browsers"
     },
     {
       "id": "websearch",
       "name": "Web Search",
-      "description": "Search retrieval"
+      "description": "Search retrieval",
+      "groupId": "web-tools"
     },
     {
       "id": "webextract",
       "name": "Web Extract",
-      "description": "Structured field extraction"
+      "description": "Structured field extraction",
+      "groupId": "web-tools"
     },
     {
       "id": "trajectory-replay",
       "name": "Trajectory Replay",
-      "description": "Recorded browser actions"
+      "description": "Execute fixed action sequences",
+      "groupId": "browsers"
     },
     {
       "id": "browserarena",
       "name": "BrowserArena",
       "description": "Browser infrastructure benchmarks",
-      "url": "https://browserarena.dev.lexmount.net/"
+      "url": "https://browserarena.ai/",
+      "groupId": "browsers"
     }
   ],
   "benchmarks": [
@@ -246,7 +282,8 @@
               "label": "Overall",
               "description": "Mean score across full text, code, formulas, table content and table structure. Higher is better.",
               "unit": "score",
-              "direction": "desc"
+              "direction": "desc",
+              "decimals": 2
             },
             {
               "id": "fullText",
@@ -254,7 +291,7 @@
               "description": "Quality of full-text extraction compared with the reference content. Higher is better.",
               "unit": "score",
               "direction": "desc",
-              "decimals": 1
+              "decimals": 2
             },
             {
               "id": "code",
@@ -262,7 +299,7 @@
               "description": "Quality of code extraction from the page. Higher is better.",
               "unit": "score",
               "direction": "desc",
-              "decimals": 1
+              "decimals": 2
             },
             {
               "id": "formula",
@@ -270,7 +307,7 @@
               "description": "Quality of mathematical formula extraction. Higher is better.",
               "unit": "score",
               "direction": "desc",
-              "decimals": 1
+              "decimals": 2
             },
             {
               "id": "tableContent",
@@ -278,7 +315,7 @@
               "description": "Quality of extracted table-cell text and data. Higher is better.",
               "unit": "score",
               "direction": "desc",
-              "decimals": 1
+              "decimals": 2
             },
             {
               "id": "tableStructure",
@@ -286,7 +323,7 @@
               "description": "Quality of preserved table rows, columns and cell structure. Higher is better.",
               "unit": "score",
               "direction": "desc",
-              "decimals": 1
+              "decimals": 2
             }
           ]
         }
@@ -968,7 +1005,7 @@
       "datasetUrl": "https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser",
       "reportUrl": "https://yours.lexmount.cn/artifact-site/s/gdwtSGOel0va",
       "trackId": "trajectory-replay",
-      "description": "Compare Moli builds with layout on and off on a 372-task subset of the LexBench Headless Browser protocol, measuring success, memory and latency.",
+      "description": "Compare task success and resource use across Moli builds with layout on and off.",
       "providerLabel": "Build",
       "definitions": [
         {
@@ -1024,6 +1061,62 @@
               "decimals": 2,
               "signed": true,
               "description": "Percentage change in mean latency against the baseline."
+            }
+          ]
+        },
+        {
+          "id": "cpu-resources",
+          "primaryMetric": "successRate",
+          "metrics": [
+            {
+              "id": "successRate",
+              "label": "Task success",
+              "unit": "percent",
+              "direction": "desc",
+              "description": "Passed tasks divided by the total number of evaluated tasks."
+            },
+            {
+              "id": "successDelta",
+              "label": "Success Δ",
+              "unit": "points",
+              "direction": "desc",
+              "decimals": 2,
+              "signed": true,
+              "description": "Change in percentage points against the Moli 1.1.4 baseline with layout off."
+            },
+            {
+              "id": "pss",
+              "label": "Median peak PSS",
+              "unit": "mib",
+              "direction": "asc",
+              "decimals": 2,
+              "description": "Median of per-call peak proportional set size (PSS), in MiB, on the frozen common-pass resource sample."
+            },
+            {
+              "id": "pssDelta",
+              "label": "PSS Δ",
+              "unit": "percent",
+              "direction": "asc",
+              "decimals": 2,
+              "signed": true,
+              "description": "Percentage change in PSS against the baseline."
+            },
+            {
+              "id": "cpuTime",
+              "label": "Mean CPU time",
+              "unit": "ms",
+              "direction": "asc",
+              "decimals": 2,
+              "description": "Mean CPU time per call on the frozen common-pass resource sample, in milliseconds."
+            },
+            {
+              "id": "cpuDelta",
+              "label": "CPU time Δ",
+              "unit": "percent",
+              "direction": "asc",
+              "decimals": 2,
+              "signed": true,
+              "description": "Percentage change in mean CPU time against the Moli 1.1.4 baseline with layout off."
             }
           ]
         }
@@ -1268,10 +1361,10 @@
   ],
   "translations": {
     "zh": {
-      "Web Fetch": "网页获取",
-      "Web Search": "网页搜索",
-      "Trajectory Replay": "轨迹回放",
-      "Web Extract": "字段提取",
+      "Web Fetch": "Web Fetch",
+      "Web Search": "Web Search",
+      "Trajectory Replay": "Trajectory Replay",
+      "Web Extract": "Web Extract",
       "Content retrieval": "网页内容获取",
       "Search retrieval": "搜索结果",
       "Recorded browser actions": "回放浏览器操作",
@@ -1442,7 +1535,29 @@
       "Open source / DeepSeek": "开源 / DeepSeek",
       "Search API": "搜索 API",
       "layout off": "关闭布局",
-      "layout on": "开启布局"
+      "layout on": "开启布局",
+      "Compare task success and resource use across Moli builds with layout on and off.": "比较 Moli 各版本开启、关闭布局时的任务成功率和资源占用。",
+      "Mean CPU time": "平均 CPU 时间",
+      "CPU time Δ": "CPU 时间变化",
+      "Median peak PSS": "峰值 PSS 中位数",
+      "Mean CPU time per call on the frozen common-pass resource sample, in milliseconds.": "在固定的共同通过任务样本上，统计每次调用的平均 CPU 时间，单位为毫秒。",
+      "Percentage change in mean CPU time against the Moli 1.1.4 baseline with layout off.": "相对 Moli 1.1.4 关闭布局基线的平均 CPU 时间变化百分比。",
+      "Median of per-call peak proportional set size (PSS), in MiB, on the frozen common-pass resource sample.": "在固定的共同通过任务样本上，统计每次调用峰值 PSS 的中位数，单位为 MiB。",
+      "Web Tools": "Web Tools",
+      "Search, extraction and content retrieval APIs.": "搜索、结构化提取与网页获取 API。",
+      "Headless Browsers": "无头浏览器",
+      "Compare browsers on page retrieval and recorded tasks.": "比较浏览器的网页获取与任务回放能力。",
+      "Browser Automation": "Browser Automation",
+      "Browser agents and end-to-end testing.": "浏览器智能体与端到端测试。",
+      "Execute fixed action sequences": "让浏览器执行固定操作序列",
+      "Web Fetch API": "Web Fetch API",
+      "Content retrieval services": "网页内容获取服务",
+      "Browser Use": "Browser Use",
+      "Browser agents": "浏览器智能体",
+      "End-to-end Testing": "端到端测试",
+      "Browser workflow tests": "浏览器流程测试",
+      "Browser Capabilities": "Browser Capabilities",
+      "Browser tasks performed by agents.": "由智能体完成浏览器任务。"
     },
     "en": {
       "全程关闭": "Layout off throughout",
@@ -1461,7 +1576,7 @@
       "Evaluate the usefulness and citation support of generated answers.": "Score generated answers for usefulness and citation support.",
       "Evaluate generated-answer correctness with official SimpleQA grading rules.": "Score generated answers using the official SimpleQA rules.",
       "Compare Moli builds with layout on and off on a 372-task subset of the LexBench Headless Browser protocol, measuring success, memory and latency.": "Compare Moli builds with layout on and off. The 372-task suite measures success, memory and latency.",
-      "Compare browser execution on fixed action trajectories for 812 WebArena-Verified tasks.": "Replay recorded actions for 812 WebArena-Verified tasks.",
+      "Compare browser execution on fixed action trajectories for 812 WebArena-Verified tasks.": "Execute fixed action sequences for 812 WebArena-Verified tasks.",
       "Compare structured field extraction on 800 archived SWDE pages across eight domains.": "Extract fields from 800 archived SWDE pages in eight domains.",
       "Compare price, SKU and stock extraction from 140 archived product pages.": "Extract price, SKU and stock information from 140 archived product pages.",
       "Share of requests that returned a response. A response does not guarantee that the content meets the task requirements. Higher is better.": "Share of requests that received a response, regardless of content quality.",

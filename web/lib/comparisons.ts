@@ -4,7 +4,7 @@ export function decisionMetrics(benchmark: Benchmark, expanded: boolean, selecte
   if (expanded) return benchmark.metrics;
   return benchmark.metrics.filter(metric => metric.id === benchmark.primaryMetric || metric.id === selected
     || benchmark.leadingMetricIds?.includes(metric.id)
-    || ["seconds", "ms", "mib", "usd"].includes(metric.unit));
+    || (["seconds", "ms", "mib", "usd"].includes(metric.unit) && benchmark.providers.some(provider => typeof provider.scores[metric.id] === "number")));
 }
 
 // Never turn unknown, software-only, or ranged billing into a point price.
