@@ -228,7 +228,7 @@ test("HTML previews inside SVG integration points retain their access checks", a
 
 
 test("delivered permission pages cannot stand in for a report", async () => {
-  for(const text of ["Sign in","Log in","Access denied","Unauthorized","Forbidden","Please sign in to view this report.","You must log in to access this report.","Authentication required"]) await assert.rejects(check(publication({},"<h1>"+text+"</h1>")), /authentication|denies access/);
+  for(const text of ["Sign in","Log in","Access denied","Unauthorized","Forbidden","Please sign in to view this report.","You must log in to access this report.","Authentication required","Access denied Contact the owner."]) await assert.rejects(check(publication({},"<h1>"+text+"</h1>")), /authentication|denies access/);
   await check(publication({},'<header>Sign in</header>'+body));
 });
 
