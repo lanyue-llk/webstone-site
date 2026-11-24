@@ -235,7 +235,7 @@ test("HTML previews inside SVG integration points retain their access checks", a
 
 
 test("delivered permission pages cannot stand in for a report", async () => {
-  for(const text of ["Sign in","Log in","Access denied","Unauthorized","Forbidden"]) await assert.rejects(check(publication({},"<h1>"+text+"</h1>")), /authentication|denies access/);
+  for(const text of ["Sign in","Log in","Access denied","Unauthorized","Forbidden","Please sign in to view this report.","You must log in to access this report.","Authentication required"]) await assert.rejects(check(publication({},"<h1>"+text+"</h1>")), /authentication|denies access/);
   await check(publication({},'<header>Sign in</header>'+body));
 });
 
@@ -247,4 +247,10 @@ test("decoder failure closes a corrupt response before a server ends its stream"
   };
   await assert.rejects(anonymousRequest(entry,{},transport), error=>error.code==="Z_DATA_ERROR");
   assert.equal(req.destroyed,true);assert.equal(response.destroyed,true);
+});
+
+
+test("foreign script and style source text cannot conceal a frame-only private report", async () => {
+  const denied="https://reports.example.org/private";
+  for(const tag of ["script","style"]) await assert.rejects(check(publication({[denied]:()=>new Response("Forbidden",{status:403})},'<svg><'+tag+'>text { fill: red; }</'+tag+'></svg><iframe src="'+denied+'"></iframe>')), /403/);
 });
