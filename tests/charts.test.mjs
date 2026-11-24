@@ -479,7 +479,7 @@ test("Chinese navigation preserves technical names and translates supporting cop
   const t=translator('zh',catalog);
   for (const name of ['Web Tools','Browser Capabilities','Browser Automation','Web Search','Web Extract','Web Fetch','Web Fetch API','Trajectory Replay','Browser Use']) assert.equal(t(name),name);
   assert.equal(t('Coming soon'),'开发中');
-  assert.equal(t('Evaluate browsers with fixed actions'),'用固定操作序列评测浏览器');
+  assert.equal(t('Execute fixed action sequences'),'让浏览器执行固定操作序列');
 });
 
 test("homepage counts reports instead of historical result editions and uses the shared brand asset", async () => {

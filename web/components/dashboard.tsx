@@ -17,7 +17,6 @@ import { decisionMetrics, hasPricingInformation } from "../lib/comparisons";
 
 import Home, { EvaluationReports, TRACK_ICONS } from "./home";
 import { benchmarkHref, DATASETS_URL, EVALUATION_URL, SUBMISSION_URL, WEBSTONE_REPOSITORY_URL, navigationGroups } from "../lib/overview";
-const GITHUB_URL = "https://github.com/lexmount/webstone-site";
 const LEGACY_DATE_NOTE = "The evaluation date was not supplied; the displayed date is the date of import.";
 type Selection = { benchmark: string; version: string; metric: string };
 
