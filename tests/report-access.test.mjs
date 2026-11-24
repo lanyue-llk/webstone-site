@@ -216,3 +216,12 @@ test("HTTPS cancellation bounds stalled headers and bodies and closes transport 
     } finally {clearTimeout(guard);}
   }
 });
+
+
+test("HTML previews inside SVG integration points retain their access checks", async () => {
+  const denied="https://reports.example.org/private";
+  for(const ancestor of ["template","noscript","iframe","script","style"]) {
+    const content=body+'<svg><'+ancestor+'><foreignObject><iframe data-report-preview src="'+denied+'"></iframe></foreignObject></'+ancestor+'></svg>';
+    await assert.rejects(check(publication({[denied]:()=>new Response("Forbidden",{status:403})},content)),/403/);
+  }
+});
