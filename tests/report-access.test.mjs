@@ -203,7 +203,9 @@ test("public redirects reach the final report and sign-in redirects fail before 
   const visited = [];
   await check(async url => { visited.push(url); return url === address ? new Response(null, {status:302,headers:{location:'/final'}}) : html('<h1>Measured results</h1>'); });
   assert.deepEqual(visited, [address, 'https://reports.example.org/final']);
-  await assert.rejects(check(async () => new Response(null,{status:302,headers:{location:'/login'}})), /sign-in/);
+  const loginRequests=[];
+  await assert.rejects(check(async url => { loginRequests.push(url);return new Response(null,{status:302,headers:{location:'/login'}}); }), /sign-in/);
+  assert.deepEqual(loginRequests,[address]);
 });
 
 test("manifest entries and mixed DNS answers cannot reach private networks", async () => {
@@ -220,4 +222,33 @@ test("repeated previews are deduplicated and distinct requests have a finite bud
   await check(async url => { requests++;return html(url===address ? '<iframe src="/child"></iframe>'.repeat(1000) : '<h1>Measured results</h1>'); });
   assert.equal(requests,2);
   await assert.rejects(check(async url => html(url===address ? Array.from({length:100},(_,i)=>'<iframe src="/child'+i+'"></iframe>').join('') : '<h1>Measured results</h1>')), /budget/);
+});
+
+
+test("authentication gates recognize log-in variants without rejecting optional navigation", async () => {
+  for (const body of ['<h1>Log in to view this report</h1>', '<h1>Private report</h1><button>Login required</button>']) await assert.rejects(check(async () => html(body)), /access-denied/);
+  await check(async () => html('<a href="/login">Log in</a><h1>Measured results</h1>'));
+});
+
+test("DNS lookups have the same overall deadline as report retrieval", async () => {
+  await assert.rejects(checkReportAccess(address,{timeoutMs:20,resolve:()=>new Promise(()=>{}),request:()=>{throw Error('Must not fetch');}}), /time budget/);
+});
+
+test("self-referencing previews and multi-page cycles never count as readable reports", async () => {
+  await assert.rejects(check(async () => html('<iframe src="/report"></iframe>')), /cyclic/);
+  await assert.rejects(check(async url => html('<iframe src="'+(url===address?'/next':'/report')+'"></iframe>')), /cyclic/);
+});
+
+test("compressed HTML and manifests are decoded before inspection", async () => {
+  const {Readable}=await import('node:stream');const {EventEmitter}=await import('node:events');
+  const {gzipSync,brotliCompressSync,deflateSync}=await import('node:zlib');
+  for (const [encoding,compress] of [['gzip',gzipSync],['br',brotliCompressSync],['deflate',deflateSync]]) {
+    const transport = (body,type='text/html') => (_url,_options,callback) => {
+      const req=new EventEmitter();req.destroy=error=>{if(error)req.emit('error',error);};req.end=()=>{const response=Readable.from([compress(Buffer.from(body))]);response.statusCode=200;response.headers={'content-type':type,'content-encoding':encoding};callback(response);};return req;
+    };
+    const response=await anonymousRequest(address,{},transport('<h1>Access denied</h1>'));
+    await assert.rejects(check(async()=>response),/access-denied/);
+    const manifest=await anonymousRequest(address,{},transport('{"files":[]}', 'application/json'));
+    assert.deepEqual(await manifest.json(),{files:[]});
+  }
 });

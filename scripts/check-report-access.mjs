@@ -1,4 +1,6 @@
 import { parse } from "parse5";
+import { createGunzip, createBrotliDecompress, createInflate } from "node:zlib";
+import { createHash } from "node:crypto";
 import { request as httpsRequest } from "node:https";
 import { lookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
@@ -24,17 +26,35 @@ export function anonymousRequest(address, options, transport = httpsRequest) {
   return new Promise((resolve, reject) => {
     const req = transport(address, { lookup: options.lookup, signal: options.signal }, response => {
       const chunks = [];
+      let wireSize = 0;
       let size = 0;
+      const encoding = String(response.headers["content-encoding"] ?? "identity").toLowerCase().trim();
+      const decoders = { gzip: createGunzip, br: createBrotliDecompress, deflate: createInflate };
+      if (encoding !== "identity" && !decoders[encoding]) {
+        reject(new Error("Unsupported report content encoding"));
+        req.destroy();
+        return;
+      }
+      const decoded = encoding === "identity" ? response : response.pipe(decoders[encoding]());
       response.on("data", chunk => {
+        wireSize += chunk.length;
+        if (wireSize > 20 * 1024 * 1024) req.destroy(new Error("Report exceeds the 20 MiB check limit"));
+      });
+      decoded.on("data", chunk => {
         size += chunk.length;
-        if (size > 20 * 1024 * 1024) req.destroy(new Error("Report exceeds the 20 MiB check limit"));
-        else chunks.push(chunk);
+        if (size > 20 * 1024 * 1024) {
+          const error = new Error("Decoded report exceeds the 20 MiB check limit");
+          reject(error); req.destroy(error); if (decoded !== response) decoded.destroy(error);
+        } else chunks.push(chunk);
       });
       response.on("error", reject);
-      response.on("end", () => {
+      decoded.on("error", reject);
+      decoded.on("end", () => {
         try {
           const body = [204, 205, 304].includes(response.statusCode) ? null : Buffer.concat(chunks);
-          resolve(new Response(body, { status: response.statusCode, headers: response.headers }));
+          const headers = { ...response.headers };
+          delete headers["content-encoding"]; delete headers["content-length"];
+          resolve(new Response(body, { status: response.statusCode, headers }));
         } catch (error) { reject(error); }
       });
     });
@@ -105,20 +125,30 @@ export function reportDocument(html) {
     for (let index = children.length - 1; index >= 0; index--) stack.push({ node: children[index], depth: depth + 1, inHead, inNavigation });
   }
   const visible = text.join(" ").replace(/\s+/g, " ").trim();
-  const gate = /^(?:access denied|forbidden|authentication required|you are not signed in[.!]?|sign in(?: to (?:view|continue|access)[^.]*)?[.!]?|sign in, then try opening[^.]*[.!]?|需要登录[。！]?|请先登录[。！]?|无权访问[。！]?|登录后.{0,8}(?:查看|访问)[。！]?)$/i;
+  const gate = /^(?:access denied|forbidden|authentication required|you are not signed in[.!]?|(?:sign in|log in|login)(?: required| to (?:view|continue|access)[^.]*)?[.!]?|sign in, then try opening[^.]*[.!]?|需要登录[。！]?|请先登录[。！]?|无权访问[。！]?|登录后.{0,8}(?:查看|访问)[。！]?)$/i;
   return { readable: Boolean(visible) && !/^(?:loading[. …]*|please wait[. …]*|redirecting[. …]*|正在加载[. …]*)$/i.test(visible), frames, deliveryConfig, baseHref, refresh, denied: password || deniedMeta || blocks.some(block => gate.test(block)) || gate.test(visible) };
 }
 
-export async function checkReportAccess(address, { request = anonymousRequest, resolve = lookup } = {}) {
-  const deadline = Date.now() + 60000;
+export async function checkReportAccess(address, { request = anonymousRequest, resolve = lookup, timeoutMs = 60000 } = {}) {
+  const deadline = Date.now() + Math.min(timeoutMs, 60000);
+  async function bounded(promise) {
+    let timer;
+    try {
+      return await Promise.race([promise, new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Report exceeds the time budget")), Math.max(1, deadline - Date.now()));
+      })]);
+    } finally { clearTimeout(timer); }
+  }
   let requests = 0;
   const validated = new Set();
+  const active = new Set();
   async function retrieve(address, json = false) {
     let url = new URL(address);
     for (let redirects = 0; redirects <= 5; redirects++) {
       if (!publicEvidenceUrl(url.href)) throw new Error("Expected a public HTTPS URL without credentials");
       if (++requests > 40 || Date.now() >= deadline) throw new Error("Report exceeds the request or time budget");
-      const records = await resolve(url.hostname, { all: true });
+      const records = await bounded(resolve(url.hostname, { all: true }));
+      if (Date.now() >= deadline) throw new Error("Report exceeds the time budget");
       if (!records.length || records.some(({ address }) => privateNetworks.check(address, isIP(address) === 6 ? "ipv6" : "ipv4"))) throw new Error("URL resolves to a private or reserved network");
       if (/\/(?:login|signin|sign-in|auth)(?:\/|$)/i.test(url.pathname)) throw new Error("Report redirects to sign-in");
       const response = await request(url.href, { redirect: "manual", credentials: "omit", signal: AbortSignal.timeout(Math.max(1, Math.min(20000, deadline - Date.now()))), lookup: (_hostname, options, callback) => {
@@ -153,9 +183,15 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
 
   async function validatePage(page, depth = 0) {
     if (Date.now() >= deadline) throw new Error("Report exceeds the time budget");
-    const identity = page.inline ? page.body : page.url.href;
+    const identity = page.url.href + (page.inline ? "#inline-" + createHash("sha256").update(page.body).digest("hex") : "");
+    if (active.has(identity)) throw new Error("Report contains a cyclic preview chain");
     if (validated.has(identity)) return;
-    validated.add(identity);
+    active.add(identity);
+    try { await validatePageContent(page, depth); validated.add(identity); }
+    finally { active.delete(identity); }
+  }
+
+  async function validatePageContent(page, depth) {
     if (page.pdf) return;
     if (depth > 5) throw new Error("Report contains too many nested previews");
     if (page.deliveryConfig) {
