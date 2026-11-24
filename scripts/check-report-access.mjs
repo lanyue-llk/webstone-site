@@ -185,6 +185,8 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
   }
   async function resource(url, serviceOrigin, depth) {
     await visit("entry", url, depth, async () => {
+      // Yours serves the owner's uploaded file directly after the public manifest.
+      // This gate checks anonymous delivery, not the report's prose, examples or forms.
       const response = await retrieve(url, "entry");
       if (!/text\/html/i.test(response.type)) throw new Error("Expected an HTML report entry");
       if (/text\/html/i.test(response.type)) {
@@ -230,7 +232,8 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       });
       if (!previews.length) throw new Error("Public share has no report-service preview");
       for (const target of previews) await preview(target.href, depth);
-      await embedded(page, page.url, depth);
+      const otherFrames = page.frames.filter(frame => frame.srcdoc !== undefined || !previews.some(target => target.href === new URL(frame.src, base).href));
+      await embedded({ ...page, frames: otherFrames }, page.url, depth);
     });
   }
   await share(address, 0);
