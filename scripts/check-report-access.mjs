@@ -67,6 +67,7 @@ export function reportDocument(html) {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL("./report-document.mjs", import.meta.url), {
       workerData: html,
+      execArgv: [],
       resourceLimits: { maxOldGenerationSizeMb: 64, maxYoungGenerationSizeMb: 16, stackSizeMb: 4 },
     });
     const timer = setTimeout(() => { worker.terminate(); reject(new Error("Report document exceeds the HTML complexity time limit")); }, 5000);

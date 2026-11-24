@@ -284,3 +284,10 @@ test("collapsed account disclosures do not hide otherwise public reports", async
 test("access-required instructions are recognized across multiple sentences", async () => {
   await assert.rejects(check(async () => html('<p>Sign in to view this report. Contact the owner for access.</p>')), /access-denied/);
 });
+
+test("HTML checks work when the checker is imported by an ESM command", async () => {
+  const {execFile}=await import('node:child_process');
+  const {promisify}=await import('node:util');
+  const script = `import {reportDocument} from ${JSON.stringify(new URL('../scripts/check-report-access.mjs',import.meta.url).href)};if(!(await reportDocument('<h1>Measured results</h1>')).readable)process.exit(1);`;
+  await promisify(execFile)(process.execPath,['--input-type=module','-e',script]);
+});
