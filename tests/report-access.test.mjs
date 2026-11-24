@@ -162,3 +162,17 @@ test("embedded report destinations use the document base URL", async () => {
   await check(async target=>{visited.push(target);return target===address?html('<base href="https://cdn.example.org/reports/"><h1>Report preview</h1><iframe src="report.html"></iframe>'):html('<h1>Measured results</h1>')});
   assert.deepEqual(visited,[address,'https://cdn.example.org/reports/report.html']);
 });
+
+
+test("HTML refresh pages require a final report URL", async () => {
+  await assert.rejects(check(async()=>html('<meta http-equiv="refresh" content="0;url=/login"><p>Redirecting…</p>')),/final public URL/);
+});
+
+test("inline iframe documents take precedence over their fallback URLs", async () => {
+  await assert.rejects(check(async()=>html('<iframe src="/public" srcdoc="&lt;h1&gt;Access denied&lt;/h1&gt;"></iframe>')),/sign-in/);
+  await check(async()=>html('<iframe srcdoc="&lt;h1&gt;Measured results&lt;/h1&gt;"></iframe>'));
+});
+
+test("public report navigation can offer optional sign-in", async () => {
+  await check(async()=>html('<nav><a href="/login"><span>Sign in</span></a></nav><h1>Measured results</h1>'));
+});

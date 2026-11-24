@@ -52,6 +52,7 @@ export function reportDocument(html) {
   let baseHref = null;
   let password = false;
   let deniedMeta = false;
+  let refresh = false;
   const attributes = node => Object.fromEntries((node.attrs ?? []).map(({ name, value }) => [name, value]));
   function hidden(node) {
     const attrs = attributes(node);
@@ -64,9 +65,10 @@ export function reportDocument(html) {
     if (node.nodeName === "#text") return node.value;
     return (node.childNodes ?? []).map(content).join(" ");
   }
-  function visit(node, inHead = false) {
+  function visit(node, inHead = false, inNavigation = false) {
     if (hidden(node)) return;
     const attrs = attributes(node);
+    if (node.tagName === "meta" && attrs["http-equiv"]?.toLowerCase() === "refresh") refresh = true;
     if (node.tagName === "base" && baseHref === null && attrs.href !== undefined) baseHref = attrs.href;
     if (node.tagName === "meta" && /sign in to view this work/i.test(attrs.content ?? "")) deniedMeta = true;
     if (node.tagName === "script") {
@@ -74,18 +76,19 @@ export function reportDocument(html) {
       return;
     }
     if (node.tagName === "head") inHead = true;
-    if (!inHead) {
+    inNavigation ||= ["nav", "a", "button", "summary"].includes(node.tagName);
+    if (!inHead && !inNavigation) {
       if (node.nodeName === "#text") text.push(node.value);
-      if (node.tagName === "iframe" && attrs.src) frames.push(attrs.src);
+      if (node.tagName === "iframe" && (attrs.src || attrs.srcdoc !== undefined)) frames.push({ src: attrs.src, srcdoc: attrs.srcdoc });
       if (node.tagName === "input" && attrs.type?.toLowerCase() === "password") password = true;
       if (node.tagName) blocks.push(content(node).replace(/\s+/g, " ").trim());
     }
-    for (const child of node.childNodes ?? []) visit(child, inHead);
+    for (const child of node.childNodes ?? []) visit(child, inHead, inNavigation);
   }
   visit(document);
   const visible = text.join(" ").replace(/\s+/g, " ").trim();
   const gate = /^(?:access denied|forbidden|authentication required|you are not signed in[.!]?|sign in(?: to (?:view|continue|access)[^.]*)?[.!]?|sign in, then try opening[^.]*[.!]?|需要登录[。！]?|请先登录[。！]?|无权访问[。！]?|登录后.{0,8}(?:查看|访问)[。！]?)$/i;
-  return { readable: Boolean(visible), frames, deliveryConfig, baseHref, denied: password || deniedMeta || blocks.some(block => gate.test(block)) || gate.test(visible) };
+  return { readable: Boolean(visible), frames, deliveryConfig, baseHref, refresh, denied: password || deniedMeta || blocks.some(block => gate.test(block)) || gate.test(visible) };
 }
 
 export async function checkReportAccess(address, { request = anonymousRequest, resolve = lookup } = {}) {
@@ -118,6 +121,7 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       if (/application\/pdf/i.test(type) && body.startsWith("%PDF-")) return { url, body, pdf: true };
       if (!/text\/html/i.test(type)) throw new Error("Expected a readable HTML report or PDF");
       const document = reportDocument(body);
+      if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
       if (document.denied) throw new Error("Anonymous reader received a sign-in or access-denied page");
       if (!document.readable && !document.frames.length && !document.deliveryConfig) throw new Error("Report has no readable content");
       return { url, body, pdf: false, ...document };
@@ -145,7 +149,15 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
     }
     const sources = page.frames;
     if (!sources.length && (/\/artifact-site\/(s|v)\//.test(page.url.pathname) || !page.readable)) throw new Error("Hosted report has no readable preview");
-    for (const source of sources) await validatePage(await retrieve(new URL(source, page.baseHref === null ? page.url : new URL(page.baseHref, page.url)).href), depth + 1);
+    const base = page.baseHref === null ? page.url : new URL(page.baseHref, page.url);
+    for (const frame of sources) {
+      if (frame.srcdoc !== undefined) {
+        const inline = reportDocument(frame.srcdoc);
+        if (inline.refresh || inline.denied) throw new Error("Inline report requires sign-in or redirects");
+        if (!inline.readable && !inline.frames.length && !inline.deliveryConfig) throw new Error("Inline report has no readable content");
+        await validatePage({ url: base, body: frame.srcdoc, pdf: false, ...inline }, depth + 1);
+      } else await validatePage(await retrieve(new URL(frame.src, base).href), depth + 1);
+    }
   }
   await validatePage(await retrieve(address));
 }
