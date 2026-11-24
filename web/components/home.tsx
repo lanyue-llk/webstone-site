@@ -100,7 +100,7 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
           <ul>{track.benchmarks.map(benchmark => <li key={benchmark.id}><a href={benchmarkHref(benchmark.id)}>{t(benchmark.name)}</a></li>)}</ul>
         </div>;
       })}</div>
-      {navigationGroups(catalog).filter(group => !group.tracks.length && group.upcoming.length > 0).map(group => <div key={group.id} className="upcoming-overview"><strong>{t(group.name)}</strong><span>{group.upcoming.map(item => t(item.name)).join(" · ")}</span><span className="upcoming-badge">{t("Coming soon")}</span><p>{t("Benchmarks are in development. Stay tuned.")}</p></div>)}
+      {navigationGroups(catalog).filter(group => group.upcoming.length > 0).map(group => <div key={group.id} className="upcoming-overview"><strong>{t(group.name)}</strong><span>{group.upcoming.map(item => t(item.name)).join(" · ")}</span><span className="upcoming-badge">{t("Coming soon")}</span><p>{t("Benchmarks are in development. Stay tuned.")}</p></div>)}
     </section>
     <EvaluationReports catalog={catalog} snapshots={snapshots} t={t} language={language} />
   </div>;
