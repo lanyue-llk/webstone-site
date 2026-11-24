@@ -164,15 +164,7 @@ Open <http://127.0.0.1:5173>. The output is plain static files and needs no Next
 
 The public site uses Cloudflare Pages. Merge into `main`, then push a new `vMAJOR.MINOR.PATCH` tag to run tests, check report access and publish the static export. Main pushes alone do not publish. See [Pages deployment](docs/deploying-pages.md) for initial authorization, GitHub settings, domain configuration, verification and manual recovery.
 
-Report links must open without signing in. `npm run check:reports` anonymously follows each report-service share link through its preview and delivery manifest to the actual report file, including embedded reports from the same service. Private or missing delivery and redirects to sign-in block publication. CI runs this check on PRs, main updates and daily. It checks access, without locking report versions or judging their text. An anonymous Chromium session also loads the share and its delivery, so the browser checks framing restrictions, sandboxing and attachment responses. Requests pass through the same public-network and download limits without account cookies. Review report measurements separately from link availability.
-
-Install the test browser once before running the public-report checks:
-
-```sh
-npx playwright install --with-deps chromium --only-shell
-npm run test:report-navigation
-npm run check:reports
-```
+Report links must open without signing in. `npm run check:reports` makes anonymous HTTPS requests through each share page, delivery manifest and required report file, including embedded reports. Private or missing files and redirects to sign-in block publication. CI runs the check on PRs, main updates and daily. Report updates can keep the same public link; the check does not lock file versions or score report content. Open the report in a signed-out browser when adding a link. Review its measurements separately from link availability.
 
 The export includes Pages cache headers and the submission redirect. Verify the deployed release, leaderboard data and report downloads before retiring a previous host.
 
