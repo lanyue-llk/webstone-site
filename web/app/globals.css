@@ -549,8 +549,7 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
 .article-related a, .article-tags a { border: 1px solid #cbdad0; background: #f3f8f4; color: #23583f; border-radius: 6px; padding: 5px 8px; display: inline-flex; align-items: center; gap: 5px; min-height: 30px; }
 .article-tags { margin-top: 0; align-items: center; }
 .article-related-label { flex-basis: 100%; }
-.article-read { display: inline-flex; align-items: center; justify-content: center; gap: 7px; margin-top: auto; padding: 9px 12px; min-height: 38px; border: 1px solid #b6cbbd; border-radius: 7px; color: #23583f; background: #ecf4ee; font-size: 13px; font-weight: 600; }
-.article-read:hover, .article-related a:hover, .article-tags a:hover { background: #dcece0; border-color: #658e73; }
+.article-related a:hover, .article-tags a:hover { background: #dcece0; border-color: #658e73; }
 .column-views button { border: 1px solid #b9ccbe; color: #365b43; background: #fff; padding: 7px 11px; min-height: 34px; font-size: 12px; }
 .column-views button:hover { background: #eaf3ed; border-color: #6c9279; }
 .column-views button[aria-pressed=true] { background: #285c42; border-color: #285c42; color: white; }
@@ -558,7 +557,8 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
 .track-card li a:hover { background: #e5efe7; }
 
 .evaluation-scope { display: flex; align-items: center; gap: 7px; margin: 10px 0 16px; color: #52685a; font-size: 12px; }
-.report-date-source { display: block; margin-top: 3px; font-size: 11px; }
 .report-pagination { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 18px; }
 .report-pagination button { border: 1px solid #b6cbbd; padding: 8px 14px; border-radius: 6px; background: #ecf4ee; color: #23583f; }
 .report-pagination button:disabled { opacity: .45; }
+.sidebar-evaluation { display: inline-flex; align-items: center; gap: 6px; margin: 0 9px 14px; padding: 9px; border: 1px solid #c2d5c9; border-radius: 6px; background: #f2f7f3; color: #28583e; font-size: 12px; flex-shrink: 0; }
+.sidebar-evaluation:hover { background: #e5f0e8; }
