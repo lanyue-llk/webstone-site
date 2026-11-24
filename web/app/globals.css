@@ -586,3 +586,9 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
 .upcoming-overview { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 15px; padding: 18px 20px; margin-top: 14px; border: 1px dashed #cbd9ce; border-radius: 10px; color: #536d5b; font-size: 13px; }
 .upcoming-overview strong { color: #315a41; }
 .upcoming-overview p { flex-basis: 100%; margin: 0; font-size: 12px; }
+
+/* Share row sizing so long report titles keep dates and related links aligned. */
+@supports (grid-template-rows: subgrid) {
+  .article-card { display: grid; grid-row: span 6; grid-template-rows: subgrid; align-items: start; }
+}
+.article-tags { align-content: start; }
