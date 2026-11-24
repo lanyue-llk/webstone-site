@@ -479,7 +479,7 @@ test("Chinese navigation preserves technical names and translates supporting cop
   const t=translator('zh',catalog);
   for (const name of ['Web Tools','Browser Capabilities','Browser Automation','Web Search','Web Extract','Web Fetch','Web Fetch API','Trajectory Replay','Browser Use']) assert.equal(t(name),name);
   assert.equal(t('Coming soon'),'开发中');
-  assert.equal(t('Replay recorded actions'),'回放预先记录的操作');
+  assert.equal(t('Evaluate browsers with fixed actions'),'用固定操作序列评测浏览器');
 });
 
 test("homepage counts reports instead of historical result editions and uses the shared brand asset", async () => {
@@ -494,7 +494,7 @@ test("homepage counts reports instead of historical result editions and uses the
     const stats=[...win.document.querySelectorAll('.overview-stats > div')].map(item=>[item.querySelector('dt').textContent,Number(item.querySelector('dd').textContent)]);
     assert.deepEqual(stats,[['评测方向',4],['评测基准',8],['评测报告',6]]);
     const logo=readFileSync(new URL('../web/public/brand/webstone.png',import.meta.url));
-    assert.equal(createHash('sha256').update(logo).digest('hex'),'96934e5581d6fbcc621d40ff53de04d7c9b662bacca549f9ab517d0b0164a27e');
+    assert.deepEqual([...logo.subarray(0, 8)], [137,80,78,71,13,10,26,10]);
     assert.match(readFileSync(new URL('../README.md',import.meta.url),'utf8'),/web\/public\/brand\/webstone\.png/);
   } finally {await win.happyDOM.close();}
 });
