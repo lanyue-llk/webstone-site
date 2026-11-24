@@ -328,6 +328,27 @@ test("different query-selected files remain distinct requirements", async () => 
   );
 });
 
+test("COS supports both native and S3 signing without losing the selected file", () => {
+  const prefix =
+    "https://bucket.cos.ap-nanjing.myqcloud.com/index.html?file=en&";
+  assert.equal(
+    reportDestination(
+      prefix +
+        "X-Amz-Signature=first&X-Amz-Date=one&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD",
+    ),
+    reportDestination(
+      prefix +
+        "X-Amz-Signature=second&X-Amz-Date=two&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD",
+    ),
+  );
+  assert.notEqual(
+    reportDestination(prefix + "X-Amz-Signature=first"),
+    reportDestination(
+      prefix.replace("file=en", "file=zh") + "X-Amz-Signature=first",
+    ),
+  );
+});
+
 test("a redirect to a private destination never bypasses the public proxy", async () => {
   await assert.rejects(
     check({
@@ -400,4 +421,13 @@ test("concurrent unbounded downloads are cut off by the streaming wire budget", 
   for (let i = 0; streams.size && i < 100; i++)
     await new Promise((resolve) => setTimeout(resolve, 10));
   assert.equal(streams.size, 0);
+});
+
+test("a rendered report may update its address without losing its loaded document", async () => {
+  await check({
+    [entry]: () =>
+      html(
+        `<script>history.replaceState(null,'','?lang=en')</script><main>Report</main>`,
+      ),
+  });
 });
