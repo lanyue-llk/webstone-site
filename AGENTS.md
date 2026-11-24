@@ -67,7 +67,7 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 - Each Benchmark opens on its highest version. A version explicitly requested through the URL is shown even when it does not exist, with an English empty state and a `View latest version` action; never silently fall back. A Benchmark with no results also gets an empty state, without an undefined version or a broken latest link.
 - URL state uses `?benchmark=<id>&version=vX.Y.Z&metric=<id>`. Ignore and drop legacy `date` parameters. When a version does not contain the currently selected metric, fall back to that version's default metric and direction.
 - Show the evaluation scope in the selected language beside the result version. Use `datasetDifference` unless there is separate display copy for a historical result. Keep the Dataset and Evaluation report links visible.
-- The default table shows a compact set of quality and resource metrics; Table metrics selects visible numeric columns; Category breakdown reveals category counts without discarding data. All visible data columns are equal width: the tables use `table-layout: fixed` with a minimum width, so the table scrolls horizontally only when the container is narrower than that minimum. Do not reintroduce auto layout.
+- The default table shows a compact set of quality and resource metrics; More metrics reveals the remaining numeric columns; Category breakdown reveals category counts without discarding data. All visible data columns are equal width: the tables use `table-layout: fixed` with a minimum width, so the table scrolls horizontally only when the container is narrower than that minimum. Do not reintroduce auto layout.
 - Row heights are fixed: header and rows 46px on desktop; rows 44px below 760px. Numeric cells remain single-line. Method names and configurations wrap when needed so the full name stays visible.
 - The first two columns stay sticky while the table scrolls sideways.
 - Output size, timings collected under incomparable conditions and quotes with incomparable billing bases use catalog `highlightBest: false`: allow numeric sorting without declaring a winner.
@@ -94,7 +94,7 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 
 - Match Benchmark names to the official Hugging Face Dataset Card. Modified third-party datasets retain the LexBench prefix; untouched mirrors retain the upstream name. LexBench Zyte Product Extraction includes a separate source-qualified annotation layer, so retains its prefix; do not claim existing scores use that layer without report evidence.
 - Name the selected Benchmark once in the main content. Avoid repeating titles, primary metrics, counts or generic sorting instructions in large summary blocks. Put protocol, population and provenance detail in Evaluation notes, with important comparability warnings visible.
-- Comparison charts must add information beyond ranking: multidimensional profiles, or quality against comparable latency/resource use. Allow selection of up to three methods; label scales and preserve missing values. Do not invent composite scores or treat unmatched execution conditions as controlled comparisons.
+- Comparison charts must add information beyond ranking: multidimensional profiles, or quality against comparable latency/resource use. Allow readers to select methods; label scales and preserve missing values. Do not invent composite scores or treat unmatched execution conditions as controlled comparisons.
 
 ## Website copy
 

@@ -1,3 +1,4 @@
+import { request as httpsRequest } from "node:https";
 import { lookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
 import { readFile } from "node:fs/promises";
@@ -18,7 +19,25 @@ export function reportLinks(catalog, snapshots, metadata) {
   ].filter(Boolean))];
 }
 
-export async function checkReportAccess(address, { request = fetch, resolve = lookup } = {}) {
+function anonymousRequest(address, options) {
+  return new Promise((resolve, reject) => {
+    const req = httpsRequest(address, { lookup: options.lookup, signal: options.signal }, response => {
+      const chunks = [];
+      let size = 0;
+      response.on("data", chunk => {
+        size += chunk.length;
+        if (size > 20 * 1024 * 1024) req.destroy(new Error("Report exceeds the 20 MiB check limit"));
+        else chunks.push(chunk);
+      });
+      response.on("error", reject);
+      response.on("end", () => resolve(new Response(Buffer.concat(chunks), { status: response.statusCode, headers: response.headers })));
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+export async function checkReportAccess(address, { request = anonymousRequest, resolve = lookup } = {}) {
   async function retrieve(address, json = false) {
     let url = new URL(address);
     for (let redirects = 0; redirects <= 5; redirects++) {
@@ -26,7 +45,11 @@ export async function checkReportAccess(address, { request = fetch, resolve = lo
       const records = await resolve(url.hostname, { all: true });
       if (!records.length || records.some(({ address }) => privateNetworks.check(address, isIP(address) === 6 ? "ipv6" : "ipv4"))) throw new Error("URL resolves to a private or reserved network");
       if (/\/(?:login|signin|sign-in|auth)(?:\/|$)/i.test(url.pathname)) throw new Error("Report redirects to sign-in");
-      const response = await request(url.href, { redirect: "manual", credentials: "omit", signal: AbortSignal.timeout(20000) });
+      const response = await request(url.href, { redirect: "manual", credentials: "omit", signal: AbortSignal.timeout(20000), lookup: (_hostname, options, callback) => {
+        const pinned = records.map(record => ({ address: record.address, family: isIP(record.address) }));
+        if (options.all) callback(null, pinned);
+        else callback(null, pinned[0].address, pinned[0].family);
+      } });
       if ([301, 302, 303, 307, 308].includes(response.status)) {
         const location = response.headers.get("location");
         if (!location) throw new Error("Redirect has no destination");
@@ -45,18 +68,21 @@ export async function checkReportAccess(address, { request = fetch, resolve = lo
       if (!/text\/html/i.test(type)) throw new Error("Expected a readable HTML report or PDF");
       const visible = body.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
       const denied = visible.length < 4000 && /sign in to view this work|you are not signed in|sign in, then try opening|authentication required|需要登录|登录后.{0,8}(?:查看|访问)/i.test(visible);
-      if (denied || /<meta[^>]+Sign in to view this work/i.test(body) || /<input[^>]+type=["']password/i.test(body)) throw new Error("Anonymous reader received a sign-in or access-denied page");
+      const denialHeading = /<(?:h[1-3]|title)\b[^>]*>\s*(?:Access denied|Forbidden|Authentication required|Sign in(?: to (?:view|continue|access)[^<]*)?|需要登录|请先登录|无权访问)\s*<\//i.test(body);
+      if (denialHeading || denied || /<meta[^>]+Sign in to view this work/i.test(body) || /<input[^>]+type=["']password/i.test(body)) throw new Error("Anonymous reader received a sign-in or access-denied page");
       return { url, body, pdf: false };
     }
     throw new Error("Too many redirects");
   }
 
-  const page = await retrieve(address);
+  let page = await retrieve(address);
   if (!page.pdf && /\/artifact-site\/(s|v)\//.test(page.url.pathname)) {
     const source = page.body.match(/<iframe\b[^>]*\bsrc=["']([^"']+)/i)?.[1];
     if (!source) throw new Error("Hosted report has no readable preview");
-    const preview = await retrieve(new URL(source.replaceAll("&amp;", "&"), page.url).href);
-    const configText = preview.body.match(/<script[^>]+id=["']artifact-delivery-config["'][^>]*>([\s\S]*?)<\/script>/i)?.[1];
+    page = await retrieve(new URL(source.replaceAll("&amp;", "&"), page.url).href);
+  }
+  if (!page.pdf) {
+    const configText = page.body.match(/<script[^>]+id=["']artifact-delivery-config["'][^>]*>([\s\S]*?)<\/script>/i)?.[1];
     if (configText) {
       const config = JSON.parse(configText);
       const manifestUrl = new URL(config.manifestUrl);
@@ -65,7 +91,7 @@ export async function checkReportAccess(address, { request = fetch, resolve = lo
       for (let page = 0; page < 20; page++) {
         const manifest = await retrieve(manifestUrl.href, true);
         entry = manifest.files?.find(file => file.path === config.file);
-        if (entry || manifest.nextCursor == null) break;
+        if (entry || manifest.nextCursor === null || manifest.nextCursor === undefined) break;
         manifestUrl.searchParams.set("cursor", String(manifest.nextCursor));
       }
       if (!entry?.url) throw new Error("Report entry is missing from the anonymous delivery manifest");

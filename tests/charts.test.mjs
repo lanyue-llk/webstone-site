@@ -289,7 +289,11 @@ test("every published benchmark edition shares table and radar controls in both 
         for (const row of table.querySelectorAll("tbody tr")) assert.equal(row.children.length, table.querySelectorAll("th").length, report.id);
 
         const more = [...container.querySelectorAll(".table-controls button")].find(button => button.textContent === "More metrics");
-        if (more) {
+        const definition = resolveBenchmark(catalog, report.benchmarks[0]);
+        const { decisionMetrics } = require("../web/lib/comparisons.ts");
+        const extras = definition.metrics.length > decisionMetrics(definition, false, definition.primaryMetric).length;
+        assert.equal(Boolean(more), extras, report.id + " extra metric control");
+        if (extras) {
           const initialColumns = table.querySelectorAll("th").length;
           await React.act(async () => more.click());
           assert.ok(table.querySelectorAll("th").length > initialColumns, report.id);

@@ -67,3 +67,21 @@ test("delivery loading shells require a readable anonymous manifest and entry fi
 test("a readable report can discuss authentication failures without becoming a sign-in page", async () => {
   await check(async () => html('<h1>Web tool evaluation</h1><p>'+('Measured results and methodology. '.repeat(200))+'需要登录的页面也能访问。</p>'));
 });
+
+test("explicit denial headings fail even when a site adds lengthy navigation", async () => {
+  for (const heading of ["Access denied", "Sign in to view this work"]) {
+    await assert.rejects(check(async () => html('<h1>'+heading+'</h1><nav>'+('Navigation '.repeat(600))+'</nav>')), /access-denied/);
+  }
+});
+
+test("a direct delivery preview must expose its manifest and report", async () => {
+  await assert.rejects(check(async target => target.includes('/manifest') ? new Response('Forbidden',{status:403}) : html('<script id="artifact-delivery-config">{"manifestUrl":"https://reports.example.org/manifest","file":"index.html"}</script>')), /403/);
+});
+
+test("connections use the validated addresses instead of a second DNS lookup", async () => {
+  await check(async (_, options) => {
+    const pinned = await new Promise((resolve, reject) => options.lookup('reports.example.org', {all:true}, (error, records) => error ? reject(error) : resolve(records)));
+    assert.deepEqual(pinned, [{address:'93.184.216.34',family:4}]);
+    return html('<h1>Measured results</h1>');
+  });
+});

@@ -9,12 +9,16 @@ async function request(path, options = {}) {
   return fetch(new URL(path, origin), { cache: "no-store", signal: AbortSignal.timeout(20000), ...options });
 }
 let matched = false;
+let lastFailure = "release identifier differs";
 for (let attempt = 0; attempt < 12; attempt++) {
-  const response = await request(`/release.json?check=${Date.now()}`);
-  if (response.ok && (await response.json()).release === expected.release) { matched = true; break; }
+  try {
+    const response = await request(`/release.json?check=${Date.now()}`);
+    if (response.ok && (await response.json()).release === expected.release) { matched = true; break; }
+    lastFailure = `HTTP ${response.status}: release identifier differs`;
+  } catch (error) { lastFailure = error.message; }
   await setTimeout(5000);
 }
-assert.ok(matched, "Public release does not match the built source");
+assert.ok(matched, `Public release does not match the built source: ${lastFailure}`);
 const entry = await request("/");
 assert.equal(entry.status, 200);
 assert.match(entry.headers.get("cache-control") ?? "", /no-store/);
@@ -31,8 +35,9 @@ const reportsResponse = await request("/results/reports.json");
 assert.equal(reportsResponse.status, 200);
 assert.match(reportsResponse.headers.get("cache-control") ?? "", /no-store/);
 const reports = await reportsResponse.json();
-assert.ok(reports.length > 0);
-await Promise.all(reports.map(async ({ file, report }) => {
+const localReports = JSON.parse(await readFile(new URL("../web/public/results/reports.json", import.meta.url), "utf8"));
+assert.deepEqual(reports, localReports, "Published result index must match the built index");
+await Promise.all(localReports.map(async ({ file, report }) => {
   const response = await request(`/results/${file}`);
   assert.equal(response.status, 200, file);
   assert.deepEqual(await response.json(), report, file);

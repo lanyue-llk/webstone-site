@@ -17,6 +17,7 @@ import { decisionMetrics, hasPricingInformation } from "../lib/comparisons";
 
 import Home, { EvaluationReports, TRACK_ICONS } from "./home";
 import { benchmarkHref, EVALUATION_URL, SUBMISSION_URL } from "../lib/overview";
+const DATASETS_URL = "https://huggingface.co/datasets?author=Lexmount";
 const GITHUB_URL = "https://github.com/lexmount/webstone-site";
 const LEGACY_DATE_NOTE = "The evaluation date was not supplied; the displayed date is the date of import.";
 type Selection = { benchmark: string; version: string; metric: string };
@@ -200,7 +201,7 @@ export default function Dashboard() {
         <a href={SUBMISSION_URL} target="_blank" rel="noreferrer" aria-label={`${t("Submit results")} · lexmount/webstone-site`}>
           <Github /><span>{t("Submit results")}<small>webstone-site</small></span><ArrowUpRight size={13} aria-hidden="true" />
         </a>
-        <a href="https://huggingface.co/datasets?author=Lexmount" target="_blank" rel="noreferrer" aria-label={t("Datasets")}>
+        <a href={DATASETS_URL} target="_blank" rel="noreferrer" aria-label={t("Datasets")}>
           <img src="/huggingface.svg" width="20" height="20" alt="" aria-hidden="true" /><span>{t("Datasets")}</span><ArrowUpRight size={13} aria-hidden="true" />
         </a>
       </div>
