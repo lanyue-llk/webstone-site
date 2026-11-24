@@ -1,0 +1,105 @@
+{
+  "id": "simpleqa-verified-answers-v2.0.0",
+  "version": "v2.0.0",
+  "datasetDifference": "Uses the 831 valid factual questions in the linked report. Quality and timing include the same 831-question population. Exact correspondence to a pinned Hugging Face dataset revision is not supplied.",
+  "source": {
+    "kind": "report-page",
+    "url": "https://yours.lexmount.cn/artifact-site/s/XEDGrWHPjAbu",
+    "title": "Web Search APIs: retrieval quality, latency and cost",
+    "importedAt": "2026-11-24T10:17:16.549Z",
+    "method": "Transcribed from the published report; numeric values and measurement populations checked against its tables and structured evidence.",
+    "scope": "Overview tables for the 831-question factual set, L3. Source report was updated after the earlier 773-question website edition.",
+    "sha256": "3ce16e1149dfe910f720b189893641ced6e8794160e9633c8ae159d12cafa185"
+  },
+  "benchmarks": [
+    {
+      "id": "simpleqa-verified-answers",
+      "definitionId": "generated-answer",
+      "taskCount": 831,
+      "metricSamples": {
+        "answerAccuracy": {
+          "sampleCount": 831,
+          "scope": "valid-quality-questions"
+        },
+        "citationSupport": {
+          "scope": "citations",
+          "note": "The report does not disclose the citation or cited-sentence denominator."
+        },
+        "citationMembership": {
+          "scope": "citations",
+          "note": "The report does not disclose the citation or cited-sentence denominator."
+        },
+        "meanTime": {
+          "sampleCount": 831,
+          "scope": "recorded-api-calls",
+          "note": "All 831 recorded calls. Methods were collected on different dates and with different concurrency."
+        },
+        "p50Time": {
+          "sampleCount": 831,
+          "scope": "recorded-api-calls",
+          "note": "All 831 recorded calls. Methods were collected on different dates and with different concurrency."
+        },
+        "p95Time": {
+          "sampleCount": 831,
+          "scope": "recorded-api-calls",
+          "note": "All 831 recorded calls. Methods were collected on different dates and with different concurrency."
+        }
+      },
+      "notes": [
+        "Output layers are scored separately. L2 and L3 reuse the timing of the underlying API call.",
+        "Methods were collected on different dates and with different concurrency. These timings are not a controlled same-window speed comparison.",
+        "Quoted prices retain each service’s billing basis and are not total evaluation costs."
+      ],
+      "reportUrl": "https://yours.lexmount.cn/artifact-site/s/XEDGrWHPjAbu",
+      "providers": [
+        {
+          "id": "bocha-ai",
+          "name": "Bocha AI Search",
+          "description": "Bocha AI Search: search results, supplemental text and generated answers",
+          "mode": "L3 · Search API",
+          "scores": {
+            "answerAccuracy": 49.6,
+            "citationSupport": 70,
+            "citationMembership": 100,
+            "meanTime": 14832.16,
+            "p50Time": 12413.97,
+            "p95Time": 31736.97,
+            "pricePerThousand": 8.99
+          },
+          "passed": null,
+          "confidenceIntervals": {},
+          "billingDescription": "USD 8.99 per 1,000 requests, quoted in the linked evaluation report. Not a verified current tariff."
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "overview-table",
+      "section": "Artifact v16 overview / L3 / facts",
+      "text": "Published rows: [[\"bocha-ai\", [49.4, 69.9, 99.9, 14624.48, 12383.23, 30132.83]]]. The first three numbers in L1/L2 rows are the primary score and the lower/upper 95% interval; all other fields follow the displayed table order. L3 has no published interval."
+    },
+    {
+      "id": "methodology",
+      "section": "Methodology and dataset scope",
+      "text": "149 scenario questions; 831 collected factual questions, of which 773 have valid reference information. Different collection dates and concurrency are retained. Full-page bodies are not part of the scoring input."
+    }
+  ],
+  "translations": {
+    "zh": {
+      "Align the factual question population and measurements with the 831-question published report.": "按公开报告更新为 831 道事实题，并同步评分与耗时。",
+      "Uses the 831 valid factual questions in the linked report. Quality and timing include the same 831-question population. Exact correspondence to a pinned Hugging Face dataset revision is not supplied.": "使用关联报告中的 831 道有效事实题。质量评分与耗时均覆盖这 831 道题；报告未提供与 Hugging Face 某个固定版本的逐题对应关系。",
+      "Output layers are scored separately. L2 and L3 reuse the timing of the underlying API call.": "各输出层独立评分。L2、L3 使用同一次 API 调用的耗时。",
+      "Methods were collected on different dates and with different concurrency. These timings are not a controlled same-window speed comparison.": "各方案在不同日期、不同并发条件下采集，耗时不属于同一时间窗口内的受控对比。",
+      "Quoted prices retain each service’s billing basis and are not total evaluation costs.": "报价沿用各服务的计费口径，不代表本次评测的总成本。",
+      "All 831 recorded calls. Methods were collected on different dates and with different concurrency.": "覆盖 831 次调用。各方案在不同日期、不同并发条件下采集。",
+      "The report does not disclose the citation or cited-sentence denominator.": "报告未公布引用或被引用语句的样本总数。"
+    }
+  },
+  "release": {
+    "date": "2026-11-24",
+    "kind": "protocol",
+    "previous": "v1.0.0",
+    "summary": "Align the factual question population and measurements with the 831-question published report."
+  }
+}
