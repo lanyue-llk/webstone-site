@@ -400,3 +400,13 @@ test("explicit metric ranges bound scores and confidence intervals", () => {
   report.benchmarks[0].providers[0].confidenceIntervals = { passRate: { lower: 85, upper: 96, level: .95 } };
   assert.throws(() => validateSnapshot(report, entry, bounded), /Invalid confidence interval/);
 });
+
+
+test("navigation groups reject orphaned or duplicate placements and premature published tracks", () => {
+  const invalid=structuredClone(catalog);invalid.tracks[0].groupId='missing';
+  assert.throws(()=>validateCatalog(invalid),/Unknown track navigation group/);
+  const duplicate=structuredClone(catalog);duplicate.navigationGroups[1].id=duplicate.navigationGroups[0].id;
+  assert.throws(()=>validateCatalog(duplicate),/Duplicate navigation group/);
+  const premature=structuredClone(catalog);premature.navigationGroups[0].upcoming[0].id=premature.tracks[0].id;
+  assert.throws(()=>validateCatalog(premature),/separate from published tracks/);
+});

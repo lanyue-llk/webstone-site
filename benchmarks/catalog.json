@@ -45,32 +45,68 @@
     "bocha-ai": "https://github.com/Bocha-Labs/bocha-skills",
     "bocha-summary": "https://github.com/Bocha-Labs/bocha-skills"
   },
+  "navigationGroups": [
+    {
+      "id": "web-tools",
+      "name": "Web Tools",
+      "description": "Search, extraction and content retrieval APIs.",
+      "upcoming": [
+        {
+          "id": "webfetch-api",
+          "name": "Web Fetch API",
+          "description": "Content retrieval services"
+        }
+      ]
+    },
+    {
+      "id": "browsers",
+      "name": "Browsers",
+      "description": "Browser retrieval and task replay."
+    },
+    {
+      "id": "browser-automation",
+      "name": "Browser Automation",
+      "description": "Browser tasks performed by agents.",
+      "upcoming": [
+        {
+          "id": "browser-use",
+          "name": "Browser Use",
+          "description": "Browser agents"
+        }
+      ]
+    }
+  ],
   "tracks": [
     {
       "id": "webfetch",
       "name": "Web Fetch",
-      "description": "Content retrieval"
+      "description": "Content retrieval",
+      "groupId": "browsers"
     },
     {
       "id": "websearch",
       "name": "Web Search",
-      "description": "Search retrieval"
+      "description": "Search retrieval",
+      "groupId": "web-tools"
     },
     {
       "id": "webextract",
       "name": "Web Extract",
-      "description": "Structured field extraction"
+      "description": "Structured field extraction",
+      "groupId": "web-tools"
     },
     {
       "id": "trajectory-replay",
-      "name": "Trajectory Replay",
-      "description": "Recorded browser actions"
+      "name": "Browser Task Replay",
+      "description": "Replay tasks across browsers",
+      "groupId": "browsers"
     },
     {
       "id": "browserarena",
       "name": "BrowserArena",
       "description": "Browser infrastructure benchmarks",
-      "url": "https://browserarena.ai/"
+      "url": "https://browserarena.ai/",
+      "groupId": "browsers"
     }
   ],
   "benchmarks": [
@@ -1506,7 +1542,23 @@
       "Median peak PSS": "峰值 PSS 中位数",
       "Mean CPU time per call on the frozen common-pass resource sample, in milliseconds.": "在固定的共同通过任务样本上，统计每次调用的平均 CPU 时间，单位为毫秒。",
       "Percentage change in mean CPU time against the Moli 1.1.4 baseline with layout off.": "相对 Moli 1.1.4 关闭布局基线的平均 CPU 时间变化百分比。",
-      "Median of per-call peak proportional set size (PSS), in MiB, on the frozen common-pass resource sample.": "在固定的共同通过任务样本上，统计每次调用峰值 PSS 的中位数，单位为 MiB。"
+      "Median of per-call peak proportional set size (PSS), in MiB, on the frozen common-pass resource sample.": "在固定的共同通过任务样本上，统计每次调用峰值 PSS 的中位数，单位为 MiB。",
+      "Web Tools": "Web 工具",
+      "Search, extraction and content retrieval APIs.": "搜索、结构化提取与网页获取 API。",
+      "Headless Browsers": "无头浏览器",
+      "Compare browsers on page retrieval and recorded tasks.": "比较浏览器的网页获取与任务回放能力。",
+      "Browser Automation": "浏览器自动化",
+      "Browser agents and end-to-end testing.": "浏览器智能体与端到端测试。",
+      "Browser Task Replay": "浏览器任务回放",
+      "Replay tasks across browsers": "在不同浏览器上回放任务",
+      "Web Fetch API": "网页获取 API",
+      "Content retrieval services": "网页内容获取服务",
+      "Browser Use": "Browser Use",
+      "Browser agents": "浏览器智能体",
+      "End-to-end Testing": "端到端测试",
+      "Browser workflow tests": "浏览器流程测试",
+      "Browsers": "浏览器能力",
+      "Browser tasks performed by agents.": "由智能体完成浏览器任务。"
     },
     "en": {
       "全程关闭": "Layout off throughout",

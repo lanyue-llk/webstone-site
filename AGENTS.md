@@ -82,7 +82,7 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 
 ## Security
 
-- No tokens, keys or credentials in code, data, documentation or commits. `.env*` files stay local. The GitHub link at the bottom of the navigation always points to `https://github.com/lexmount/webstone-site`.
+- No tokens, keys or credentials in code, data, documentation or commits. `.env*` files stay local. Navigation distinguishes the evaluation repository (`lexmount/webstone`), result submissions (`lexmount/webstone-site`) and Datasets. Star links point to `lexmount/webstone`.
 
 ## Result submissions
 

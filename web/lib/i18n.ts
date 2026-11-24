@@ -4,6 +4,12 @@ export type Language = "en" | "zh";
 export const LANGUAGE_KEY = "webstone-language";
 
 const chinese: Record<string, string> = {
+  "Benchmark navigation": "评测导航",
+  "Coming soon": "开发中",
+  "Star Webstone": "给 Webstone 点个 Star",
+  "Star Webstone on GitHub": "在 GitHub 给 Webstone 点个 Star",
+  "If Webstone helps, give it a star.": "觉得 Webstone 有用，欢迎点个 Star。",
+  "Benchmarks are in development. Stay tuned.": "评测正在开发，敬请期待。",
   "Get started": "开始使用",
   "Get datasets": "获取数据集",
   "Choose benchmarks, run tools and score results with Webstone.": "用 Webstone 选择评测基准、运行工具并评分。",
