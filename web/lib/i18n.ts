@@ -4,6 +4,14 @@ export type Language = "en" | "zh";
 export const LANGUAGE_KEY = "webstone-language";
 
 const chinese: Record<string, string> = {
+  "Reports": "评测报告",
+  "Read report": "阅读报告",
+  "Published": "发布于",
+  "First uploaded to Yours · UTC": "Yours 首次上传 · UTC",
+  "Report pages": "报告分页",
+  "Previous": "上一页",
+  "Next": "下一页",
+  "Evaluation scope": "评测范围",
   "Web Search: result lists, source excerpts and generated answers": "Web Search：搜索列表、补充原文与生成答案",
   "Moli leads Web Fetch with an 89.8% pass rate": "Moli 以 89.8% 通过率拿下 Web Fetch 第一",
   "Lexmount Web Search: retrieval quality, speed and cost": "Lexmount Web Search 发布：兼顾检索质量、速度与成本",

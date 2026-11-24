@@ -16,7 +16,7 @@ const { renderToStaticMarkup } = require("react-dom/server");
 const Insights = require("../web/components/insights.tsx").default;
 const { translator } = require("../web/lib/i18n.ts");
 const { radarAxes } = require("../web/lib/radar.ts");
-const { evaluationArticles, trackOverview } = require("../web/lib/overview.ts");
+const { evaluationReports, trackOverview } = require("../web/lib/overview.ts");
 const { resolveBenchmark } = require("../web/lib/results.ts");
 const { historicalResultCopy } = require("../web/lib/result-copy.ts");
 const catalog = JSON.parse(readFileSync(new URL("../benchmarks/catalog.json", import.meta.url)));
@@ -97,11 +97,15 @@ test("the home overview counts search layers as views and shares articles with t
   assert.equal(tracks.length, 4);
   assert.equal(tracks.flatMap(track => track.benchmarks).length, 8);
   assert.equal(tracks.flatMap(track => track.views).length, 12);
-  const articles = evaluationArticles(catalog, snapshots);
+  const articles = evaluationReports(catalog, snapshots);
   assert.ok(articles.every((article, i) => i === 0 || article.date <= articles[i - 1].date));
   assert.equal(new Set(articles.map(article => article.href)).size, articles.length);
+  assert.equal(articles[0].date, "2026-11-10");
+  assert.equal(articles.at(-1).date, "2026-09-20");
+  assert.ok(articles.every(report => Number.isFinite(Date.parse(report.publishedAt))));
+  assert.deepEqual(tracks.map(track => track.id), ["webfetch", "websearch", "webextract", "trajectory-replay"]);
   for (const view of catalog.benchmarks) {
-    const related = evaluationArticles(catalog, snapshots, view);
+    const related = evaluationReports(catalog, snapshots, view);
     assert.ok(related.length, view.id);
     assert.ok(related.every(article => article.benchmarks.some(bench => bench.id === view.id ||
       (view.searchGroup && bench.trackId === view.trackId && bench.searchGroup === view.searchGroup))), view.id);
@@ -148,5 +152,41 @@ test("published historical editions have Chinese and English evaluation notes", 
       const copy = historicalResultCopy(snapshot.id, language);
       if (!snapshot.release) assert.ok(copy?.scope && copy.notes.every(note => note.trim()), file);
     }
+  }
+});
+
+test("report pagination keeps a growing archive to six cards and exposes every report", async (t) => {
+  const overview = require("../web/lib/overview.ts");
+  const { snapshot } = load("lexbench-websearch", "v2");
+  const template = overview.evaluationReports(catalog, [snapshot])[0];
+  const reports = Array.from({ length: 15 }, (_, index) => ({ ...template, source: `report-${index}`, title: `Report ${index + 1}` }));
+  t.mock.method(overview, "evaluationReports", () => reports);
+  const { EvaluationReports } = require("../web/components/home.tsx");
+  const win = new Window();
+  const previous = [globalThis.window, globalThis.document, globalThis.IS_REACT_ACT_ENVIRONMENT];
+  [globalThis.window, globalThis.document, globalThis.IS_REACT_ACT_ENVIRONMENT] = [win, win.document, true];
+  const container = win.document.createElement("div");
+  win.document.body.append(container);
+  const root = require("react-dom/client").createRoot(container);
+  try {
+    await React.act(async () => root.render(React.createElement(EvaluationReports, { catalog, snapshots: [], t: text => text })));
+    const buttons = () => [...container.querySelectorAll(".report-pagination button")];
+    const titles = () => [...container.querySelectorAll("h3")].map(el => el.textContent);
+    assert.equal(titles().length, 6);
+    assert.ok(buttons()[0].disabled);
+    assert.match(titles()[0], /Report 1 /);
+    await React.act(async () => buttons()[1].click());
+    assert.equal(titles().length, 6);
+    assert.match(titles()[0], /Report 7 /);
+    await React.act(async () => buttons()[1].click());
+    assert.equal(titles().length, 3);
+    assert.match(titles()[2], /Report 15 /);
+    assert.ok(buttons()[1].disabled);
+    await React.act(async () => buttons()[0].click());
+    assert.match(titles()[0], /Report 7 /);
+  } finally {
+    await React.act(async () => root.unmount());
+    await win.happyDOM.close();
+    [globalThis.window, globalThis.document, globalThis.IS_REACT_ACT_ENVIRONMENT] = previous;
   }
 });

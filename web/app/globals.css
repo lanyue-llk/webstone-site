@@ -556,3 +556,9 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
 .column-views button[aria-pressed=true] { background: #285c42; border-color: #285c42; color: white; }
 .track-card li a { display: flex; padding: 6px 8px; border: 1px solid #d4e1d8; border-radius: 5px; color: #24563c; background: #f7faf7; }
 .track-card li a:hover { background: #e5efe7; }
+
+.evaluation-scope { display: flex; align-items: center; gap: 7px; margin: 10px 0 16px; color: #52685a; font-size: 12px; }
+.report-date-source { display: block; margin-top: 3px; font-size: 11px; }
+.report-pagination { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 18px; }
+.report-pagination button { border: 1px solid #b6cbbd; padding: 8px 14px; border-radius: 6px; background: #ecf4ee; color: #23583f; }
+.report-pagination button:disabled { opacity: .45; }

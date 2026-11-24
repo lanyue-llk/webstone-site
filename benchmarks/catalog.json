@@ -57,14 +57,14 @@
       "description": "Search retrieval"
     },
     {
-      "id": "trajectory-replay",
-      "name": "Trajectory Replay",
-      "description": "Recorded browser actions"
-    },
-    {
       "id": "webextract",
       "name": "Web Extract",
       "description": "Structured field extraction"
+    },
+    {
+      "id": "trajectory-replay",
+      "name": "Trajectory Replay",
+      "description": "Recorded browser actions"
     },
     {
       "id": "browserarena",
