@@ -269,3 +269,18 @@ test("malformed content encodings reject asynchronously without terminating the 
     await assert.rejects(anonymousRequest(address,{},transport),/Unsupported.*encoding/);
   }
 });
+
+
+test("large fragmented documents cannot exhaust the checker process", async () => {
+  await assert.rejects(check(async () => html('<i></i>'.repeat(500000))), /complexity/);
+  await check(async () => html('<h1>Measured results</h1>'));
+});
+
+test("collapsed account disclosures do not hide otherwise public reports", async () => {
+  await check(async () => html('<h1>Measured results</h1><details><summary>Account</summary><input type="password"></details>'));
+  await assert.rejects(check(async () => html('<details open><summary>Account</summary><input type="password"></details>')), /access-denied/);
+});
+
+test("access-required instructions are recognized across multiple sentences", async () => {
+  await assert.rejects(check(async () => html('<p>Sign in to view this report. Contact the owner for access.</p>')), /access-denied/);
+});
