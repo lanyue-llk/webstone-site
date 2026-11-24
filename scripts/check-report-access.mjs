@@ -98,7 +98,24 @@ export function reportDocument(html) {
   });
 }
 
-export async function checkReportAccess(address, { request = anonymousRequest, resolve = lookup, timeoutMs = 60000 } = {}) {
+const reviewedPublications = JSON.parse(await readFile(new URL("../reports/publications.json", import.meta.url), "utf8"));
+
+export function validatePublication(publication, depth = 0, ancestors = new Set()) {
+  if (!publication || typeof publication !== "object" || ancestors.has(publication) || depth > 5) throw new Error("Missing or cyclic reviewed report publication");
+  if (!/^ver_[A-Za-z0-9_]+$/.test(publication.versionId ?? "") || !/^[a-f0-9]{64}$/.test(publication.entry?.sha256 ?? "")) throw new Error("Reviewed report needs its immutable version and SHA-256");
+  const path = publication.entry?.path;
+  if (typeof path !== "string" || /[\\?#%\u0000-\u001f]/.test(path) || path.split("/").some(part => !part || part === "." || part === "..")) throw new Error("Unsafe reviewed report entry path");
+  if (publication.dependencies !== undefined && !Array.isArray(publication.dependencies)) throw new Error("Invalid reviewed report dependencies");
+  ancestors.add(publication);
+  for (const dependency of publication.dependencies ?? []) {
+    if (!publicEvidenceUrl(dependency.url)) throw new Error("Expected a public report dependency URL");
+    validatePublication(dependency, depth + 1, ancestors);
+  }
+  ancestors.delete(publication);
+}
+
+export async function checkReportAccess(address, { publication = reviewedPublications[address], request = anonymousRequest, resolve = lookup, timeoutMs = 60000 } = {}) {
+  validatePublication(publication);
   const deadline = Date.now() + Math.min(timeoutMs, 60000);
   async function bounded(promise) {
     let timer;
@@ -109,9 +126,7 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
     } finally { clearTimeout(timer); }
   }
   let requests = 0;
-  const validated = new Set();
-  const active = new Set();
-  async function retrieve(address, json = false) {
+  async function retrieve(address, kind = "html") {
     let url = new URL(address);
     for (let redirects = 0; redirects <= 5; redirects++) {
       if (!publicEvidenceUrl(url.href)) throw new Error("Expected a public HTTPS URL without credentials");
@@ -135,9 +150,15 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       const type = response.headers.get("content-type") ?? "";
       const encoding = /charset\s*=\s*["']?([^;\s"']+)/i.exec(type)?.[1];
       if (encoding && !/^(?:utf-?8|us-ascii)$/i.test(encoding)) throw new Error("Reports must use UTF-8 encoding");
-      const body = new TextDecoder("utf-8", { fatal: true }).decode(await response.arrayBuffer());
+      const bytes = Buffer.from(await response.arrayBuffer());
+      if (!bytes.length) throw new Error("Report returned an empty document");
+      if (kind === "entry") {
+        if (!/text\/html/i.test(type)) throw new Error("Expected a reviewed HTML report entry");
+        return bytes;
+      }
+      const body = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       if (!body.trim()) throw new Error("Report returned an empty document");
-      if (json) {
+      if (kind === "json") {
         if (!/application\/json/i.test(type)) throw new Error("Expected a report delivery manifest");
         return JSON.parse(body);
       }
@@ -147,75 +168,48 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       if (document.charset && !/^(?:utf-?8|us-ascii)$/i.test(document.charset)) throw new Error("Reports must use UTF-8 encoding");
       if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
 
-      if (document.authentication && !document.frames.length && !document.deliveryConfig) throw new Error("Report entry requires authentication or denies access");
-      if (!document.readable && !document.frames.length && !document.deliveryConfig) throw new Error("Report has no readable content");
-      return { url, body, pdf: false, ...document };
+      return { url, ...document };
     }
     throw new Error("Too many redirects");
   }
 
-  async function validatePage(page, depth = 0, requireDelivery = false) {
-    if (Date.now() >= deadline) throw new Error("Report exceeds the time budget");
-    const identity = (requireDelivery ? "delivery:" : "document:") + page.url.href + (page.inline ? "#inline-" + createHash("sha256").update(page.body).digest("hex") : "");
-    if (active.has(identity)) throw new Error("Report contains a cyclic preview chain");
-    if (validated.has(identity)) return;
-    active.add(identity);
-    try { await validatePageContent(page, depth, requireDelivery); validated.add(identity); }
-    finally { active.delete(identity); }
-  }
-
-  async function validatePageContent(page, depth, requireDelivery) {
-    if (requireDelivery && !page.deliveryConfig) throw new Error("Anonymous preview did not expose its report delivery manifest");
-    if (page.pdf) return;
-    if (depth > 5) throw new Error("Report contains too many nested previews");
-    if (page.deliveryConfig) {
-      const config = page.deliveryConfig;
+  async function checkPublication(url, expected) {
+    const root = await retrieve(url);
+    const share = /^(.*)\/(s|v)\/([A-Za-z0-9_-]+)\/?$/.exec(root.url.pathname);
+    if (!share) throw new Error("Use the report service's public share URL");
+    const base = root.baseHref === null ? root.url : new URL(root.baseHref, root.url);
+    const prefix = share[1] + "/api/preview/";
+    const previews = root.frames.flatMap(frame => {
+      if (!frame.src || frame.srcdoc !== undefined) return [];
+      const target = new URL(frame.src, base);
+      return target.origin === root.url.origin && (share[2] === "v" ? target.pathname.startsWith(prefix) : target.pathname.startsWith(prefix + share[3] + "/") || target.pathname === prefix + share[3]) ? [target] : [];
+    });
+    if (!previews.length) throw new Error("Public share has no report-service preview");
+    if (root.frames.some(frame => frame.required && !previews.some(url => frame.src && new URL(frame.src, base).href === url.href))) throw new Error("Share contains an unreviewed required preview");
+    for (const target of previews) {
+      const slug = target.pathname.slice(prefix.length).split("/")[0];
+      target.pathname = prefix + slug + "/" + expected.entry.path.split("/").map(encodeURIComponent).join("/");
+      const preview = await retrieve(target.href);
+      const config = preview.deliveryConfig;
+      if (!config || config.file !== expected.entry.path) throw new Error("Anonymous preview did not expose the reviewed report entry");
       const manifestUrl = new URL(config.manifestUrl);
       manifestUrl.searchParams.set("file", config.file);
       let entry;
       for (let index = 0; index < 20; index++) {
-        const manifest = await retrieve(manifestUrl.href, true);
-        entry = manifest.files?.find(file => file.path === config.file);
-        if (entry || manifest.nextCursor === null || manifest.nextCursor === undefined) break;
+        const manifest = await retrieve(manifestUrl.href, "json");
+        if (manifest.versionId !== expected.versionId) throw new Error("Report publication changed; review the new edition and update reports/publications.json");
+        if (!Array.isArray(manifest.files)) throw new Error("Invalid report delivery manifest");
+        entry = manifest.files.find(file => file.path === config.file);
+        if (entry || manifest.nextCursor == null) break;
         manifestUrl.searchParams.set("cursor", String(manifest.nextCursor));
       }
-      if (!entry?.url) throw new Error("Report entry is missing from the anonymous delivery manifest");
-      await validatePage(await retrieve(entry.url), depth + 1);
+      if (!entry?.url) throw new Error("Reviewed report entry is missing from the anonymous delivery manifest");
+      const bytes = await retrieve(entry.url, "entry");
+      if (createHash("sha256").update(bytes).digest("hex") !== expected.entry.sha256) throw new Error("Reviewed report entry has changed");
     }
-    const hasRequired = page.frames.some(frame => frame.required);
-    const sources = page.frames.filter(frame => frame.required || (!page.readable && !hasRequired && !page.deliveryConfig));
-    if (!sources.length && !page.deliveryConfig && !page.readable) throw new Error("Hosted report has no readable preview");
-    const base = page.baseHref === null ? page.url : new URL(page.baseHref, page.url);
-    const destinations = new Set();
-    for (const frame of sources) {
-      const destination = frame.srcdoc !== undefined ? "inline:" + frame.srcdoc : "url:" + new URL(frame.src, base).href;
-      if (destinations.has(destination)) continue;
-      destinations.add(destination);
-      if (frame.srcdoc !== undefined) {
-        const inline = await bounded(reportDocument(frame.srcdoc));
-        if (inline.refresh) throw new Error("Inline report requires sign-in or redirects");
-        if (!inline.readable && !inline.frames.length && !inline.deliveryConfig) throw new Error("Inline report has no readable content");
-        await validatePage({ url: base, body: frame.srcdoc, pdf: false, ...inline, inline: true }, depth + 1);
-      } else {
-        const url = new URL(frame.src, base);
-        await validatePage(await retrieve(url.href), depth + 1, /\/api\/preview\//.test(url.pathname));
-      }
-    }
+    for (const dependency of expected.dependencies ?? []) await checkPublication(dependency.url, dependency);
   }
-  const root = await retrieve(address);
-  const share = /^(.*)\/(s|v)\/([A-Za-z0-9_-]+)\/?$/.exec(root.url.pathname);
-  if (!share) throw new Error("Use the report service's public share URL");
-  const base = root.baseHref === null ? root.url : new URL(root.baseHref, root.url);
-  const prefix = share[1] + "/api/preview/";
-  const previews = root.frames.filter(frame => {
-    if (!frame.src || frame.srcdoc !== undefined) return false;
-    const url = new URL(frame.src, base);
-    return url.origin === root.url.origin && (share[2] === "v" ? url.pathname.startsWith(prefix) : url.pathname.startsWith(prefix + share[3] + "/") || url.pathname === prefix + share[3]);
-  });
-  if (!previews.length) throw new Error("Public share has no report-service preview");
-  const required = root.frames.filter(frame => frame.required);
-  if (required.length) await validatePage({ ...root, frames: required });
-  for (const frame of previews) await validatePage(await retrieve(new URL(frame.src, base).href), 0, true);
+  await checkPublication(address, publication);
 }
 
 async function main() {
