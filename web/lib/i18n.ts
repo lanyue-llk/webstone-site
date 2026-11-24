@@ -74,8 +74,6 @@ const chinese: Record<string, string> = {
   "Compare extraction methods on SWDE pages and Zyte product pages.": "在 SWDE 网页和 Zyte 商品页上比较字段提取方案。",
   "The touchstone for your agent's web tools.": "Agent Web Tools 的试金石。",
   "Explore leaderboards": "查看排行榜",
-  "Local tracks": "站内评测方向",
-  "Result editions": "结果版本",
   "Explore by track": "按评测方向浏览",
   "Benchmark views": "评测页",
   "benchmark views": "个评测页",

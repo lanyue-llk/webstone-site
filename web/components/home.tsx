@@ -59,9 +59,9 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
         <p className="overview-star-note">{t("If Webstone helps, give it a star.")}</p>
       </div>
       <dl className="overview-stats">
-        <div><dt>{t("Local tracks")}</dt><dd>{tracks.length}</dd></div>
+        <div><dt>{t("Tracks")}</dt><dd>{tracks.length}</dd></div>
         <div><dt>{t("Benchmarks")}</dt><dd>{count}</dd></div>
-        <div><dt>{t("Result editions")}</dt><dd>{snapshots.length}</dd></div>
+        <div><dt>{t("Reports")}</dt><dd>{evaluationReports(catalog, snapshots).length}</dd></div>
       </dl>
     </section>
     <section className="getting-started" aria-label={t("Get started")}>

@@ -592,3 +592,6 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
   .article-card { display: grid; grid-row: span 6; grid-template-rows: subgrid; align-items: start; }
 }
 .article-tags { align-content: start; }
+
+.brand-mark { position: relative; display: block; flex: 0 0 44px; width: 44px; height: 35px; overflow: hidden; border-radius: 5px; }
+.brand-mark img { position: absolute; display: block; width: 106px; max-width: none; height: auto; left: -31px; top: 0; }
