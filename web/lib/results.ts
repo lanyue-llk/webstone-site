@@ -29,7 +29,8 @@ export type Catalog = {
   schemaVersion: number;
   translations?: { zh: Record<string, string>; en?: Record<string, string> };
   providerUrls: Record<string, string>;
-  tracks: { id: string; name: string; description: string; url?: string }[];
+  navigationGroups?: { id: string; name: string; description: string; upcoming?: { id: string; name: string; description: string }[] }[];
+  tracks: { id: string; name: string; description: string; url?: string; groupId?: string }[];
   benchmarks: BenchmarkInfo[];
 };
 export type BenchmarkResult = {

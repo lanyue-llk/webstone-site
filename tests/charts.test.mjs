@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
@@ -96,7 +97,7 @@ test("the home overview counts search layers as views and shares articles with t
   assert.equal(articles[0].date, "2026-11-10");
   assert.equal(articles.at(-1).date, "2026-09-20");
   assert.ok(articles.every(report => Number.isFinite(Date.parse(report.publishedAt))));
-  assert.deepEqual(tracks.map(track => track.id), ["webfetch", "websearch", "webextract", "trajectory-replay"]);
+  assert.deepEqual(tracks.map(track => track.id), ["websearch", "webextract", "webfetch", "trajectory-replay"]);
   assert.deepEqual(tracks.find(track => track.id === "trajectory-replay").benchmarks.map(bench => bench.id),
     ["webarena-verified", "lexbench-headless-372"]);
   for (const view of catalog.benchmarks) {
@@ -239,7 +240,15 @@ test("the dashboard exposes two repository guides and preserves each pricing val
     const links = [...container.querySelectorAll(".sidebar-guides a")];
     assert.deepEqual(links.map(link => link.getAttribute("href")), [EVALUATION_URL, SUBMISSION_URL, "https://huggingface.co/datasets?author=Lexmount"]);
     assert.ok(links.every(link => link.querySelector("svg") && link.textContent.trim()));
-    assert.equal(container.querySelectorAll(".sidebar-footer a").length, 0);
+    const star = container.querySelector(".sidebar-footer .nav-star");
+    assert.ok(star); assert.equal(new URL(star.href).pathname, "/lexmount/webstone"); assert.equal(new URL(star.href).hash, "");
+    assert.match(star.getAttribute("aria-label"), /Star Webstone/);
+    const groups = [...container.querySelectorAll(".grouped-navigation > .nav-group")];
+    assert.deepEqual(groups.map(group => group.querySelector("h2").textContent), ["Web Tools", "Browsers", "Browser Automation"]);
+    assert.deepEqual(groups.map(group => group.querySelectorAll(".nav-track").length), [2, 2, 0]);
+    assert.deepEqual(groups.map(group => group.querySelectorAll(".nav-upcoming").length), [1, 0, 1]);
+    assert.equal(container.querySelectorAll(".grouped-navigation details").length, 0);
+    assert.equal(container.querySelectorAll(".nav-upcoming a, .nav-upcoming button").length, 0);
     const rows = [...container.querySelectorAll("tbody tr")];
     assert.equal(rows.length, benchmark.providers.length);
     for (const row of rows) {
@@ -424,9 +433,40 @@ test("release verification rejects relaxed or stale script policies", async () =
 
 test("inline script hashes use HTML attributes and browser script text", async () => {
   const {inlineScriptHashes}=await import('../scripts/secure-export.mjs');
-  const expected=inlineScriptHashes('<script>run()</script>');
+  const expected=["'sha256-"+createHash('sha256').update('run()').digest('base64')+"'"];
+  assert.deepEqual(inlineScriptHashes('<script>run()</script>'),expected);
   assert.deepEqual(inlineScriptHashes('<script data-src="example">run()</script>'),expected);
   assert.deepEqual(inlineScriptHashes('<script data-label="a > b">run()</script>'),expected);
   assert.deepEqual(inlineScriptHashes('<script SRC="/external.js">run()</script>'),[]);
   assert.deepEqual(inlineScriptHashes('<script>run()\r\n</script>'),inlineScriptHashes('<script>run()\n</script>'));
+});
+
+
+test("navigation groups separate browser retrieval from web APIs without counting planned tracks", () => {
+  const {navigationGroups}=require('../web/lib/overview.ts');
+  const groups=navigationGroups(catalog);
+  assert.deepEqual(groups.map(group=>group.id),["web-tools","browsers","browser-automation"]);
+  assert.deepEqual(groups[0].tracks.map(track=>track.id),["websearch","webextract"]);
+  assert.deepEqual(groups[1].tracks.map(track=>track.id),["webfetch","trajectory-replay","browserarena"]);
+  assert.deepEqual(groups[0].upcoming.map(track=>track.id),["webfetch-api"]);
+  assert.deepEqual(groups[2].upcoming.map(track=>track.id),["browser-use"]);
+  assert.equal(groups[2].tracks.length,0);
+  const published=trackOverview(catalog);
+  assert.equal(published.length,4);assert.equal(published.flatMap(track=>track.benchmarks).length,8);
+  assert.ok(groups.flatMap(group=>group.upcoming).every(item=>!published.some(track=>track.id===item.id)));
+});
+
+test("the homepage offers the evaluation repository star and translates the development preview", async () => {
+  const Home=require('../web/components/home.tsx').default;
+  const win=new Window();
+  try {
+    win.document.body.innerHTML=renderToStaticMarkup(React.createElement(Home,{catalog,snapshots:[],t:translator('zh',catalog,null)}));
+    const star=win.document.querySelector('.overview-star');
+    assert.equal(new URL(star.href).pathname,'/lexmount/webstone');assert.equal(new URL(star.href).hash,'');
+    assert.match(star.textContent,/Star/);
+    assert.match(win.document.querySelector('.overview-star-note').textContent,/觉得 Webstone 有用/);
+    assert.match(win.document.querySelector('.upcoming-overview').textContent,/浏览器自动化/);
+    assert.match(win.document.querySelector('.upcoming-overview').textContent,/开发中/);
+    assert.equal(win.document.querySelectorAll('.track-card').length,4);
+  } finally {await win.happyDOM.close();}
 });

@@ -162,7 +162,7 @@ Open <http://127.0.0.1:5173>. The output is plain static files and needs no Next
 
 The public site uses Cloudflare Pages. Merge into `main`, then push a new `vMAJOR.MINOR.PATCH` tag to run tests, check report access and publish the static export. Main pushes alone do not publish. See [Pages deployment](docs/deploying-pages.md) for initial authorization, GitHub settings, domain configuration, verification and manual recovery.
 
-Report links must be readable without signing in. Use the report service’s canonical public share link (`/s/…` or `/v/…`). `npm run check:reports` follows that link through the service’s preview and delivery manifest to fetch the report anonymously. It rejects missing, private or incomplete delivery. Report publishers must also check the rendered report in a browser; this permission check does not replace visual review. CI runs this check on PRs, main updates and daily. Keep existing report URLs when changing their sharing settings.
+Report links must open without signing in. `npm run check:reports` anonymously follows each report-service share link through its preview and delivery manifest to the actual report file, including embedded reports from the same service. Private or missing delivery and redirects to sign-in block publication. CI runs this check on PRs, main updates and daily. It checks access, without locking report versions or judging their text. Review report measurements separately from link availability.
 
 The export includes Pages cache headers and the submission redirect. Verify the deployed release, leaderboard data and report downloads before retiring a previous host.
 

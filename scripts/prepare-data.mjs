@@ -53,6 +53,21 @@ export function validateCatalog(catalog) {
   if (!catalog.providerUrls || typeof catalog.providerUrls !== "object" || Array.isArray(catalog.providerUrls) || !Object.keys(catalog.providerUrls).length || !Object.values(catalog.providerUrls).every(httpsUrl)) throw new Error("Missing or invalid provider project URL");
   uniqueIds(catalog.tracks, "track");
   uniqueIds(catalog.benchmarks, "benchmark");
+  if (catalog.navigationGroups !== undefined) {
+    uniqueIds(catalog.navigationGroups, "navigation group");
+    const upcoming = [];
+    for (const group of catalog.navigationGroups) {
+      if (![group.name, group.description].every(value => typeof value === "string" && value.trim())) throw new Error("Missing navigation group information");
+      if (group.upcoming !== undefined && !Array.isArray(group.upcoming)) throw new Error("Invalid upcoming tracks");
+      for (const item of group.upcoming ?? []) {
+        if (![item.name, item.description].every(value => typeof value === "string" && value.trim()) || catalog.tracks.some(track => track.id === item.id)) throw new Error("An upcoming track must be separate from published tracks");
+        upcoming.push(item);
+      }
+    }
+    if (upcoming.length) uniqueIds(upcoming, "upcoming track");
+    if (catalog.tracks.some(track => !catalog.navigationGroups.some(group => group.id === track.groupId))) throw new Error("Unknown track navigation group");
+  }
+
   for (const track of catalog.tracks) {
     if (track.url !== undefined && !httpsUrl(track.url)) throw new Error("Invalid external track URL");
     const hasBenchmarks = catalog.benchmarks.some(benchmark => benchmark.trackId === track.id);

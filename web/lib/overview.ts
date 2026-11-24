@@ -3,7 +3,8 @@ import type { BenchmarkInfo, Catalog, Snapshot } from "./results.ts";
 
 export const DATASETS_URL = "https://huggingface.co/datasets?author=Lexmount";
 
-export const EVALUATION_URL = "https://github.com/lexmount/webstone#for-agents";
+export const WEBSTONE_REPOSITORY_URL = "https://github.com/lexmount/webstone";
+export const EVALUATION_URL = WEBSTONE_REPOSITORY_URL + "#for-agents";
 export const EVALUATION_SKILL = "https://github.com/lexmount/webstone/blob/main/.agents/skills/webstone/SKILL.md";
 
 export const SUBMISSION_URL = "https://github.com/lexmount/webstone-site#for-agents";
@@ -13,11 +14,22 @@ export function benchmarkHref(id: string) {
   return `/?${new URLSearchParams({ benchmark: id })}`;
 }
 
+export function navigationGroups(catalog: Catalog) {
+  const groups = catalog.navigationGroups ?? [{ id: "tracks", name: "Tracks", description: "" }];
+  return groups.map(group => ({
+    ...group,
+    upcoming: group.upcoming ?? [],
+    tracks: catalog.tracks.filter(track => !catalog.navigationGroups || track.groupId === group.id).map(track => ({
+      ...track, benchmarks: catalog.benchmarks.filter(benchmark => benchmark.trackId === track.id),
+    })),
+  }));
+}
+
 export function trackOverview(catalog: Catalog) {
-  return catalog.tracks.filter(track => !track.url).map(track => {
-    const views = catalog.benchmarks.filter(benchmark => benchmark.trackId === track.id);
-    return { ...track, views, benchmarks: views.filter(benchmark => !benchmark.outputLayer || benchmark.outputLayer === "L1") };
-  });
+  return navigationGroups(catalog).flatMap(group => group.tracks.filter(track => !track.url).map(track => ({
+    ...track, groupName: group.name, views: track.benchmarks,
+    benchmarks: track.benchmarks.filter(benchmark => !benchmark.outputLayer || benchmark.outputLayer === "L1"),
+  })));
 }
 
 type ReportMetadata = {
