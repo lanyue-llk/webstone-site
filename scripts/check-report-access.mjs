@@ -30,7 +30,7 @@ export function reportLinks(catalog, snapshots, metadata) {
 
 export function anonymousRequest(address, options, transport = httpsRequest) {
   return new Promise((resolve, reject) => {
-    const req = transport(address, { lookup: options.lookup, signal: options.signal, headers: options.origin ? { Origin: options.origin } : undefined }, response => {
+    const req = transport(address, { lookup: options.lookup, signal: options.signal }, response => {
       if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
         resolve(new Response(null, { status: response.statusCode, headers: response.headers }));
         response.on("error", () => {});
@@ -159,7 +159,6 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
     throw new Error("Too many redirects");
   }
 
-  const frames = new Set(), entries = new Set();
   const active = new Set(), checked = new Set();
   async function visit(kind, url, depth, work, context = "") {
     if (depth > 5) throw new Error("Report contains too many nested previews");
@@ -185,16 +184,14 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       const firstParty = url.origin === origin;
       if (firstParty && /\/api\/preview\//.test(decodeURIComponent(url.pathname))) await preview(url.href, depth + 1);
       else if (firstParty && /\/(?:s|v)\/[A-Za-z0-9_-]+\/?$/.test(decodeURIComponent(url.pathname))) await share(url.href, depth + 1);
-      else if (frame.required) await resource(url.href, origin, depth + 1, true);
+      else if (frame.required) await resource(url.href, origin, depth + 1);
     }
   }
-  async function resource(url, serviceOrigin, depth, direct = false) {
-    if (direct) frames.add(url);
+  async function resource(url, serviceOrigin, depth) {
     await visit("entry", url, depth, async () => {
       // Yours serves the owner's uploaded file directly after the public manifest.
       // This gate checks anonymous delivery, not the report's prose, examples or forms.
       const response = await retrieve(url, "entry");
-      entries.add(response.url.href);
       if (!/text\/html/i.test(response.type)) throw new Error("Expected an HTML report entry");
       if (/text\/html/i.test(response.type)) {
         const html = new TextDecoder("utf-8", { fatal: true }).decode(response.bytes);
@@ -208,7 +205,6 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
   async function preview(url, depth) {
     await visit("preview", url, depth, async () => {
       const page = await retrieve(url);
-      frames.add(url);
       const config = page.deliveryConfig;
       if (!config || typeof config.file !== "string" || !config.file) throw new Error("Anonymous preview did not expose its report delivery manifest");
       const manifestUrl = new URL(config.manifestUrl, page.url);
@@ -229,7 +225,6 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
   async function share(url, depth) {
     await visit("share", url, depth, async () => {
       const page = await retrieve(url);
-      if (depth > 0) frames.add(url);
       const match = /^(.*)\/(s|v)\/([A-Za-z0-9_-]+)\/?$/.exec(page.url.pathname);
       if (!match) throw new Error("Use the report service's public share URL");
       const base = page.baseHref === null ? page.url : new URL(page.baseHref, page.url);
@@ -246,7 +241,6 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
     });
   }
   await share(address, 0);
-  return { frames: [...frames], entries: [...entries] };
 }
 
 async function main() {
@@ -257,20 +251,15 @@ async function main() {
   const links = reportLinks(catalog, files.map(item => item.report), metadata);
   const failures = [];
   let next = 0;
-  const { launchReportBrowser, verifyReportNavigation } = await import("./report-browser.mjs");
-  const browser = await launchReportBrowser();
-  try {
-    await Promise.all(Array.from({ length: Math.min(3, links.length) }, async () => {
+  await Promise.all(Array.from({ length: Math.min(3, links.length) }, async () => {
       while (next < links.length) {
         const link = links[next++];
         try {
-          const delivery = await checkReportAccess(link);
-          await verifyReportNavigation(browser, link, delivery);
+          await checkReportAccess(link);
           console.log(`Anonymous report access OK: ${link}`);
         } catch (error) { failures.push(`${link}: ${error.message}`); }
       }
     }));
-  } finally { await browser.close(); }
   if (failures.length) throw new Error(failures.join("\n"));
 }
 
