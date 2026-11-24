@@ -65,6 +65,6 @@ export function evaluationReports(catalog: Catalog, snapshots: Snapshot[], curre
     const destination = reportDestination({ urls, originalLanguage }, href, language);
     const track = catalog.tracks.find(item => item.id === benchmarks[0].trackId);
     const trackLanding = track && benches.find(bench => bench.trackId === track.id);
-    return track && trackLanding ? [{ source, title, summary, date, publishedAt, href: destination.href, language: destination.language, benchmarks, track, trackLanding }] : [];
+    return track && trackLanding ? [{ source, title, summary, date, publishedAt, href: destination.href, language: destination.language, originalLanguage, benchmarks, track, trackLanding }] : [];
   }).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 }

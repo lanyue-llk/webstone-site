@@ -505,3 +505,31 @@ test("homepage counts reports instead of historical result editions and uses the
     assert.match(readFileSync(new URL('../README.md',import.meta.url),'utf8'),/web\/public\/brand\/webstone\.png/);
   } finally {await win.happyDOM.close();}
 });
+
+
+test("report cards distinguish translated editions from missing translations without changing link language", t => {
+  const overview = require("../web/lib/overview.ts");
+  const { snapshot } = load("lexbench-swde");
+  const english = overview.evaluationReports(catalog, [snapshot], undefined, "en")[0];
+  const chinese = overview.evaluationReports(catalog, [snapshot], undefined, "zh")[0];
+  assert.equal(english.originalLanguage, "zh"); assert.equal(chinese.originalLanguage, "zh");
+  assert.equal(english.language, "en"); assert.equal(chinese.language, "zh");
+  assert.notEqual(english.href, chinese.href);
+  const { EvaluationReports } = require("../web/components/home.tsx");
+  for (const [originalLanguage, edition, language, expected] of [
+    ["zh", "en", "en", "Translated from Chinese"],
+    ["zh", "zh", "zh", null],
+    ["zh", "zh", "en", "Chinese original"],
+    ["en", "zh", "zh", "译自英文"],
+    ["ja", "en", "en", null],
+  ]) {
+    t.mock.method(overview, "evaluationReports", () => [{ ...english, originalLanguage, language: edition }]);
+    const win = new Window();
+    try {
+      win.document.body.innerHTML = renderToStaticMarkup(React.createElement(EvaluationReports, { catalog, snapshots: [], language, t: translator(language, catalog) }));
+      assert.equal(win.document.querySelector("h3 a").getAttribute("hreflang"), edition);
+      assert.equal(win.document.querySelector(".article-language")?.textContent ?? null, expected);
+      assert.ok(win.document.querySelector(".article-date .article-language") || expected === null);
+    } finally { win.happyDOM.close(); t.mock.restoreAll(); }
+  }
+});
