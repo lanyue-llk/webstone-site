@@ -507,29 +507,23 @@ test("homepage counts reports instead of historical result editions and uses the
 });
 
 
-test("report cards distinguish translated editions from missing translations without changing link language", t => {
+test("report cards open each language edition without translation or source-language labels", () => {
   const overview = require("../web/lib/overview.ts");
-  const { snapshot } = load("lexbench-swde");
-  const english = overview.evaluationReports(catalog, [snapshot], undefined, "en")[0];
-  const chinese = overview.evaluationReports(catalog, [snapshot], undefined, "zh")[0];
-  assert.equal(english.originalLanguage, "zh"); assert.equal(chinese.originalLanguage, "zh");
-  assert.equal(english.language, "en"); assert.equal(chinese.language, "zh");
-  assert.notEqual(english.href, chinese.href);
   const { EvaluationReports } = require("../web/components/home.tsx");
-  for (const [originalLanguage, edition, language, expected] of [
-    ["zh", "en", "en", "Translated from Chinese"],
-    ["zh", "zh", "zh", null],
-    ["zh", "zh", "en", "Chinese original"],
-    ["en", "zh", "zh", "译自英文"],
-    ["ja", "en", "en", null],
-  ]) {
-    t.mock.method(overview, "evaluationReports", () => [{ ...english, originalLanguage, language: edition }]);
+  const { snapshot } = load("lexbench-swde");
+  const links = [];
+  for (const language of ["en", "zh"]) {
+    const article = overview.evaluationReports(catalog, [snapshot], undefined, language)[0];
     const win = new Window();
     try {
-      win.document.body.innerHTML = renderToStaticMarkup(React.createElement(EvaluationReports, { catalog, snapshots: [], language, t: translator(language, catalog) }));
-      assert.equal(win.document.querySelector("h3 a").getAttribute("hreflang"), edition);
-      assert.equal(win.document.querySelector(".article-language")?.textContent ?? null, expected);
-      assert.ok(win.document.querySelector(".article-date .article-language") || expected === null);
-    } finally { win.happyDOM.close(); t.mock.restoreAll(); }
+      win.document.body.innerHTML = renderToStaticMarkup(React.createElement(EvaluationReports, { catalog, snapshots: [snapshot], language, t: translator(language, catalog) }));
+      const link = win.document.querySelector("h3 a");
+      assert.equal(link.getAttribute("hreflang"), language);
+      assert.equal(link.href, article.href);
+      links.push(link.href);
+      assert.equal(win.document.querySelector(".article-language"), null);
+      assert.doesNotMatch(win.document.body.textContent, /Translated from|译自|中文原文|英文原文/);
+    } finally { win.happyDOM.close(); }
   }
+  assert.notEqual(links[0], links[1]);
 });
