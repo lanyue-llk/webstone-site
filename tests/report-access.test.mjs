@@ -263,3 +263,28 @@ test("optional sign-in text does not block the actual public report preview", as
   const page=await reportDocument('<header>Sign in</header>'+loader);
   assert.equal(page.authentication,true);assert.ok(page.deliveryConfig);
 });
+
+
+test("denial headings and login forms are distinguished from optional account controls", async () => {
+  for(const content of ['<h1>Access denied</h1><p>You do not have permission to view this report.</p>','<form><label>Email<input type="email"></label><label>Password<input type="password"></label><button>Sign in</button></form>']) await assert.rejects(check(publication({},content)),/authentication|denies access/);
+  await check(publication({},'<header><h1>Sign in</h1><form><label>Email<input type="email"></label><label>Password<input type="password"></label></form></header>'+body));
+});
+
+test("checker deadlines cancel both stalled HTTPS stages", {timeout:6000}, async () => {
+  for(const stage of ["headers","body"]) {
+    let req,response,guard;
+    const transport=(_url,options,callback)=>{
+      req=new EventEmitter();req.destroyed=false;
+      req.destroy=error=>{req.destroyed=true;response?.destroy(error);req.emit("error",error);};
+      guard=setTimeout(()=>req.destroy(new Error("Independent test guard expired")),2000);
+      assert.ok(options.signal instanceof AbortSignal);
+      options.signal.addEventListener("abort",()=>req.destroy(options.signal.reason),{once:true});
+      req.end=()=>{if(stage==="body"){response=new Readable({read(){}});response.statusCode=200;response.headers={"content-type":"text/html"};callback(response);}};
+      return req;
+    };
+    try {
+      await assert.rejects(checkReportAccess(share,{resolve,timeoutMs:1000,request:(url,options)=>anonymousRequest(url,options,transport)}),error=>error.name==="TimeoutError" || error.name==="AbortError");
+      assert.equal(req?.destroyed,true);if(response)assert.equal(response.destroyed,true);
+    } finally {clearTimeout(guard);}
+  }
+});
