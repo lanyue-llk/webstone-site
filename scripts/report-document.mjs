@@ -35,6 +35,7 @@ function reportDocument(html) {
     for (let index = children.length - 1; index >= 0; index--) stack.push({ node: children[index], depth: depth + 1, inert, head });
   }
   const content = text.join(" ").replace(/\s+/g, " ").trim();
+  if (/^(?:(?:please\s+)?(?:sign|log)\s*in|access\s+denied|unauthorized|forbidden)[.!\s]*$/i.test(content)) throw new Error("Report entry requires authentication or denies access");
   return { readable: Boolean(content) && !/^(?:loading[. …]*|please wait[. …]*|redirecting[. …]*)$/i.test(content), frames, deliveryConfig, baseHref, refresh, charset };
 }
 
