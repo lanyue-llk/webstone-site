@@ -147,6 +147,7 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       if (document.charset && !/^(?:utf-?8|us-ascii)$/i.test(document.charset)) throw new Error("Reports must use UTF-8 encoding");
       if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
 
+      if (document.authentication && !document.frames.length && !document.deliveryConfig) throw new Error("Report entry requires authentication or denies access");
       if (!document.readable && !document.frames.length && !document.deliveryConfig) throw new Error("Report has no readable content");
       return { url, body, pdf: false, ...document };
     }
@@ -181,7 +182,8 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       if (!entry?.url) throw new Error("Report entry is missing from the anonymous delivery manifest");
       await validatePage(await retrieve(entry.url), depth + 1);
     }
-    const sources = page.frames.filter(frame => frame.required || !page.readable);
+    const hasRequired = page.frames.some(frame => frame.required);
+    const sources = page.frames.filter(frame => frame.required || (!page.readable && !hasRequired && !page.deliveryConfig));
     if (!sources.length && !page.deliveryConfig && !page.readable) throw new Error("Hosted report has no readable preview");
     const base = page.baseHref === null ? page.url : new URL(page.baseHref, page.url);
     const destinations = new Set();
