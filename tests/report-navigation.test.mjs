@@ -302,10 +302,12 @@ test("the browser checks the full ancestor chain across a CDN iframe", async () 
 });
 
 test("document redirects preserve their final URL and relative iframe base", async () => {
+  const original = "https://reports.example.org/original/page.html";
   const final = "https://reports.example.org/final/index.html";
   const child = "https://reports.example.org/final/child.html";
   respond = fixture({
-    [preview]: () =>
+    [entry]: () => html(`<iframe src="${original}"></iframe>`),
+    [original]: () =>
       new Response(null, { status: 302, headers: { location: final } }),
     [final]: () => html(`<iframe src="child.html"></iframe>`),
     [child]: () => html("<main>Report</main>"),
@@ -313,7 +315,7 @@ test("document redirects preserve their final URL and relative iframe base", asy
   await verifyReportNavigation(
     browser,
     share,
-    { frames: [preview, child], entries: [child] },
+    { frames: [preview, original, child], entries: [entry, final, child] },
     { proxyOptions, timeoutMs: 3000 },
   );
 });
