@@ -209,3 +209,49 @@ test("checker deadlines cancel both stalled HTTPS stages", {timeout:6000}, async
     } finally {clearTimeout(guard);}
   }
 });
+
+
+test("delivered HTML refresh cannot redirect readers to sign-in", async () => {
+  await assert.rejects(check(sample.request({[sample.entry]:()=>html('<meta http-equiv="refresh" content="0;url=/login">')})), /HTML refresh/);
+});
+
+test("redirected entries resolve relative report frames against the final entry URL", async () => {
+  const final='https://cdn.example.org/reports/index.html', child='https://cdn.example.org/reports/child.html';
+  const visited=[]; const request=sample.request({
+    [sample.entry]:()=>new Response(null,{status:302,headers:{location:final}}),
+    [final]:()=>html('<iframe data-report-preview src="child.html"></iframe>'),
+    [child]:()=>html(body)
+  });
+  await check(async (url,options)=>{visited.push(url);return request(url,options);});
+  assert.ok(visited.includes(child));
+});
+
+test("srcdoc inherits URL resolution without changing its report-service origin", async () => {
+  const nested='https://reports.example.org/artifact-site/api/preview/private/index.html';
+  const request=sample.request({
+    [sample.preview]:()=>html(`<base href="https://cdn.example.org/">${sample.loader}<iframe srcdoc='<iframe src="${nested}"></iframe>'></iframe>`),
+    [nested]:()=>new Response('Forbidden',{status:403})
+  });
+  await assert.rejects(check(request),/403/);
+});
+
+test("redirect destinations get independent DNS validation and pinned records", async () => {
+  const destination='https://redirect.example.org/artifact-site/s/abc';
+  for (const records of [[{address:'10.0.0.1'}],[{address:'8.8.8.8'},{address:'10.0.0.1'}]]) {
+    const visited=[];
+    await assert.rejects(check(async url=>{visited.push(url);return new Response(null,{status:302,headers:{location:destination}});},{resolve:async host=>host==='redirect.example.org'?records:resolve()}),/private or reserved/);
+    assert.deepEqual(visited,[sample.share]);
+  }
+  const request=sample.request(); let checkedDestination=false;
+  await check(async (url,options)=>{
+    if(url===sample.share)return new Response(null,{status:302,headers:{location:destination}});
+    if(url===destination){
+      const records=await new Promise((done,fail)=>options.lookup('redirect.example.org',{all:true},(error,value)=>error?fail(error):done(value)));
+      assert.deepEqual(records,[{address:'8.8.8.8',family:4}]);checkedDestination=true;
+      return html('<iframe src="https://redirect.example.org/artifact-site/api/preview/abc/index.html"></iframe>');
+    }
+    if(url==='https://redirect.example.org/artifact-site/api/preview/abc/index.html') return html(sample.loader);
+    return request(url,options);
+  },{resolve:async host=>host==='redirect.example.org'?[{address:'8.8.8.8'}]:resolve()});
+  assert.equal(checkedDestination,true);
+});
