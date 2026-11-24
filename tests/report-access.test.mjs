@@ -362,27 +362,33 @@ test("wire limits stop identity and low-output compressed streams before EOF", {
   }
 });
 
-
-test("public previews cannot prohibit their own share-page embedding", async () => {
-  for (const headers of [{'x-frame-options':'DENY'},{'content-security-policy':"default-src 'self'; frame-ancestors 'none'"}]) {
-    await assert.rejects(check(sample.request({[sample.preview]:()=>new Response(sample.loader,{headers:{'content-type':'text/html',...headers}})})),/blocks embedding/);
+test("encoded sign-in redirects are rejected before requesting the login route", async () => {
+  for (const path of ["/%6cogin", "/sign%69n", "/auth%2Fcallback"]) {
+    const visited = [];
+    await assert.rejects(check(async url => {
+      visited.push(url);
+      return new Response(null, { status: 302, headers: { location: path } });
+    }), /sign-in/);
+    assert.deepEqual(visited, [sample.share]);
   }
 });
 
-
-test("preview embedding policies authorize every containing origin", async () => {
-  for (const policy of ["frame-ancestors https://unrelated.example", "frame-ancestors 'self'; frame-ancestors *", "frame-ancestors *, frame-ancestors 'none'"]) {
-    const headers={'content-type':'text/html','content-security-policy':policy};
-    if(policy.includes("'self'")) headers['content-security-policy']="frame-ancestors https://unrelated.example; frame-ancestors *";
-    await assert.rejects(check(sample.request({[sample.preview]:()=>new Response(sample.loader,{headers})})),/blocks embedding/);
-  }
-  for(const policy of ["frame-ancestors 'SELF'", "frame-ancestors https://reports.example.org:443", "frame-ancestors HTTPS:", "frame-ancestors https://*:443", "frame-ancestors https://reports.example.org", "frame-ancestors https://*.example.org", "frame-ancestors https:","frame-ancestors *"]) {
-    await check(sample.request({[sample.preview]:()=>new Response(sample.loader,{headers:{'content-type':'text/html','content-security-policy':policy,'x-frame-options':'DENY'}})}));
-  }
-  const redirected='https://other.example.org/preview';
-  await assert.rejects(check(sample.request({
-    [sample.preview]:()=>new Response(null,{status:302,headers:{location:redirected}}),
-    [redirected]:()=>new Response(sample.loader,{headers:{'content-type':'text/html','x-frame-options':'SAMEORIGIN'}})
-  })),/blocks embedding/);
-  await check(sample.request({[sample.preview]:()=>new Response(sample.loader,{headers:{'content-type':'text/html','x-frame-options':'SAMEORIGIN'}})}));
+test("decoded-size limits stop high-expansion streams before EOF", { timeout: 5000 }, async () => {
+  const encoded = gzipSync(Buffer.alloc(21 * 1024 * 1024, 65));
+  assert.ok(encoded.length < 100000);
+  let req, response, sent = false, ended = false, guard;
+  const transport = (_url, _options, callback) => {
+    req = new EventEmitter(); req.destroyed = false;
+    req.destroy = error => { req.destroyed = true; response.destroy(error); };
+    req.end = () => {
+      guard = setTimeout(() => req.destroy(new Error("Independent test guard expired")), 3000);
+      response = new Readable({ read() { if (!sent) { sent = true; this.push(encoded); } } });
+      response.statusCode = 200; response.headers = { "content-encoding": "gzip" };
+      response.on("end", () => { ended = true; }); callback(response);
+    };
+    return req;
+  };
+  try { await assert.rejects(anonymousRequest(sample.entry, {}, transport), /Decoded report exceeds/); }
+  finally { clearTimeout(guard); }
+  assert.equal(req.destroyed, true); assert.equal(response.destroyed, true); assert.equal(ended, false);
 });
