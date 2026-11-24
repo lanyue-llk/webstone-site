@@ -113,14 +113,17 @@ test("HTTPS uses each host's pinned DNS records and never adds authentication", 
 
 test("DNS and report dependency checks have finite time and request budgets", async () => {
   await assert.rejects(check(undefined, { timeoutMs: 20, resolve: () => new Promise(() => {}), request: () => { throw Error("Must not fetch"); } }), /time budget/);
+  let calls = 0;
   const frames = Array.from({length:25}, (_,i)=>'<iframe src="https://reports.example.org/artifact-site/api/preview/child'+i+'/index.html"></iframe>').join('');
   const parent = fixture("abc", frames), base = parent.request();
   await assert.rejects(check(async (url, options) => {
+    calls++;
     if (url.includes('/api/preview/child')) return html('<script id="artifact-delivery-config">{"manifestUrl":"https://reports.example.org/leaf-manifest","file":"index.html"}</script>');
     if (url === 'https://reports.example.org/leaf-manifest?file=index.html') return Response.json({files:[{path:'index.html',url:'https://cdn.example.org/leaf.html'}],nextCursor:null});
     if (url === 'https://cdn.example.org/leaf.html') return html(body);
     return base(url,options);
-  }), /budget/);
+  }), /request or time budget/);
+  assert.equal(calls,40);
 });
 
 test("HTML metadata uses browser namespaces, quoted UTF-8 declarations and bounded parsing", async () => {
@@ -254,4 +257,49 @@ test("redirect destinations get independent DNS validation and pinned records", 
     return request(url,options);
   },{resolve:async host=>host==='redirect.example.org'?[{address:'8.8.8.8'}]:resolve()});
   assert.equal(checkedDestination,true);
+});
+
+
+test("inline report refresh and unsupported delivery formats are rejected", async () => {
+  await assert.rejects(check(sample.request({[sample.entry]:()=>html(`<iframe data-report-preview srcdoc='<meta http-equiv="refresh" content="0;url=/login">'></iframe>`)})),/HTML refresh/);
+  for(const type of ['application/json','application/pdf']) await assert.rejects(check(sample.request({[sample.entry]:()=>new Response('non-HTML payload',{headers:{'content-type':type}})})),/HTML report entry/);
+});
+
+test("required CDN children retain the containing report-service context", async () => {
+  const child='https://cdn.example.org/reports/child.html';
+  const nested='https://reports.example.org/artifact-site/api/preview/private/index.html';
+  await assert.rejects(check(sample.request({
+    [sample.entry]:()=>html('<iframe data-report-preview src="'+child+'"></iframe>'),
+    [child]:()=>html('<iframe src="'+nested+'"></iframe>'),
+    [nested]:()=>new Response('Forbidden',{status:403})
+  })),/403/);
+});
+
+test("historical report URLs are checked only for published version-report entries", () => {
+  const historical=sample.share+'-historical',withdrawn=sample.share+'-withdrawn';
+  const links=reportLinks({benchmarks:[]},[
+    {id:'historical',benchmarks:[{reportUrl:historical}]},
+    {id:'withdrawn',benchmarks:[{reportUrl:withdrawn}]}
+  ],{reports:{historical:{versionReport:true}}});
+  assert.deepEqual(links,[historical]);
+});
+
+test("shared delivery is checked separately for each report-service origin", async () => {
+  const first='https://reports.example.org/artifact-site/api/preview/first/index.html';
+  const second='https://reports.example.org/artifact-site/api/preview/second/index.html';
+  const redirected='https://other.example.org/artifact-site/api/preview/second/index.html';
+  const manifest='https://cdn.example.org/shared-manifest?file=index.html';
+  const entry='https://cdn.example.org/shared.html';
+  const privatePreview='https://other.example.org/artifact-site/api/preview/private/index.html';
+  const loader='<script id="artifact-delivery-config">'+JSON.stringify({file:'index.html',manifestUrl:manifest})+'</script>';
+  const request=sample.request({
+    [sample.entry]:()=>html('<iframe src="'+first+'"></iframe><iframe src="'+second+'"></iframe>'),
+    [first]:()=>html(loader),
+    [second]:()=>new Response(null,{status:302,headers:{location:redirected}}),
+    [redirected]:()=>html(loader),
+    [manifest]:()=>Response.json({files:[{path:'index.html',url:entry}]}),
+    [entry]:()=>html('<iframe src="'+privatePreview+'"></iframe>'),
+    [privatePreview]:()=>new Response('Forbidden',{status:403})
+  });
+  await assert.rejects(check(request),/403/);
 });

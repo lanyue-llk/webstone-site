@@ -156,16 +156,19 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
   }
 
   const active = new Set(), checked = new Set();
-  async function visit(kind, url, depth, work) {
+  async function visit(kind, url, depth, work, context = "") {
     if (depth > 5) throw new Error("Report contains too many nested previews");
     const key = kind + ":" + url;
     if (active.has(key)) throw new Error("Report contains a cyclic preview");
-    if (checked.has(key)) return;
+    const completedKey = key + ":" + context;
+    if (checked.has(completedKey)) return;
     active.add(key);
-    try { await work(); checked.add(key); } finally { active.delete(key); }
+    try { await work(); checked.add(completedKey); } finally { active.delete(key); }
   }
   async function embedded(document, base, depth, serviceOrigin = new URL(base).origin) {
     if (depth > 5) throw new Error("Report contains too many nested previews");
+    if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
+    if (document.charset && !/^(?:utf-?8|us-ascii)$/i.test(document.charset)) throw new Error("Reports must use UTF-8 encoding");
     const origin = serviceOrigin;
     const documentBase = document.baseHref === null ? base : new URL(document.baseHref, base);
     for (const frame of document.frames) {
@@ -177,20 +180,21 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       const firstParty = url.origin === origin;
       if (firstParty && /\/api\/preview\//.test(url.pathname)) await preview(url.href, depth + 1);
       else if (firstParty && /\/(?:s|v)\/[A-Za-z0-9_-]+\/?$/.test(url.pathname)) await share(url.href, depth + 1);
-      else if (frame.required) await resource(url.href, url, depth + 1);
+      else if (frame.required) await resource(url.href, origin, depth + 1);
     }
   }
-  async function resource(url, base, depth) {
+  async function resource(url, serviceOrigin, depth) {
     await visit("entry", url, depth, async () => {
       const response = await retrieve(url, "entry");
+      if (!/text\/html/i.test(response.type)) throw new Error("Expected an HTML report entry");
       if (/text\/html/i.test(response.type)) {
         const html = new TextDecoder("utf-8", { fatal: true }).decode(response.bytes);
         const document = await bounded(reportDocument(html));
         if (document.charset && !/^(?:utf-?8|us-ascii)$/i.test(document.charset)) throw new Error("Reports must use UTF-8 encoding");
         if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
-        await embedded(document, response.url, depth, new URL(base).origin);
+        await embedded(document, response.url, depth, serviceOrigin);
       }
-    });
+    }, serviceOrigin);
   }
   async function preview(url, depth) {
     await visit("preview", url, depth, async () => {
@@ -208,7 +212,7 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
         manifestUrl.searchParams.set("cursor", String(manifest.nextCursor));
       }
       if (!entry?.url) throw new Error("Report entry is missing from the anonymous delivery manifest");
-      await resource(entry.url, page.url, depth);
+      await resource(entry.url, page.url.origin, depth);
       await embedded(page, page.url, depth);
     });
   }
