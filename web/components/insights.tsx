@@ -105,8 +105,7 @@ export default function Insights({ benchmark, t }: Props) {
       </div>
       {visible.length === 0 && <p role="status">{t("Select a method to show its results.")}</p>}
       <figcaption>
-        {t(categories ? "Each axis shows the share of cases passed." : "Quality is shown as a share of the maximum. Lower latency, memory and price plot farther out when reported.")}
-        {!categories && axes.some(axis => axis.id === "quoted-price") && <> {t("Price ranges are marked on the price axis.")}</>}
+        {t(categories ? "Each axis shows the share of cases passed." : "Quality is shown as a share of the maximum. Lower latency, memory and measured cost plot farther out when reported.")}
       </figcaption>
     </figure>
     </div>

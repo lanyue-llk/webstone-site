@@ -199,10 +199,16 @@ export default function Dashboard() {
 
         </div>;
       })}</nav>
-      <a className="sidebar-evaluation" href={EVALUATION_URL} target="_blank" rel="noreferrer">{t("Run an evaluation")} <ArrowUpRight size={13} aria-hidden="true" /></a>
+      <div className="sidebar-guides">
+        <a href={EVALUATION_URL} target="_blank" rel="noreferrer" aria-label={`${t("Run an evaluation")} · lexmount/webstone`}>
+          <Github /><span>{t("Run an evaluation")}<small>webstone</small></span><ArrowUpRight size={13} aria-hidden="true" />
+        </a>
+        <a href={SUBMISSION_URL} target="_blank" rel="noreferrer" aria-label={`${t("Submit results")} · lexmount/webstone-site`}>
+          <Github /><span>{t("Submit results")}<small>webstone-site</small></span><ArrowUpRight size={13} aria-hidden="true" />
+        </a>
+      </div>
       <div className="sidebar-footer">
         <div className="language-control" role="group" aria-label="Language / 语言"><button lang="en" aria-pressed={language === "en"} onClick={() => chooseLanguage("en")}>EN</button><button lang="zh" aria-pressed={language === "zh"} onClick={() => chooseLanguage("zh")}>中文</button></div>
-        <a className="github-square" href={GITHUB_URL} target="_blank" rel="noreferrer" aria-label={t("View website source on GitHub")} title="GitHub"><Github /></a>
       </div>
     </aside>
 
@@ -290,7 +296,7 @@ export default function Dashboard() {
                     <td className="rank-cell">{provider.scores[metric.id] == null ? "—" : i + 1}</td>
                     <td><div className="provider-cell"><a className="provider-name provider-link" href={catalog?.providerUrls[provider.id]} target="_blank" rel="noopener noreferrer" aria-label={`${provider.name} ${t("project")} (${t("opens in a new tab")})`}><span className={`provider-mark ${provider.id}`} style={{ "--provider-color": providerColors[provider.id] ?? "#64748b" } as React.CSSProperties} aria-hidden="true">{provider.name[0]}</span><span className="provider-label" title={provider.name}><strong>{provider.name.split(" · ")[0]}</strong>{provider.name.includes(" · ") && <small>{t(provider.name.split(" · ").slice(1).join(" · "))}</small>}</span><ArrowUpRight className="provider-external" size={12} aria-hidden="true" /></a><button className="method-open" aria-label={`${provider.name} · ${t("Method details")}`} aria-haspopup="dialog" onClick={() => setSelectedProvider(provider)}>···</button></div></td>
                     {leadingMetrics.map(item => metricCell(provider, item))}
-                    {showPricing && <td className="numeric"><div className="metric-heading">{provider.pricing && hasPricingInformation(provider) ? <>{t(formatPricing(provider.pricing))}<InfoTooltip label={`${provider.name} · ${t("Billing basis")}`} description={t(provider.pricing.description)} detailsLabel={t("details")} /></> : "—"}</div></td>}
+                    {showPricing && <td className="numeric pricing-cell"><div className="metric-heading">{provider.pricing && hasPricingInformation(provider) ? <><span className="pricing-value">{t(formatPricing(provider.pricing))}</span><InfoTooltip label={`${provider.name} · ${t("Billing basis")}`} description={t(provider.pricing.description)} detailsLabel={t("details")} /></> : "—"}</div></td>}
                     {categories.map(category => {
                       const isBest = isBestValue(provider.categoryPassed?.[category.id], categoryBest.get(category.id) ?? null);
                       return <td key={category.id} className={`numeric category-value ${isBest ? "best-value" : ""}`} title={isBest ? t("Best in this column") : undefined}>{provider.categoryPassed?.[category.id] ?? "—"}{isBest && <span className="sr-only"> {t("Best in this column")}</span>}</td>;
