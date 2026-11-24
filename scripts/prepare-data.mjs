@@ -236,7 +236,7 @@ async function releaseFingerprint(files) {
     }
   }
   for (const folder of ["web/app", "web/components", "web/lib"]) await visit(folder);
-  for (const file of ["benchmarks/catalog.json", "web/next.config.ts", "web/package.json", "package-lock.json"]) await add(file);
+  for (const file of ["benchmarks/catalog.json", "reports/metadata.json", "web/next.config.ts", "web/package.json", "package-lock.json"]) await add(file);
   for (const file of files) await add(`results/${file.file}`);
   return hash.digest("hex");
 }

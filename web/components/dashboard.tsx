@@ -16,7 +16,7 @@ import { historicalPublication } from "../lib/historical-publications";
 import { decisionMetrics, hasPricingInformation } from "../lib/comparisons";
 
 import Home, { EvaluationReports, TRACK_ICONS } from "./home";
-import { benchmarkHref, SUBMISSION_URL } from "../lib/overview";
+import { benchmarkHref, EVALUATION_URL, SUBMISSION_URL } from "../lib/overview";
 const GITHUB_URL = "https://github.com/lexmount/webstone-site";
 const LEGACY_DATE_NOTE = "The evaluation date was not supplied; the displayed date is the date of import.";
 type Selection = { benchmark: string; version: string; metric: string };
@@ -199,6 +199,7 @@ export default function Dashboard() {
 
         </div>;
       })}</nav>
+      <a className="sidebar-evaluation" href={EVALUATION_URL} target="_blank" rel="noreferrer">{t("Run an evaluation")} <ArrowUpRight size={13} aria-hidden="true" /></a>
       <div className="sidebar-footer">
         <div className="language-control" role="group" aria-label="Language / 语言"><button lang="en" aria-pressed={language === "en"} onClick={() => chooseLanguage("en")}>EN</button><button lang="zh" aria-pressed={language === "zh"} onClick={() => chooseLanguage("zh")}>中文</button></div>
         <a className="github-square" href={GITHUB_URL} target="_blank" rel="noreferrer" aria-label={t("View website source on GitHub")} title="GitHub"><Github /></a>

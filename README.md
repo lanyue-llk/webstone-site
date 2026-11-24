@@ -4,6 +4,15 @@ The companion website for [Webstone](https://github.com/lexmount/webstone), publ
 
 Twelve local benchmark views across four Tracks are published on this site. A fifth Track, BrowserArena, opens the independently deployed benchmark site in a new tab. The evaluation harness is [lexmount/webstone](https://github.com/lexmount/webstone).
 
+## Run evaluations or submit results
+
+| Task | Repository |
+| --- | --- |
+| Choose a Track and benchmark, prepare the environment, run inference, score results and generate a report | [lexmount/webstone](https://github.com/lexmount/webstone#for-agents) |
+| Submit measured results and public evidence through a PR, then display them on the leaderboard | [lexmount/webstone-site](https://github.com/lexmount/webstone-site#for-agents) |
+
+For a new evaluation, copy the prompt in the [Webstone README](https://github.com/lexmount/webstone#for-agents) to install its evaluation skill. After the run, that skill can hand result submission to this repository's submission skill.
+
 ## For agents
 
 Copy this into your agent:

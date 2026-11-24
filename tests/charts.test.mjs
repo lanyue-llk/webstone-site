@@ -190,3 +190,23 @@ test("report pagination keeps a growing archive to six cards and exposes every r
     [globalThis.window, globalThis.document, globalThis.IS_REACT_ACT_ENVIRONMENT] = previous;
   }
 });
+
+test("the homepage directs evaluation and result submission to their own repositories and skills", async () => {
+  const Home = require("../web/components/home.tsx").default;
+  const { EVALUATION_URL, EVALUATION_SKILL, SUBMISSION_URL, SUBMISSION_SKILL } = require("../web/lib/overview.ts");
+  const win = new Window();
+  try {
+    win.document.body.innerHTML = renderToStaticMarkup(React.createElement(Home, { catalog, snapshots: [], t: text => text }));
+    const evaluation = win.document.querySelector("#run-evaluation");
+    const submission = win.document.querySelector("#submit-results");
+    assert.equal(evaluation.querySelector("a").getAttribute("href"), EVALUATION_URL);
+    assert.equal(submission.querySelector("a").getAttribute("href"), SUBMISSION_URL);
+    assert.ok(evaluation.querySelector("#evaluation-prompt").textContent.includes(EVALUATION_SKILL));
+    assert.ok(submission.querySelector("#submission-prompt").textContent.includes(SUBMISSION_SKILL));
+    assert.ok(!evaluation.querySelector("#evaluation-prompt").textContent.includes(SUBMISSION_SKILL));
+    assert.equal(evaluation.querySelectorAll("button").length, 1);
+    assert.equal(submission.querySelectorAll("button").length, 1);
+  } finally {
+    await win.happyDOM.close();
+  }
+});

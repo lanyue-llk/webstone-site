@@ -1,6 +1,9 @@
 import reportMetadata from "../../reports/metadata.json";
 import type { BenchmarkInfo, Catalog, Snapshot } from "./results.ts";
 
+export const EVALUATION_URL = "https://github.com/lexmount/webstone#for-agents";
+export const EVALUATION_SKILL = "https://github.com/lexmount/webstone/blob/main/.agents/skills/webstone/SKILL.md";
+
 export const SUBMISSION_URL = "https://github.com/lexmount/webstone-site#for-agents";
 export const SUBMISSION_SKILL = "https://github.com/lexmount/webstone-site/blob/main/.agents/skills/submit-webstone-result/SKILL.md";
 

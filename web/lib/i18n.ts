@@ -4,6 +4,10 @@ export type Language = "en" | "zh";
 export const LANGUAGE_KEY = "webstone-language";
 
 const chinese: Record<string, string> = {
+  "Run an evaluation": "运行评测",
+  "Use Webstone to choose benchmarks, prepare environments, run tools and score results. The evaluation skill guides your agent through each step.": "在 Webstone 选择评测基准、准备环境、运行工具并评分。评测 Skill 会引导你的 Agent 完成这些步骤。",
+  "Already have measured results? The webstone-site submission skill checks the format and prepares a result PR for the leaderboard.": "已有实测结果？用 webstone-site 的提交 Skill 检查格式，准备结果 PR，提交到排行榜。",
+  "Install and use the Webstone evaluation skill at {skill} to evaluate [the tools or models I want to compare].": "请安装并使用 {skill} 里的 Webstone 评测 Skill，帮我评测［想比较的工具或模型］。",
   "Reports": "评测报告",
   "Read report": "阅读报告",
   "Published": "发布于",
