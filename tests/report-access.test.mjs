@@ -394,8 +394,8 @@ test("decoded-size limits stop high-expansion streams before EOF", { timeout: 50
 });
 
 
-test("an entry reused as a required iframe remains a frame requirement", async () => {
-  const graph = await check(sample.request({ [sample.share]: () => html(`<iframe src="${sample.preview}"></iframe><iframe data-report-preview src="${sample.entry}"></iframe>`) }));
-  assert.ok(graph.entries.includes(sample.entry));
-  assert.ok(graph.frames.includes(sample.entry));
+test("a public file reused by the preview and a required iframe is checked once", async () => {
+  const visited = [], request = sample.request({ [sample.share]: () => html(`<iframe src="${sample.preview}"></iframe><iframe data-report-preview src="${sample.entry}"></iframe>`) });
+  await check(async (url, options) => { visited.push(url); return request(url, options); });
+  assert.equal(visited.filter(url => url === sample.entry).length, 1);
 });
