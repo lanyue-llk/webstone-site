@@ -1,0 +1,1043 @@
+{
+  "captured": "2026-11-24",
+  "entries": [
+    {
+      "benchmark": "lexbench-websearch",
+      "version": "v2",
+      "taskCount": 149,
+      "url": "https://yours.lexmount.cn/artifact-site/s/XEDGrWHPjAbu",
+      "sourceHash": "3ce16e1149dfe910f720b189893641ced6e8794160e9633c8ae159d12cafa185",
+      "rows": [
+        {
+          "id": "yuanbao-standard",
+          "scores": {
+            "ndcg5": 56,
+            "precision5": 64.4,
+            "success5": 63.8,
+            "meanChars": 3742.75,
+            "meanTime": 702.91,
+            "p50Time": 698.86,
+            "p95Time": 1049.71,
+            "pricePerThousand": 3
+          }
+        },
+        {
+          "id": "yuanbao-lite",
+          "scores": {
+            "ndcg5": 55.5,
+            "precision5": 63.1,
+            "success5": 63.1,
+            "meanChars": 3507.59,
+            "meanTime": 471.88,
+            "p50Time": 455.72,
+            "p95Time": 662.34,
+            "pricePerThousand": 2.1
+          }
+        },
+        {
+          "id": "serper",
+          "scores": {
+            "ndcg5": 51.8,
+            "precision5": 69.9,
+            "success5": 50.3,
+            "meanChars": 821.3,
+            "meanTime": 2164.52,
+            "p50Time": 1765.06,
+            "p95Time": 4315.44,
+            "pricePerThousand": 1
+          }
+        },
+        {
+          "id": "lexmount",
+          "scores": {
+            "ndcg5": 49.7,
+            "precision5": 58.4,
+            "success5": 59.7,
+            "meanChars": 992.19,
+            "meanTime": 1526.26,
+            "p50Time": 1315,
+            "p95Time": 2060.63,
+            "pricePerThousand": 0.75
+          }
+        },
+        {
+          "id": "deepseek-content",
+          "scores": {
+            "ndcg5": 48.3,
+            "precision5": 62.6,
+            "success5": 51.7,
+            "meanChars": 1566.64,
+            "meanTime": 450.27,
+            "p50Time": 429.77,
+            "p95Time": 702.78,
+            "pricePerThousand": 0.75
+          }
+        },
+        {
+          "id": "browserbase",
+          "scores": {
+            "ndcg5": 39.9,
+            "precision5": 57,
+            "success5": 14.1,
+            "meanChars": 281.87,
+            "meanTime": 3858.13,
+            "p50Time": 3697.54,
+            "p95Time": 5896.64,
+            "pricePerThousand": 5
+          }
+        },
+        {
+          "id": "bocha-ai",
+          "scores": {
+            "ndcg5": 29.3,
+            "precision5": 44.7,
+            "success5": 17.4,
+            "meanChars": 756.09,
+            "meanTime": 18653.51,
+            "p50Time": 17192.49,
+            "p95Time": 33266.51,
+            "pricePerThousand": 8.99
+          }
+        },
+        {
+          "id": "brightdata",
+          "scores": {
+            "ndcg5": 21.8,
+            "precision5": 26.4,
+            "success5": 20.8,
+            "meanChars": 476.87,
+            "meanTime": 30117.93,
+            "p50Time": 32494.69,
+            "p95Time": 60037.72,
+            "pricePerThousand": 1.5
+          }
+        },
+        {
+          "id": "bocha-summary",
+          "scores": {
+            "ndcg5": 17.7,
+            "precision5": 20.9,
+            "success5": 12.8,
+            "meanChars": 650.37,
+            "meanTime": 254.52,
+            "p50Time": 222.98,
+            "p95Time": 426.17,
+            "pricePerThousand": 5.4
+          }
+        }
+      ]
+    },
+    {
+      "benchmark": "simpleqa-verified",
+      "version": "v3.0.0",
+      "taskCount": 831,
+      "url": "https://yours.lexmount.cn/artifact-site/s/XEDGrWHPjAbu",
+      "sourceHash": "3ce16e1149dfe910f720b189893641ced6e8794160e9633c8ae159d12cafa185",
+      "rows": [
+        {
+          "id": "serper",
+          "scores": {
+            "mrr5": 0.694,
+            "hit5": 77.4,
+            "answerMatch5": 68.6,
+            "meanChars": 919.16,
+            "meanTime": 2238.93,
+            "p50Time": 2033.41,
+            "p95Time": 3689.58,
+            "pricePerThousand": 1
+          }
+        },
+        {
+          "id": "lexmount",
+          "scores": {
+            "mrr5": 0.617,
+            "hit5": 74.5,
+            "answerMatch5": 66.7,
+            "meanChars": 1400.7,
+            "meanTime": 1490.99,
+            "p50Time": 1411.77,
+            "p95Time": 2035.88,
+            "pricePerThousand": 0.75
+          }
+        },
+        {
+          "id": "browserbase",
+          "scores": {
+            "mrr5": 0.543,
+            "hit5": 78.7,
+            "answerMatch5": 20.9,
+            "meanChars": 256.57,
+            "meanTime": 3962.71,
+            "p50Time": 3825.94,
+            "p95Time": 5422,
+            "pricePerThousand": 5
+          }
+        },
+        {
+          "id": "brightdata",
+          "scores": {
+            "mrr5": 0.256,
+            "hit5": 28.9,
+            "answerMatch5": 27.6,
+            "meanChars": 464.83,
+            "meanTime": 44083.66,
+            "p50Time": 50549.56,
+            "p95Time": 60046.15,
+            "pricePerThousand": 1.5
+          }
+        },
+        {
+          "id": "yuanbao-lite",
+          "scores": {
+            "mrr5": 0.214,
+            "hit5": 29.8,
+            "answerMatch5": 65.1,
+            "meanChars": 4196.89,
+            "meanTime": 559.09,
+            "p50Time": 514.13,
+            "p95Time": 816.14,
+            "pricePerThousand": 2.1
+          }
+        },
+        {
+          "id": "yuanbao-standard",
+          "scores": {
+            "mrr5": 0.188,
+            "hit5": 30.7,
+            "answerMatch5": 64.5,
+            "meanChars": 4282.55,
+            "meanTime": 804.71,
+            "p50Time": 757.68,
+            "p95Time": 1065.78,
+            "pricePerThousand": 3
+          }
+        },
+        {
+          "id": "deepseek-content",
+          "scores": {
+            "mrr5": 0.18,
+            "hit5": 29,
+            "answerMatch5": 73.2,
+            "meanChars": 1996.89,
+            "meanTime": 430.95,
+            "p50Time": 387.12,
+            "p95Time": 802.12,
+            "pricePerThousand": 0.75
+          }
+        },
+        {
+          "id": "bocha-ai",
+          "scores": {
+            "mrr5": 0.148,
+            "hit5": 24.8,
+            "answerMatch5": 15.5,
+            "meanChars": 857.62,
+            "meanTime": 14832.16,
+            "p50Time": 12413.97,
+            "p95Time": 31736.97,
+            "pricePerThousand": 8.99
+          }
+        },
+        {
+          "id": "bocha-summary",
+          "scores": {
+            "mrr5": 0.003,
+            "hit5": 0.5,
+            "answerMatch5": 3.7,
+            "meanChars": 680.27,
+            "meanTime": 251.87,
+            "p50Time": 227.7,
+            "p95Time": 372.16,
+            "pricePerThousand": 5.4
+          }
+        }
+      ]
+    },
+    {
+      "benchmark": "lexbench-websearch-excerpts",
+      "version": "v1",
+      "taskCount": 149,
+      "url": "https://yours.lexmount.cn/artifact-site/s/XEDGrWHPjAbu",
+      "sourceHash": "3ce16e1149dfe910f720b189893641ced6e8794160e9633c8ae159d12cafa185",
+      "rows": [
+        {
+          "id": "yuanbao-standard",
+          "scores": {
+            "ndcg5": 61.4,
+            "precision5": 66,
+            "success5": 63.8,
+            "meanChars": 9370.74,
+            "meanTime": 702.91,
+            "p50Time": 698.86,
+            "p95Time": 1049.71,
+            "pricePerThousand": 3
+          }
+        },
+        {
+          "id": "deepseek-content",
+          "scores": {
+            "ndcg5": 58.5,
+            "precision5": 67.7,
+            "success5": 62.4,
+            "meanChars": 9868.87,
+            "meanTime": 450.27,
+            "p50Time": 429.77,
+            "p95Time": 702.78,
+            "pricePerThousand": 0.75
+          }
+        },
+        {
+          "id": "bocha-ai",
+          "scores": {
+            "ndcg5": 52.3,
+            "precision5": 62.3,
+            "success5": 57,
+            "meanChars": 3689.33,
+            "meanTime": 18653.51,
+            "p50Time": 17192.49,
+            "p95Time": 33266.51,
+            "pricePerThousand": 8.99
+          }
+        },
+        {
+          "id": "bocha-summary",
+          "scores": {
+            "ndcg5": 24.4,
+            "precision5": 28.3,
+            "success5": 18.8,
+            "meanChars": 3058.95,
+            "meanTime": 254.52,
+            "p50Time": 222.98,
+            "p95Time": 426.17,
+            "pricePerThousand": 5.4
+          }
+        }
+      ]
+    },
+    {
+      "benchmark": "simpleqa-verified-excerpts",
+      "version": "v2.0.0",
+      "taskCount": 831,
+      "url": "https://yours.lexmount.cn/artifact-site/s/XEDGrWHPjAbu",
+      "sourceHash": "3ce16e1149dfe910f720b189893641ced6e8794160e9633c8ae159d12cafa185",
+      "rows": [
+        {
+          "id": "deepseek-content",
+          "scores": {
+            "excerptMatch5": 73.5,
+            "meanChars": 3271.21,
+            "meanTime": 430.95,
+            "p50Time": 387.12,
+            "p95Time": 802.12,
+            "pricePerThousand": 0.75
+          }
+        },
+        {
+          "id": "yuanbao-standard",
+          "scores": {
+            "excerptMatch5": 69.3,
+            "meanChars": 10498.39,
+            "meanTime": 804.71,
+            "p50Time": 757.68,
+            "p95Time": 1065.78,
+            "pricePerThousand": 3
+          }
+        },
+        {
+          "id": "bocha-ai",
+          "scores": {
+            "excerptMatch5": 51.1,
+            "meanChars": 4226.83,
+            "meanTime": 14832.16,
+            "p50Time": 12413.97,
+            "p95Time": 31736.97,
+            "pricePerThousand": 8.99
+          }
+        },
+        {
+          "id": "bocha-summary",
+          "scores": {
+            "excerptMatch5": 11.1,
+            "meanChars": 3458.65,
+            "meanTime": 251.87,
+            "p50Time": 227.7,
+            "p95Time": 372.16,
+            "pricePerThousand": 5.4
+          }
+        }
+      ]
+    },
+    {
+      "benchmark": "lexbench-websearch-answers",
+      "version": "v1",
+      "taskCount": 149,
+      "url": "https://yours.lexmount.cn/artifact-site/s/XEDGrWHPjAbu",
+      "sourceHash": "3ce16e1149dfe910f720b189893641ced6e8794160e9633c8ae159d12cafa185",
+      "rows": [
+        {
+          "id": "bocha-ai",
+          "scores": {
+            "usefulness": 2.62,
+            "citationSupport": 56,
+            "citationMembership": 98.7,
+            "meanTime": 18653.51,
+            "p50Time": 17192.49,
+            "p95Time": 33266.51,
+            "pricePerThousand": 8.99
+          }
+        }
+      ]
+    },
+    {
+      "benchmark": "simpleqa-verified-answers",
+      "version": "v2.0.0",
+      "taskCount": 831,
+      "url": "https://yours.lexmount.cn/artifact-site/s/XEDGrWHPjAbu",
+      "sourceHash": "3ce16e1149dfe910f720b189893641ced6e8794160e9633c8ae159d12cafa185",
+      "rows": [
+        {
+          "id": "bocha-ai",
+          "scores": {
+            "answerAccuracy": 49.6,
+            "citationSupport": 70,
+            "citationMembership": 100,
+            "meanTime": 14832.16,
+            "p50Time": 12413.97,
+            "p95Time": 31736.97,
+            "pricePerThousand": 8.99
+          }
+        }
+      ]
+    },
+    {
+      "benchmark": "lexbench-webfetch",
+      "version": "v1.1.0",
+      "taskCount": 430,
+      "url": "https://yours.lexmount.cn/artifact-site/s/sBygxmqjB5wc",
+      "sourceHash": "c554c5b7d327e287daf94e5b7b256d5dc60e0c09d1b5b73df2abb33480f0face",
+      "undisclosed": [
+        "totalMean",
+        "totalP50",
+        "totalP95"
+      ],
+      "rows": [
+        {
+          "id": "moli",
+          "scores": {
+            "requestRate": 96.3,
+            "passRate": 89.8
+          },
+          "categoryPassed": {
+            "static": 97,
+            "dynamic": 90,
+            "popular": 91,
+            "antibot": 88,
+            "document": 1,
+            "embeddedMedia": 16,
+            "directMedia": 3
+          }
+        },
+        {
+          "id": "chromium",
+          "scores": {
+            "requestRate": 96.7,
+            "passRate": 54.4
+          },
+          "categoryPassed": {
+            "static": 99,
+            "dynamic": 58,
+            "popular": 58,
+            "antibot": 5,
+            "document": 1,
+            "embeddedMedia": 12,
+            "directMedia": 1
+          }
+        },
+        {
+          "id": "lightpanda",
+          "scores": {
+            "requestRate": 87.4,
+            "passRate": 53
+          },
+          "categoryPassed": {
+            "static": 92,
+            "dynamic": 44,
+            "popular": 38,
+            "antibot": 37,
+            "document": 1,
+            "embeddedMedia": 13,
+            "directMedia": 3
+          }
+        },
+        {
+          "id": "obscura",
+          "scores": {
+            "requestRate": 89.3,
+            "passRate": 51.9
+          },
+          "categoryPassed": {
+            "static": 94,
+            "dynamic": 43,
+            "popular": 53,
+            "antibot": 16,
+            "document": 1,
+            "embeddedMedia": 13,
+            "directMedia": 3
+          }
+        },
+        {
+          "id": "kitesurf",
+          "scores": {
+            "requestRate": 84.2,
+            "passRate": 44.7
+          },
+          "categoryPassed": {
+            "static": 90,
+            "dynamic": 41,
+            "popular": 40,
+            "antibot": 10,
+            "document": 1,
+            "embeddedMedia": 10,
+            "directMedia": 0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark": "webmainbench",
+      "version": "v1.1.0",
+      "taskCount": 545,
+      "url": "https://yours.lexmount.cn/artifact-site/s/sBygxmqjB5wc",
+      "sourceHash": "c554c5b7d327e287daf94e5b7b256d5dc60e0c09d1b5b73df2abb33480f0face",
+      "rows": [
+        {
+          "id": "moli",
+          "scores": {
+            "overall": 39.27,
+            "fullText": 40.73,
+            "code": 91.06,
+            "formula": 28.2,
+            "tableContent": 22.62,
+            "tableStructure": 13.75
+          }
+        },
+        {
+          "id": "lightpanda",
+          "scores": {
+            "overall": 35,
+            "fullText": 41.52,
+            "code": 84.71,
+            "formula": 12.97,
+            "tableContent": 21.81,
+            "tableStructure": 14
+          }
+        },
+        {
+          "id": "kitesurf",
+          "scores": {
+            "overall": 33.43,
+            "fullText": 36.99,
+            "code": 80.7,
+            "formula": 19.32,
+            "tableContent": 18.25,
+            "tableStructure": 11.87
+          }
+        },
+        {
+          "id": "obscura",
+          "scores": {
+            "overall": 31.03,
+            "fullText": 41.88,
+            "code": 81.82,
+            "formula": 31.39,
+            "tableContent": 0.03,
+            "tableStructure": 0
+          }
+        },
+        {
+          "id": "chromium",
+          "scores": {
+            "overall": 27.02,
+            "fullText": 39.4,
+            "code": 35.86,
+            "formula": 21.12,
+            "tableContent": 25.01,
+            "tableStructure": 13.73
+          }
+        }
+      ]
+    },
+    {
+      "benchmark": "lexbench-swde",
+      "version": "v1",
+      "taskCount": 800,
+      "url": "https://yours.lexmount.cn/artifact-site/s/-eNSiFI3n7XX",
+      "sourceHash": "0caad9b7aa2f773d1f2ba51f29fe2e713904e7a405ebdfe0bfbda5453e999fb6",
+      "rows": [
+        {
+          "id": "zyte-custom",
+          "scores": {
+            "pageMacroF1": 0.807,
+            "valueMicroF1": 0.705,
+            "fieldSetExact": 68.18,
+            "pageExact": 30.54,
+            "nullAccuracy": 0,
+            "meanTime": 3.184,
+            "p95Time": 4.87
+          }
+        },
+        {
+          "id": "firecrawl-parse-json",
+          "scores": {
+            "pageMacroF1": 0.783,
+            "valueMicroF1": 0.697,
+            "fieldSetExact": 68.76,
+            "pageExact": 28.11,
+            "nullAccuracy": 76,
+            "meanTime": 2.666,
+            "p95Time": 4.259
+          }
+        },
+        {
+          "id": "scrapegraph-extract",
+          "scores": {
+            "pageMacroF1": 0.824,
+            "valueMicroF1": 0.745,
+            "fieldSetExact": 73.54,
+            "pageExact": 34.73,
+            "nullAccuracy": 68,
+            "meanTime": 5.014,
+            "p95Time": 9.59
+          }
+        },
+        {
+          "id": "oxylabs-json",
+          "scores": {
+            "pageMacroF1": 0.84,
+            "valueMicroF1": 0.758,
+            "fieldSetExact": 73.57,
+            "pageExact": 37.7,
+            "nullAccuracy": 56,
+            "meanTime": 5.12,
+            "p95Time": 8.087
+          }
+        },
+        {
+          "id": "cloudflare-json",
+          "scores": {
+            "pageMacroF1": 0.756,
+            "valueMicroF1": 0.677,
+            "fieldSetExact": 65.96,
+            "pageExact": 27.84,
+            "nullAccuracy": 68,
+            "meanTime": 9.043,
+            "p95Time": 62.136
+          }
+        },
+        {
+          "id": "browserbase-json",
+          "scores": {
+            "pageMacroF1": 0.817,
+            "valueMicroF1": 0.733,
+            "fieldSetExact": 72.48,
+            "pageExact": 32.7,
+            "nullAccuracy": 80,
+            "meanTime": 2.064,
+            "p95Time": 2.689
+          }
+        },
+        {
+          "id": "firecrawl-deepseek",
+          "scores": {
+            "pageMacroF1": 0.827,
+            "valueMicroF1": 0.752,
+            "fieldSetExact": 74.84,
+            "pageExact": 35.54,
+            "nullAccuracy": 72,
+            "meanTime": 5.629,
+            "p95Time": 14.745
+          }
+        },
+        {
+          "id": "crawl4ai-deepseek",
+          "scores": {
+            "pageMacroF1": 0.805,
+            "valueMicroF1": 0.741,
+            "fieldSetExact": 73.47,
+            "pageExact": 33.92,
+            "nullAccuracy": 80,
+            "meanTime": 23.645,
+            "p95Time": 47.326
+          }
+        },
+        {
+          "id": "scrapegraphai-deepseek",
+          "scores": {
+            "pageMacroF1": 0.81,
+            "valueMicroF1": 0.737,
+            "fieldSetExact": 73.89,
+            "pageExact": 32.84,
+            "nullAccuracy": 84,
+            "meanTime": 13.728,
+            "p95Time": 34.662
+          }
+        },
+        {
+          "id": "stagehand-deepseek",
+          "scores": {
+            "pageMacroF1": 0.845,
+            "valueMicroF1": 0.771,
+            "fieldSetExact": 75.29,
+            "pageExact": 36.62,
+            "nullAccuracy": 52,
+            "meanTime": 10.719,
+            "p95Time": 20.974
+          }
+        }
+      ]
+    },
+    {
+      "benchmark": "lexbench-zyte-product-extraction",
+      "version": "v1",
+      "taskCount": 140,
+      "url": "https://yours.lexmount.cn/artifact-site/s/-eNSiFI3n7XX",
+      "sourceHash": "0caad9b7aa2f773d1f2ba51f29fe2e713904e7a405ebdfe0bfbda5453e999fb6",
+      "rows": [
+        {
+          "id": "cloudflare-json",
+          "scores": {
+            "priceF1": 0.843,
+            "skuF1": 0.631,
+            "stockF1": 0.904,
+            "outOfStockF1": 0.64,
+            "pageExact": 48.57,
+            "nullAccuracy": 100,
+            "meanTime": 11.401,
+            "p95Time": 25.605
+          }
+        },
+        {
+          "id": "firecrawl-json",
+          "scores": {
+            "priceF1": 0.798,
+            "skuF1": 0.84,
+            "stockF1": 0.917,
+            "outOfStockF1": 0.545,
+            "pageExact": 71.43,
+            "nullAccuracy": 100,
+            "meanTime": 9.882,
+            "p95Time": 19.004
+          }
+        },
+        {
+          "id": "scrapegraph-extract",
+          "scores": {
+            "priceF1": 0.88,
+            "skuF1": 0.838,
+            "stockF1": 0.896,
+            "outOfStockF1": 0.667,
+            "pageExact": 69.29,
+            "nullAccuracy": 100,
+            "meanTime": 17.646,
+            "p95Time": 48.551
+          }
+        },
+        {
+          "id": "oxylabs-json",
+          "scores": {
+            "priceF1": 0.886,
+            "skuF1": 0.87,
+            "stockF1": 0.661,
+            "outOfStockF1": 0.516,
+            "pageExact": 45.71,
+            "nullAccuracy": 100,
+            "meanTime": 7.114,
+            "p95Time": 13.052
+          }
+        },
+        {
+          "id": "browserbase-json",
+          "scores": {
+            "priceF1": 0.878,
+            "skuF1": 0.881,
+            "stockF1": 0.904,
+            "outOfStockF1": 0.64,
+            "pageExact": 76.43,
+            "nullAccuracy": 100,
+            "meanTime": 2.77,
+            "p95Time": 4.622
+          }
+        },
+        {
+          "id": "scrapfly-product",
+          "scores": {
+            "priceF1": 0.812,
+            "skuF1": 0.684,
+            "stockF1": 0.869,
+            "outOfStockF1": 0.143,
+            "pageExact": 56.43,
+            "nullAccuracy": 16.67,
+            "meanTime": 10.151,
+            "p95Time": 21.191
+          }
+        },
+        {
+          "id": "zyte-product",
+          "scores": {
+            "priceF1": 0.824,
+            "skuF1": 0.853,
+            "stockF1": 0.75,
+            "outOfStockF1": 0.667,
+            "pageExact": 54.29,
+            "nullAccuracy": 100,
+            "meanTime": 3.572,
+            "p95Time": 6.548
+          }
+        },
+        {
+          "id": "diffbot-product",
+          "scores": {
+            "priceF1": 0.878,
+            "skuF1": 0.714,
+            "stockF1": 0.943,
+            "outOfStockF1": 0.636,
+            "pageExact": 61.43,
+            "nullAccuracy": 66.67,
+            "meanTime": 10.697,
+            "p95Time": 24.471
+          }
+        },
+        {
+          "id": "firecrawl-deepseek",
+          "scores": {
+            "priceF1": 0.899,
+            "skuF1": 0.916,
+            "stockF1": 0.859,
+            "outOfStockF1": 0.533,
+            "pageExact": 77.86,
+            "nullAccuracy": 100,
+            "meanTime": 5.79,
+            "p95Time": 9.28
+          }
+        },
+        {
+          "id": "crawl4ai-deepseek",
+          "scores": {
+            "priceF1": 0.914,
+            "skuF1": 0.916,
+            "stockF1": 0.848,
+            "outOfStockF1": 0.571,
+            "pageExact": 75.71,
+            "nullAccuracy": 100,
+            "meanTime": 17.905,
+            "p95Time": 23.628
+          }
+        },
+        {
+          "id": "scrapegraphai-deepseek",
+          "scores": {
+            "priceF1": 0.906,
+            "skuF1": 0.912,
+            "stockF1": 0.852,
+            "outOfStockF1": 0.593,
+            "pageExact": 75,
+            "nullAccuracy": 100,
+            "meanTime": 14.021,
+            "p95Time": 19.245
+          }
+        },
+        {
+          "id": "stagehand-deepseek",
+          "scores": {
+            "priceF1": 0.879,
+            "skuF1": 0.827,
+            "stockF1": 0.792,
+            "outOfStockF1": 0.762,
+            "pageExact": 56.43,
+            "nullAccuracy": 100,
+            "meanTime": 8.534,
+            "p95Time": 10.958
+          }
+        }
+      ]
+    },
+    {
+      "benchmark": "lexbench-headless-372",
+      "version": "v2.0.0",
+      "taskCount": 372,
+      "url": "https://yours.lexmount.cn/artifact-site/s/gdwtSGOel0va",
+      "sourceHash": "c9ded943bf2e13b54f968a9fc6db012dcfa181a3aff508294c3e3de1c23e9675",
+      "samples": {
+        "cpuTime": 1045,
+        "pss": 1045,
+        "successRate": 372
+      },
+      "rows": [
+        {
+          "id": "headless-1-1-4-off",
+          "scores": {
+            "successRate": 0,
+            "cpuTime": 21.41,
+            "pss": 77.22,
+            "cpuDelta": 0,
+            "pssDelta": 0,
+            "successDelta": 0
+          }
+        },
+        {
+          "id": "headless-1-1-8-off",
+          "scores": {
+            "successRate": 0.3,
+            "cpuTime": 21.32,
+            "pss": 77.1,
+            "cpuDelta": -0.4,
+            "pssDelta": -0.15,
+            "successDelta": 0.27
+          }
+        },
+        {
+          "id": "headless-1-1-8-on",
+          "scores": {
+            "successRate": 68.5,
+            "cpuTime": 21.66,
+            "pss": 80.54,
+            "cpuDelta": 1.16,
+            "pssDelta": 4.3,
+            "successDelta": 68.55
+          }
+        },
+        {
+          "id": "headless-1-1-9-off",
+          "scores": {
+            "successRate": 0.3,
+            "cpuTime": 21.11,
+            "pss": 76.94,
+            "cpuDelta": -1.39,
+            "pssDelta": -0.36,
+            "successDelta": 0.27
+          }
+        },
+        {
+          "id": "headless-1-1-9-on",
+          "scores": {
+            "successRate": 68.5,
+            "cpuTime": 21.04,
+            "pss": 80.23,
+            "cpuDelta": -1.7,
+            "pssDelta": 3.9,
+            "successDelta": 68.55
+          }
+        },
+        {
+          "id": "headless-1-1-9-fixed-off",
+          "scores": {
+            "successRate": 0.3,
+            "cpuTime": 21,
+            "pss": 77.7,
+            "cpuDelta": -1.92,
+            "pssDelta": 0.63,
+            "successDelta": 0.27
+          }
+        },
+        {
+          "id": "headless-1-1-9-fixed-on",
+          "scores": {
+            "successRate": 96.8,
+            "cpuTime": 21.48,
+            "pss": 80.83,
+            "cpuDelta": 0.36,
+            "pssDelta": 4.68,
+            "successDelta": 96.77
+          }
+        }
+      ]
+    },
+    {
+      "benchmark": "webarena-verified",
+      "version": "v1",
+      "taskCount": 812,
+      "url": "https://yours.lexmount.cn/artifact-site/s/EFLrNgujgsVc",
+      "sourceHash": "21e2a89077f76810410208749bbeee14227ff24f5e53d4d8d2400d4e0343930d",
+      "rows": [
+        {
+          "id": "chromium-153",
+          "passed": 812,
+          "scores": {
+            "successRate": 100,
+            "taskMean": 10.8,
+            "taskP50": 8.1,
+            "taskP95": 23.4,
+            "actionMean": 1.7,
+            "actionP50": 0.7,
+            "actionP95": 4.2
+          }
+        },
+        {
+          "id": "moli-731-853",
+          "passed": 812,
+          "scores": {
+            "successRate": 100,
+            "taskMean": 24.1,
+            "taskP50": 18.1,
+            "taskP95": 61.9,
+            "actionMean": 4.8,
+            "actionP50": 2,
+            "actionP95": 19.6
+          }
+        },
+        {
+          "id": "moli-v1-1-11",
+          "passed": 624,
+          "scores": {
+            "successRate": 76.8,
+            "taskMean": 33.6,
+            "taskP50": 10.7,
+            "taskP95": 73.7,
+            "actionMean": 10.3,
+            "actionP50": 1.4,
+            "actionP95": 60
+          }
+        },
+        {
+          "id": "lightpanda-nightly-9813",
+          "passed": 330,
+          "scores": {
+            "successRate": 40.6,
+            "taskMean": 27.9,
+            "taskP50": 12.7,
+            "taskP95": 65.8,
+            "actionMean": 3.6,
+            "actionP50": 0.9,
+            "actionP95": 10.4
+          }
+        },
+        {
+          "id": "obscura-0-2-3",
+          "passed": 386,
+          "scores": {
+            "successRate": 47.5,
+            "taskMean": 17.9,
+            "taskP50": 11.1,
+            "taskP95": 67,
+            "actionMean": 4.5,
+            "actionP50": 1.6,
+            "actionP95": 9
+          }
+        },
+        {
+          "id": "kitesurf-cloudflare",
+          "passed": 441,
+          "scores": {
+            "successRate": 54.3,
+            "taskMean": 40.7,
+            "taskP50": 31.4,
+            "taskP95": 95.7,
+            "actionMean": 7.5,
+            "actionP50": 5,
+            "actionP95": 30.5
+          }
+        }
+      ]
+    }
+  ]
+}

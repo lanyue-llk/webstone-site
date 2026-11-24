@@ -388,6 +388,15 @@ test("homepage copy actions copy the correct skill without displaying long promp
   }
 });
 
+test("report links select distinct published language editions and identify a missing translation", () => {
+  const {reportDestination}=require('../web/lib/overview.ts');
+  const urls={en:'https://reports.example.org/english',zh:'https://reports.example.org/chinese'};
+  assert.deepEqual(reportDestination({urls,originalLanguage:'zh'},urls.zh,'en'),{href:urls.en,language:'en'});
+  assert.deepEqual(reportDestination({urls,originalLanguage:'zh'},urls.zh,'zh'),{href:urls.zh,language:'zh'});
+  assert.deepEqual(reportDestination({urls:{zh:urls.zh},originalLanguage:'zh'},urls.zh,'en'),{href:urls.zh,language:'zh'});
+  assert.deepEqual(reportDestination({},urls.zh,'en'),{href:urls.zh,language:undefined});
+  assert.deepEqual(reportDestination({originalLanguage:'ja'},urls.zh,'en'),{href:urls.zh,language:undefined});
+});
 
 test("compact columns preserve ranking and disclosed resources without inventing missing measurements", () => {
   const {decisionMetrics}=require('../web/lib/comparisons.ts');
@@ -497,4 +506,26 @@ test("homepage counts reports instead of historical result editions and uses the
     assert.deepEqual([...logo.subarray(0, 8)], [137,80,78,71,13,10,26,10]);
     assert.match(readFileSync(new URL('../README.md',import.meta.url),'utf8'),/web\/public\/brand\/webstone\.png/);
   } finally {await win.happyDOM.close();}
+});
+
+
+test("report cards open each language edition without translation or source-language labels", () => {
+  const overview = require("../web/lib/overview.ts");
+  const { EvaluationReports } = require("../web/components/home.tsx");
+  const { snapshot } = load("lexbench-swde");
+  const links = [];
+  for (const language of ["en", "zh"]) {
+    const article = overview.evaluationReports(catalog, [snapshot], undefined, language)[0];
+    const win = new Window();
+    try {
+      win.document.body.innerHTML = renderToStaticMarkup(React.createElement(EvaluationReports, { catalog, snapshots: [snapshot], language, t: translator(language, catalog) }));
+      const link = win.document.querySelector("h3 a");
+      assert.equal(link.getAttribute("hreflang"), language);
+      assert.equal(link.href, article.href);
+      links.push(link.href);
+      assert.equal(win.document.querySelector(".article-language"), null);
+      assert.doesNotMatch(win.document.body.textContent, /Translated from|译自|中文原文|英文原文/);
+    } finally { win.happyDOM.close(); }
+  }
+  assert.notEqual(links[0], links[1]);
 });

@@ -25,7 +25,7 @@ The `cloudflare-production` GitHub environment needs:
 | --- | --- | --- |
 | `CLOUDFLARE_API_TOKEN` | Secret | A Cloudflare API token with Account / Cloudflare Pages / Edit for the deployment account only |
 | `CLOUDFLARE_ACCOUNT_ID` | Variable | The account containing `lexmount-webstone` |
-| `CLOUDFLARE_PAGES_URL` | Variable | `https://lexmount-webstone.pages.dev` |
+| `CLOUDFLARE_PAGES_URL` | Variable | `https://webstone.lexmount.io` |
 
 Keep the token in GitHub Secrets. Never put it in the repository, a report, chat or client-side environment variables. Local Wrangler OAuth login does not authenticate GitHub Actions.
 
@@ -59,6 +59,6 @@ Add `webstone.lexmount.io` under the Pages project's custom domains before creat
 | --- | --- | --- | --- | --- |
 | CNAME | `webstone` | `lexmount-webstone.pages.dev` | Auto | DNS only |
 
-No nameserver change or change to the company's existing records is needed. Wait for Pages to mark the custom domain active and issue HTTPS, then verify that address too. The default Pages address remains usable while DNS is being configured.
+No nameserver change or change to the company's existing records is needed. Wait for Pages to mark the custom domain active and issue HTTPS, then verify that address too. Error 1014 means the hostname has not been associated correctly with the Pages project; add it in Custom domains rather than weakening TLS or changing account security settings. A 404 before the first production release means the project has no production deployment yet. The default Pages address remains usable while DNS is being configured.
 
 Retire the old Rainbond instance only after the public Pages address serves the intended release and its reports and downloads pass verification. Stop the old application; deleting its configuration is unnecessary.

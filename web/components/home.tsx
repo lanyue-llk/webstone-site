@@ -3,13 +3,14 @@
 import { useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight, BookOpenText, Bot, Clipboard, FileJson2, Globe2, Layers3, Search, Star } from "lucide-react";
 import { benchmarkHref, evaluationReports, DATASETS_URL, EVALUATION_URL, EVALUATION_SKILL, SUBMISSION_SKILL, SUBMISSION_URL, WEBSTONE_REPOSITORY_URL, navigationGroups, trackOverview } from "../lib/overview";
+import type { Language } from "../lib/i18n";
 import type { BenchmarkInfo, Catalog, Snapshot } from "../lib/results";
 
-type Props = { catalog: Catalog; snapshots: Snapshot[]; t: (value: string) => string };
+type Props = { catalog: Catalog; snapshots: Snapshot[]; language?: Language; t: (value: string) => string };
 export const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2 };
 
-export function EvaluationReports({ catalog, snapshots, t, current }: Props & { current?: BenchmarkInfo }) {
-  const reports = evaluationReports(catalog, snapshots, current);
+export function EvaluationReports({ catalog, snapshots, t, current, language = "en" }: Props & { current?: BenchmarkInfo }) {
+  const reports = evaluationReports(catalog, snapshots, current, language);
   const [page, setPage] = useState(0);
   const pageCount = Math.ceil(reports.length / 6);
   const selectedPage = Math.min(page, Math.max(0, pageCount - 1));
@@ -20,7 +21,7 @@ export function EvaluationReports({ catalog, snapshots, t, current }: Props & { 
       const Icon = TRACK_ICONS[article.track.id] ?? BookOpenText;
       return <article key={article.source} className="article-card" data-track={article.track.id}>
         <div className="article-topic"><Icon size={18} aria-hidden="true" /><span>{t(article.track.name)}</span></div>
-        <h3><a href={article.href} target="_blank" rel="noreferrer">{t(article.title)} <ArrowUpRight size={15} aria-hidden="true" /><span className="sr-only"> ({t("opens in a new tab")})</span></a></h3>
+        <h3><a href={article.href} hrefLang={article.language} target="_blank" rel="noreferrer">{t(article.title)} <ArrowUpRight size={15} aria-hidden="true" /><span className="sr-only"> ({t("opens in a new tab")})</span></a></h3>
         <p>{t(article.summary)}</p>
         <div className="article-date">{t("Published")} <time dateTime={article.publishedAt}>{article.date}</time></div>
         <div className="article-related"><span>{t("Track")}</span><a href={benchmarkHref(article.trackLanding.id)}>{t(article.track.name)} <ArrowRight size={12} aria-hidden="true" /></a></div>
@@ -38,7 +39,7 @@ export function EvaluationReports({ catalog, snapshots, t, current }: Props & { 
   </section>;
 }
 
-export default function Home({ catalog, snapshots, t }: Props) {
+export default function Home({ catalog, snapshots, t, language = "en" }: Props) {
   const tracks = trackOverview(catalog);
   const count = tracks.reduce((sum, track) => sum + track.benchmarks.length, 0);
   const maxBenchmarks = Math.max(1, ...tracks.map(track => track.benchmarks.length));
@@ -101,7 +102,7 @@ export default function Home({ catalog, snapshots, t }: Props) {
       })}</div>
       {navigationGroups(catalog).filter(group => group.upcoming.length > 0).map(group => <div key={group.id} className="upcoming-overview"><strong>{t(group.name)}</strong><span>{group.upcoming.map(item => t(item.name)).join(" · ")}</span><span className="upcoming-badge">{t("Coming soon")}</span><p>{t("Benchmarks are in development. Stay tuned.")}</p></div>)}
     </section>
-    <EvaluationReports catalog={catalog} snapshots={snapshots} t={t} />
+    <EvaluationReports catalog={catalog} snapshots={snapshots} t={t} language={language} />
   </div>;
 }
 
