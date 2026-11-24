@@ -348,7 +348,10 @@ test("profiles with only two disclosed quality metrics include all available cat
   for (const provider of benchmark.providers) for (const id of ["totalMean", "totalP50", "totalP95"]) provider.scores[id] = null;
   const axes = radarAxes(benchmark);
   assert.ok(axes.filter(axis => axis.defaultSelected).length >= 3);
-  assert.ok(axes.filter(axis => axis.id.startsWith("category:")).every(axis => axis.defaultSelected));
+  const eligible = benchmark.categories.filter(category => category.total > 0 && benchmark.providers.some(provider => provider.categoryPassed?.[category.id] !== null && provider.categoryPassed?.[category.id] !== undefined)).map(category => "category:" + category.id).sort();
+  const categories = axes.filter(axis => axis.id.startsWith("category:"));
+  assert.deepEqual(categories.map(axis => axis.id).sort(), eligible);
+  assert.ok(categories.every(axis => axis.defaultSelected));
   assert.ok(!axes.some(axis => axis.id === "totalMean"));
 });
 
@@ -414,6 +417,16 @@ test("release verification rejects relaxed or stale script policies", async () =
   const html='<script>window.ready=true</script>';
   const expected="script-src 'self' "+inlineScriptHashes(html).join(" ")+"; frame-ancestors 'none'";
   assert.doesNotThrow(()=>assertScriptPolicy(expected,expected,html));
-  for(const policy of [expected.replace(";", " https://untrusted.example;"),expected+"; script-src-elem * 'unsafe-inline'",expected+"; script-src-attr 'unsafe-inline'",expected.replace(inlineScriptHashes(html)[0],inlineScriptHashes('<script>other()</script>')[0]),expected+"; script-src *"])
+  for(const policy of [expected.replace(";", " https://untrusted.example;"),expected+"; script-src-elem * 'unsafe-inline'",expected+"; SCRIPT-SRC-ELEM * 'unsafe-inline'",expected+"; script-src-attr 'unsafe-inline'",expected.replace(inlineScriptHashes(html)[0],inlineScriptHashes('<script>other()</script>')[0]),expected+"; script-src *"])
     assert.throws(()=>assertScriptPolicy(policy,expected,html));
+});
+
+
+test("inline script hashes use HTML attributes and browser script text", async () => {
+  const {inlineScriptHashes}=await import('../scripts/secure-export.mjs');
+  const expected=inlineScriptHashes('<script>run()</script>');
+  assert.deepEqual(inlineScriptHashes('<script data-src="example">run()</script>'),expected);
+  assert.deepEqual(inlineScriptHashes('<script data-label="a > b">run()</script>'),expected);
+  assert.deepEqual(inlineScriptHashes('<script SRC="/external.js">run()</script>'),[]);
+  assert.deepEqual(inlineScriptHashes('<script>run()\r\n</script>'),inlineScriptHashes('<script>run()\n</script>'));
 });
