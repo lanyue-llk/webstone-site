@@ -303,3 +303,54 @@ test("shared delivery is checked separately for each report-service origin", asy
   });
   await assert.rejects(check(request),/403/);
 });
+
+
+test("anonymous delivery does not judge owner-authored report content", async () => {
+  for (const content of [' ', '<html></html>', '<form><input type="password"><button>Sign in</button></form>']) {
+    await check(sample.request({[sample.entry]:()=>html(content)}));
+  }
+});
+
+test("nested shares at the depth boundary are not traversed twice", async () => {
+  const base=sample.request();
+  await check(async (url,options)=>{
+    const match=/\/(?:s|api\/preview)\/level(\d+)/.exec(url);
+    if(match) {
+      const level=Number(match[1]);
+      if(url.includes('/s/'))return html('<iframe src="https://reports.example.org/artifact-site/api/preview/level'+level+'/index.html"></iframe>');
+      return html('<script id="artifact-delivery-config">'+JSON.stringify({file:'index.html',manifestUrl:'https://reports.example.org/manifest'+level})+'</script>');
+    }
+    const manifest=/manifest(\d+)/.exec(url);
+    if(manifest)return Response.json({files:[{path:'index.html',url:'https://cdn.example.org/level'+manifest[1]+'.html'}]});
+    const entry=/cdn.example.org\/level(\d+)\.html/.exec(url);
+    if(entry){const level=Number(entry[1]);return html(level===5?body:'<iframe src="https://reports.example.org/artifact-site/s/level'+(level+1)+'"></iframe>');}
+    if(url===sample.entry)return html('<iframe src="https://reports.example.org/artifact-site/s/level1"></iframe>');
+    return base(url,options);
+  });
+});
+
+test("wire limits stop identity and low-output compressed streams before EOF", {timeout:6000}, async () => {
+  const empty=gzipSync(Buffer.alloc(0)); const extra=Buffer.alloc(65535); const header=Buffer.from(empty.subarray(0,10));header[3]=4;
+  const gzipMember=Buffer.concat([header,Buffer.from([255,255]),extra,empty.subarray(10)]);
+  for(const [encoding,chunk] of [['identity',Buffer.alloc(1024*1024)],['gzip',gzipMember]]) {
+    let req,response,guard,ended=false;
+    const transport=(_url,_options,callback)=>{
+      req=new EventEmitter();req.destroyed=false;req.destroy=error=>{req.destroyed=true;response.destroy(error);};
+      req.end=()=>{
+        guard=setTimeout(()=>req.destroy(new Error('Independent test guard expired')),5000);
+        response=new Readable({read(){this.push(chunk);}});
+        response.statusCode=200;response.headers={'content-encoding':encoding};response.on('end',()=>{ended=true;});callback(response);
+      };
+      return req;
+    };
+    try { await assert.rejects(anonymousRequest(sample.entry,{},transport),/20 MiB/); } finally { clearTimeout(guard); }
+    assert.equal(req.destroyed,true);assert.equal(response.destroyed,true);assert.equal(ended,false);
+  }
+});
+
+
+test("public previews cannot prohibit their own share-page embedding", async () => {
+  for (const headers of [{'x-frame-options':'DENY'},{'content-security-policy':"default-src 'self'; frame-ancestors 'none'"}]) {
+    await assert.rejects(check(sample.request({[sample.preview]:()=>new Response(sample.loader,{headers:{'content-type':'text/html',...headers}})})),/blocks embedding/);
+  }
+});

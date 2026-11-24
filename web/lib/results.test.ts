@@ -368,7 +368,7 @@ test("benchmark titles, dataset names and links follow the public dataset catalo
     "lexbench-swde": { name: "LexBench SWDE", datasetName: "LexBench-SWDE" },
     "lexbench-zyte-product-extraction": { name: "LexBench Zyte Product Extraction", datasetName: "LexBench-Zyte-Product-Extraction" },
   };
-  assert.deepEqual(catalog.tracks.map(track => track.name), ["Web Fetch", "Web Search", "Web Extract", "Browser Task Replay", "BrowserArena"]);
+  assert.deepEqual(catalog.tracks.map(track => track.name), ["Web Fetch", "Web Search", "Web Extract", "Trajectory Replay", "BrowserArena"]);
   for (const benchmark of catalog.benchmarks) {
     assert.equal(benchmark.name, expected[benchmark.id].name);
     assert.equal(benchmark.datasetName, expected[benchmark.id].datasetName);

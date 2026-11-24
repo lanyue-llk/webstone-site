@@ -244,7 +244,7 @@ test("the dashboard exposes two repository guides and preserves each pricing val
     assert.ok(star); assert.equal(new URL(star.href).pathname, "/lexmount/webstone"); assert.equal(new URL(star.href).hash, "");
     assert.match(star.getAttribute("aria-label"), /Star Webstone/);
     const groups = [...container.querySelectorAll(".grouped-navigation > .nav-group")];
-    assert.deepEqual(groups.map(group => group.querySelector("h2").textContent), ["Web Tools", "Browsers", "Browser Automation"]);
+    assert.deepEqual(groups.map(group => group.querySelector("h2").textContent), ["Web Tools", "Browser Capabilities", "Browser Automation"]);
     assert.deepEqual(groups.map(group => group.querySelectorAll(".nav-track").length), [2, 2, 0]);
     assert.deepEqual(groups.map(group => group.querySelectorAll(".nav-upcoming").length), [1, 0, 1]);
     assert.equal(container.querySelectorAll(".grouped-navigation details").length, 0);
@@ -465,7 +465,7 @@ test("the homepage offers the evaluation repository star and translates the deve
     assert.equal(new URL(star.href).pathname,'/lexmount/webstone');assert.equal(new URL(star.href).hash,'');
     assert.match(star.textContent,/Star/);
     assert.match(win.document.querySelector('.overview-star-note').textContent,/觉得 Webstone 有用/);
-    assert.match(win.document.querySelector('.upcoming-overview').textContent,/Browser Automation/);
+    assert.match([...win.document.querySelectorAll('.upcoming-overview')].map(item=>item.textContent).join(' '),/Browser Automation/);
     assert.match(win.document.querySelector('.upcoming-overview').textContent,/开发中/);
     assert.equal(win.document.querySelectorAll('.track-card').length,4);
   } finally {await win.happyDOM.close();}
@@ -475,9 +475,9 @@ test("the homepage offers the evaluation repository star and translates the deve
 test("Chinese navigation preserves technical names and translates supporting copy", () => {
   const {translator}=require('../web/lib/i18n.ts');
   const t=translator('zh',catalog);
-  for (const name of ['Web Tools','Browsers','Browser Automation','Web Search','Web Extract','Web Fetch','Web Fetch API','Browser Task Replay','Browser Use']) assert.equal(t(name),name);
+  for (const name of ['Web Tools','Browser Capabilities','Browser Automation','Web Search','Web Extract','Web Fetch','Web Fetch API','Trajectory Replay','Browser Use']) assert.equal(t(name),name);
   assert.equal(t('Coming soon'),'开发中');
-  assert.equal(t('Replay tasks across browsers'),'在不同浏览器上回放任务');
+  assert.equal(t('Replay recorded actions'),'回放预先记录的操作');
 });
 
 test("homepage counts reports instead of historical result editions and uses the shared brand asset", async () => {
