@@ -65,27 +65,20 @@ test("all published bench views have a radar and keep each method visible when a
   assert.equal((incomplete.match(/class="radar-shape"/g) ?? []).length, benchmark.providers.length - 1);
 });
 
-test("radar includes mean latency, memory and disclosed costs, with lower values plotted farther out", () => {
+test("radars include latency and memory while keeping quoted prices out of capability comparisons", () => {
   const { benchmark: headless } = load("lexbench-headless-372");
   assert.deepEqual(radarAxes(headless).map(axis => axis.id), ["successRate", "latency", "pss"]);
+  for (const benchmark of [load("lexbench-websearch", "v2").benchmark,
+    load("lexbench-swde").benchmark, load("lexbench-zyte-product-extraction").benchmark]) {
+    const axes = radarAxes(benchmark);
+    assert.ok(axes.some(axis => axis.id === "meanTime"));
+    assert.ok(!axes.some(axis => ["pricePerThousand", "quoted-price"].includes(axis.id)));
+    assert.equal((render(benchmark).match(/class="radar-series"/g) ?? []).length, benchmark.providers.length);
+  }
   const { benchmark: search } = load("lexbench-websearch", "v2");
-  const axes = radarAxes(search);
-  assert.ok(axes.some(axis => axis.id === "meanTime"));
-  const cost = axes.find(axis => axis.id === "pricePerThousand");
-  const byCost = [...search.providers].sort((a, b) => a.scores.pricePerThousand - b.scores.pricePerThousand);
-  assert.ok(cost.value(byCost[0])[0] > cost.value(byCost.at(-1))[0]);
-
-  const { benchmark: extraction } = load("lexbench-swde");
-  const quote = radarAxes(extraction).find(axis => axis.id === "quoted-price");
-  const ranged = extraction.providers.find(provider => typeof provider.pricing?.min === "number" && provider.pricing.min < provider.pricing.max);
-  const unknown = extraction.providers.find(provider => typeof provider.pricing?.min !== "number");
-  assert.ok(quote.value(ranged)[0] < quote.value(ranged)[1]);
-  assert.equal(quote.value(unknown), null);
-  const html = render(extraction);
-  assert.match(html, /class="radar-range"/);
-  assert.equal((html.match(/class="radar-shape"/g) ?? []).length,
-    extraction.providers.filter(provider => typeof provider.pricing?.min === "number" &&
-      provider.pricing.min === provider.pricing.max).length);
+  const measured = { ...search, metrics: [...search.metrics, { id: "totalCost", label: "Measured cost", unit: "usd", direction: "asc" }],
+    providers: search.providers.map((provider, i) => ({ ...provider, scores: { ...provider.scores, totalCost: i + 1 } })) };
+  assert.ok(radarAxes(measured).some(axis => axis.id === "totalCost"));
 });
 
 test("the home overview counts search layers as views and shares articles with their benchmark pages", async () => {
@@ -208,5 +201,47 @@ test("the homepage directs evaluation and result submission to their own reposit
     assert.equal(submission.querySelectorAll("button").length, 1);
   } finally {
     await win.happyDOM.close();
+  }
+});
+
+test("the dashboard exposes two repository guides and preserves each pricing value in its own cell", async () => {
+  const Dashboard = require("../web/components/dashboard.tsx").default;
+  const { EVALUATION_URL, SUBMISSION_URL } = require("../web/lib/overview.ts");
+  const { formatPricing } = require("../web/lib/results.ts");
+  const { RELEASE } = require("../web/lib/release.generated.ts");
+  const { snapshot, benchmark } = load("lexbench-swde");
+  const win = new Window({ url: "https://webstone.test/?benchmark=lexbench-swde" });
+  const previous = [globalThis.window, globalThis.document, globalThis.fetch, globalThis.IS_REACT_ACT_ENVIRONMENT];
+  [globalThis.window, globalThis.document, globalThis.IS_REACT_ACT_ENVIRONMENT] = [win, win.document, true];
+  globalThis.fetch = async input => {
+    const url = String(input);
+    let data = { release: RELEASE };
+    if (url.includes("/benchmarks/catalog.json")) data = catalog;
+    if (url.includes("/results/reports.json")) data = [{ file: "lexbench-swde/lexbench-swde-v1-report.json", report: snapshot }];
+    return new Response(JSON.stringify(data), { headers: { "content-type": "application/json" } });
+  };
+  const container = win.document.createElement("div");
+  win.document.body.append(container);
+  const root = require("react-dom/client").createRoot(container);
+  try {
+    await React.act(async () => root.render(React.createElement(Dashboard)));
+    const links = [...container.querySelectorAll(".sidebar-guides a")];
+    assert.deepEqual(links.map(link => link.getAttribute("href")), [EVALUATION_URL, SUBMISSION_URL]);
+    assert.ok(links.every(link => link.querySelector("svg") && link.textContent.trim()));
+    assert.equal(container.querySelectorAll(".sidebar-footer a").length, 0);
+    const rows = [...container.querySelectorAll("tbody tr")];
+    assert.equal(rows.length, benchmark.providers.length);
+    for (const row of rows) {
+      const providerLink = row.querySelector(".provider-link");
+      const provider = benchmark.providers.find(item => providerLink.getAttribute("aria-label").startsWith(item.name + " "));
+      const pricing = row.querySelector(".pricing-cell");
+      assert.ok(pricing);
+      if (provider.pricing) assert.equal(pricing.querySelector(".pricing-value")?.textContent, formatPricing(provider.pricing));
+    }
+    assert.ok(![...container.querySelectorAll(".radar-label")].some(label => /Price|cost/i.test(label.textContent)));
+  } finally {
+    await React.act(async () => root.unmount());
+    await win.happyDOM.close();
+    [globalThis.window, globalThis.document, globalThis.fetch, globalThis.IS_REACT_ACT_ENVIRONMENT] = previous;
   }
 });

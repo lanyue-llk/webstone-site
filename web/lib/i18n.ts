@@ -38,7 +38,7 @@ const chinese: Record<string, string> = {
   "Chart metrics": "图表指标",
   "Key metrics": "关键指标",
   "Each axis shows the share of cases passed.": "各轴显示该类用例的通过率。",
-  "Quality is shown as a share of the maximum. Lower latency, memory and price plot farther out when reported.": "质量指标按满分换算。耗时越短、内存占用越少、报价越低，越靠外。",
+  "Quality is shown as a share of the maximum. Lower latency, memory and measured cost plot farther out when reported.": "质量指标按满分换算。耗时越短、内存占用越少、实测成本越低，越靠外。",
   "Price ranges are marked on the price axis.": "报价区间的两端标在价格轴上。",
   "Evaluation articles": "评测文章",
   "Results first published": "结果首次公开",

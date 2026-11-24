@@ -1,5 +1,5 @@
-import { categoryRate, qualityMetrics, qualityScale, quotedCost } from "./comparisons.ts";
-import { formatMetric, formatPricing, type Benchmark, type Metric, type Provider } from "./results.ts";
+import { categoryRate, qualityMetrics, qualityScale } from "./comparisons.ts";
+import { formatMetric, type Benchmark, type Metric, type Provider } from "./results.ts";
 
 type Bounds = [number, number];
 type Axis = {
@@ -59,7 +59,7 @@ export function radarAxes(benchmark: Benchmark, categories = false): Axis[] {
   const timing = benchmark.metrics.filter(metric => ["ms", "seconds"].includes(metric.unit) && hasValues(metric));
   const mean = timing.filter(metric => !/p50|p95/i.test(metric.id));
   const tail = timing.find(metric => /p95/i.test(metric.id));
-  const cost = benchmark.metrics.find(metric => metric.unit === "usd" && hasValues(metric));
+  const cost = benchmark.metrics.find(metric => metric.unit === "usd" && metric.id !== "pricePerThousand" && metric.highlightBest !== false && hasValues(metric));
   const resources: Axis[] = [
     ...mean.map(metricAxis),
     ...(tail ? [metricAxis(tail)] : []),
@@ -67,10 +67,7 @@ export function radarAxes(benchmark: Benchmark, categories = false): Axis[] {
   ];
 
   if (cost) resources.push(metricAxis(cost));
-  else resources.push({
-    id: "quoted-price", label: "Price / 1K", value: quotedCost,
-    display: provider => provider.pricing && quotedCost(provider) ? formatPricing(provider.pricing) : "—",
-  });
+
 
   return [
     ...quality.map(metric => {
