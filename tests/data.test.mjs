@@ -34,7 +34,11 @@ test("report directories are discovered and their declared provenance is validat
 });
 
 test("external tracks use safe HTTPS links and cannot own local benchmark tables", () => {
-  assert.equal(catalog.tracks.find(track => track.id === "browserarena").url, "https://browserarena.ai/");
+  for (const track of catalog.tracks.filter(track => track.url)) {
+    const destination = new URL(track.url);
+    assert.equal(destination.protocol, "https:");
+    assert.equal(destination.username + destination.password, "");
+  }
   for (const url of ["javascript:alert(1)", "http://example.com", "https://user:password@example.com", ""]) {
     const invalid = structuredClone(catalog);
     invalid.tracks.find(track => track.id === "browserarena").url = url;
@@ -395,4 +399,14 @@ test("explicit metric ranges bound scores and confidence intervals", () => {
   report.benchmarks[0].providers[0].scores.passRate = 90;
   report.benchmarks[0].providers[0].confidenceIntervals = { passRate: { lower: 85, upper: 96, level: .95 } };
   assert.throws(() => validateSnapshot(report, entry, bounded), /Invalid confidence interval/);
+});
+
+
+test("navigation groups reject orphaned or duplicate placements and premature published tracks", () => {
+  const invalid=structuredClone(catalog);invalid.tracks[0].groupId='missing';
+  assert.throws(()=>validateCatalog(invalid),/Unknown track navigation group/);
+  const duplicate=structuredClone(catalog);duplicate.navigationGroups[1].id=duplicate.navigationGroups[0].id;
+  assert.throws(()=>validateCatalog(duplicate),/Duplicate navigation group/);
+  const premature=structuredClone(catalog);premature.navigationGroups[0].upcoming[0].id=premature.tracks[0].id;
+  assert.throws(()=>validateCatalog(premature),/separate from published tracks/);
 });

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowRight, ArrowUpRight, BookOpenText, Bot, Clipboard, FileJson2, Globe2, Layers3, Search } from "lucide-react";
-import { benchmarkHref, evaluationReports, DATASETS_URL, EVALUATION_URL, EVALUATION_SKILL, SUBMISSION_SKILL, SUBMISSION_URL, trackOverview } from "../lib/overview";
+import { useRef, useState } from "react";
+import { ArrowRight, ArrowUpRight, BookOpenText, Bot, Clipboard, FileJson2, Globe2, Layers3, Search, Star } from "lucide-react";
+import { benchmarkHref, evaluationReports, DATASETS_URL, EVALUATION_URL, EVALUATION_SKILL, SUBMISSION_SKILL, SUBMISSION_URL, WEBSTONE_REPOSITORY_URL, navigationGroups, trackOverview } from "../lib/overview";
 import type { Language } from "../lib/i18n";
 import type { BenchmarkInfo, Catalog, Snapshot } from "../lib/results";
 
@@ -55,7 +55,9 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
         <p>{t("The touchstone for your agent's web tools.")}</p>
         <div className="overview-actions">
           {firstBenchmark && <a href={benchmarkHref(firstBenchmark.id)} className="overview-primary">{t("Explore leaderboards")} <ArrowRight size={17} aria-hidden="true" /></a>}
+          <a className="overview-star" href={WEBSTONE_REPOSITORY_URL} target="_blank" rel="noreferrer"><Star size={16} aria-hidden="true" />{t("Star Webstone")} <ArrowUpRight size={14} aria-hidden="true" /></a>
         </div>
+        <p className="overview-star-note">{t("If Webstone helps, give it a star.")}</p>
       </div>
       <dl className="overview-stats">
         <div><dt>{t("Local tracks")}</dt><dd>{tracks.length}</dd></div>
@@ -90,6 +92,7 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
         const landing = track.benchmarks[0];
         if (!landing) return null;
         return <div key={track.id} className="track-card" data-track={track.id}>
+          <span className="track-group-label">{t(track.groupName)}</span>
           <h3><a href={benchmarkHref(landing.id)}><Icon size={18} aria-hidden="true" />{t(track.name)}<ArrowRight size={15} aria-hidden="true" /></a></h3>
           <div className="track-volume" aria-label={`${track.benchmarks.length} ${t("Benchmarks")}`}>
             {Array.from({ length: maxBenchmarks }, (_, index) => <span key={index} className={index < track.benchmarks.length ? "filled" : ""} aria-hidden="true" />)}
@@ -98,6 +101,7 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
           <ul>{track.benchmarks.map(benchmark => <li key={benchmark.id}><a href={benchmarkHref(benchmark.id)}>{t(benchmark.name)}</a></li>)}</ul>
         </div>;
       })}</div>
+      {navigationGroups(catalog).filter(group => !group.tracks.length && group.upcoming.length > 0).map(group => <div key={group.id} className="upcoming-overview"><strong>{t(group.name)}</strong><span>{group.upcoming.map(item => t(item.name)).join(" · ")}</span><span className="upcoming-badge">{t("Coming soon")}</span><p>{t("Benchmarks are in development. Stay tuned.")}</p></div>)}
     </section>
     <EvaluationReports catalog={catalog} snapshots={snapshots} t={t} language={language} />
   </div>;
@@ -105,12 +109,15 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
 
 function AgentPrompt({ id, prompt, t }: { id: string; prompt: string; t: Props["t"] }) {
   const [copyStatus, setCopyStatus] = useState("");
+  const promptRef = useRef<HTMLTextAreaElement>(null);
 
   async function copyPrompt() {
     try {
       await navigator.clipboard.writeText(prompt);
     } catch {
       setCopyStatus("Select and copy the prompt below.");
+      promptRef.current?.focus();
+      promptRef.current?.select();
       return;
     }
     setCopyStatus("Prompt copied");
@@ -120,7 +127,7 @@ function AgentPrompt({ id, prompt, t }: { id: string; prompt: string; t: Props["
     <div className="prompt-panel">
       <button type="button" onClick={copyPrompt}><Clipboard size={16} aria-hidden="true" />{t(copyStatus === "Prompt copied" ? copyStatus : "Copy prompt")}</button>
       <span className="sr-only" role="status">{copyStatus && t(copyStatus)}</span>
-      {copyStatus === "Select and copy the prompt below." && <textarea id={id} aria-label={t("Copy prompt")} readOnly value={prompt} autoFocus onFocus={event => event.currentTarget.select()} />}
+      {copyStatus === "Select and copy the prompt below." && <textarea ref={promptRef} id={id} aria-label={t("Copy prompt")} readOnly value={prompt} autoFocus onFocus={event => event.currentTarget.select()} />}
       {copyStatus === "Select and copy the prompt below." && <p className="copy-hint">{t("Prompt selected. Use your device’s copy command.")}</p>}
     </div>
   );

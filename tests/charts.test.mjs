@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
@@ -96,7 +97,7 @@ test("the home overview counts search layers as views and shares articles with t
   assert.equal(articles[0].date, "2026-11-10");
   assert.equal(articles.at(-1).date, "2026-09-20");
   assert.ok(articles.every(report => Number.isFinite(Date.parse(report.publishedAt))));
-  assert.deepEqual(tracks.map(track => track.id), ["webfetch", "websearch", "webextract", "trajectory-replay"]);
+  assert.deepEqual(tracks.map(track => track.id), ["websearch", "webextract", "webfetch", "trajectory-replay"]);
   assert.deepEqual(tracks.find(track => track.id === "trajectory-replay").benchmarks.map(bench => bench.id),
     ["webarena-verified", "lexbench-headless-372"]);
   for (const view of catalog.benchmarks) {
@@ -239,7 +240,15 @@ test("the dashboard exposes two repository guides and preserves each pricing val
     const links = [...container.querySelectorAll(".sidebar-guides a")];
     assert.deepEqual(links.map(link => link.getAttribute("href")), [EVALUATION_URL, SUBMISSION_URL, "https://huggingface.co/datasets?author=Lexmount"]);
     assert.ok(links.every(link => link.querySelector("svg") && link.textContent.trim()));
-    assert.equal(container.querySelectorAll(".sidebar-footer a").length, 0);
+    const star = container.querySelector(".sidebar-footer .nav-star");
+    assert.ok(star); assert.equal(new URL(star.href).pathname, "/lexmount/webstone"); assert.equal(new URL(star.href).hash, "");
+    assert.match(star.getAttribute("aria-label"), /Star Webstone/);
+    const groups = [...container.querySelectorAll(".grouped-navigation > .nav-group")];
+    assert.deepEqual(groups.map(group => group.querySelector("h2").textContent), ["Web Tools", "Browsers", "Browser Automation"]);
+    assert.deepEqual(groups.map(group => group.querySelectorAll(".nav-track").length), [2, 2, 0]);
+    assert.deepEqual(groups.map(group => group.querySelectorAll(".nav-upcoming").length), [1, 0, 1]);
+    assert.equal(container.querySelectorAll(".grouped-navigation details").length, 0);
+    assert.equal(container.querySelectorAll(".nav-upcoming a, .nav-upcoming button").length, 0);
     const rows = [...container.querySelectorAll("tbody tr")];
     assert.equal(rows.length, benchmark.providers.length);
     for (const row of rows) {
@@ -300,7 +309,12 @@ test("every published benchmark edition shares table and radar controls in both 
           const initialColumns = table.querySelectorAll("th").length;
           await React.act(async () => more.click());
           assert.ok(table.querySelectorAll("th").length > initialColumns, report.id);
-          await React.act(async () => more.click());
+          const extra = definition.metrics.find(item => !decisionMetrics(definition, false, definition.primaryMetric).some(metric => metric.id === item.id));
+          const extraHeader = [...table.querySelectorAll("th")].find(header => header.querySelector(".sort-button")?.textContent === extra.label);
+          await React.act(async () => extraHeader.querySelector(".sort-button").click());
+          const collapse = [...container.querySelectorAll(".table-controls button")].find(button => button.textContent === "More metrics");
+          assert.ok(collapse, report.id + " can collapse after sorting an extra column");
+          await React.act(async () => collapse.click());
           assert.equal(table.querySelectorAll("th").length, initialColumns, report.id);
         }
         assert.equal(container.querySelector('a[href="https://huggingface.co/datasets?author=Lexmount"]')?.textContent, "Datasets", report.id);
@@ -343,7 +357,10 @@ test("profiles with only two disclosed quality metrics include all available cat
   for (const provider of benchmark.providers) for (const id of ["totalMean", "totalP50", "totalP95"]) provider.scores[id] = null;
   const axes = radarAxes(benchmark);
   assert.ok(axes.filter(axis => axis.defaultSelected).length >= 3);
-  assert.ok(axes.filter(axis => axis.id.startsWith("category:")).every(axis => axis.defaultSelected));
+  const eligible = benchmark.categories.filter(category => category.total > 0 && benchmark.providers.some(provider => provider.categoryPassed?.[category.id] !== null && provider.categoryPassed?.[category.id] !== undefined)).map(category => "category:" + category.id).sort();
+  const categories = axes.filter(axis => axis.id.startsWith("category:"));
+  assert.deepEqual(categories.map(axis => axis.id).sort(), eligible);
+  assert.ok(categories.every(axis => axis.defaultSelected));
   assert.ok(!axes.some(axis => axis.id === "totalMean"));
 });
 
@@ -375,4 +392,88 @@ test("report links select distinct published language editions and identify a mi
   assert.deepEqual(reportDestination({urls,originalLanguage:'zh'},urls.zh,'en'),{href:urls.en,language:'en'});
   assert.deepEqual(reportDestination({urls,originalLanguage:'zh'},urls.zh,'zh'),{href:urls.zh,language:'zh'});
   assert.deepEqual(reportDestination({urls:{zh:urls.zh},originalLanguage:'zh'},urls.zh,'en'),{href:urls.zh,language:'zh'});
+});
+
+test("compact columns preserve ranking and disclosed resources without inventing missing measurements", () => {
+  const {decisionMetrics}=require('../web/lib/comparisons.ts');
+  const metric=(id,unit)=>({id,unit});
+  const benchmark={primaryMetric:"quality",leadingMetricIds:["leading"],metrics:[metric("quality","ratio"),metric("time","ms"),metric("other","ratio"),metric("leading","ratio")],providers:[{scores:{quality:1,time:null,other:0.5,leading:null}}]};
+  const ids=(expanded=false,selected="quality")=>decisionMetrics(benchmark,expanded,selected).map(item=>item.id);
+  assert.deepEqual(ids(),["quality","leading"]);
+  benchmark.providers[0].scores.time=0;assert.deepEqual(ids(),["quality","time","leading"]);
+  benchmark.providers[0].scores.time=10;assert.deepEqual(ids(),["quality","time","leading"]);
+  benchmark.providers[0].scores.time=null;assert.deepEqual(ids(false,"other"),["quality","other","leading"]);
+  assert.deepEqual(ids(true),["quality","time","other","leading"]);
+});
+
+test("repeated denied clipboard attempts focus and select the manual prompt each time", async () => {
+  const Home=require('../web/components/home.tsx').default;
+  const win=new Window();const prior=[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT,Object.getOwnPropertyDescriptor(globalThis,'navigator')];
+  [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+  Object.defineProperty(globalThis,'navigator',{configurable:true,value:{clipboard:{writeText:async()=>{throw Error("Denied");}}}});
+  const root=require('react-dom/client').createRoot(win.document.body);
+  try {
+    await React.act(async()=>root.render(React.createElement(Home,{catalog,snapshots:[],t:text=>text})));
+    const button=win.document.querySelector('#run-evaluation button');
+    for(let attempt=0;attempt<2;attempt++) {
+      button.focus();await React.act(async()=>button.click());
+      const field=win.document.querySelector('#evaluation-prompt');
+      assert.equal(win.document.activeElement,field);assert.equal(field.selectionStart,0);assert.equal(field.selectionEnd,field.value.length);
+    }
+  } finally {
+    await React.act(async()=>root.unmount());await win.happyDOM.close();
+    [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=prior;
+    if(prior[3])Object.defineProperty(globalThis,'navigator',prior[3]);else delete globalThis.navigator;
+  }
+});
+
+
+test("release verification rejects relaxed or stale script policies", async () => {
+  const {inlineScriptHashes,assertScriptPolicy}=await import('../scripts/secure-export.mjs');
+  const html='<script>window.ready=true</script>';
+  const expected="script-src 'self' "+inlineScriptHashes(html).join(" ")+"; frame-ancestors 'none'";
+  assert.doesNotThrow(()=>assertScriptPolicy(expected,expected,html));
+  for(const policy of [expected.replace(";", " https://untrusted.example;"),expected+"; script-src-elem * 'unsafe-inline'",expected+"; SCRIPT-SRC-ELEM * 'unsafe-inline'",expected+"; script-src-attr 'unsafe-inline'",expected.replace(inlineScriptHashes(html)[0],inlineScriptHashes('<script>other()</script>')[0]),expected+"; script-src *"])
+    assert.throws(()=>assertScriptPolicy(policy,expected,html));
+});
+
+
+test("inline script hashes use HTML attributes and browser script text", async () => {
+  const {inlineScriptHashes}=await import('../scripts/secure-export.mjs');
+  const expected=["'sha256-"+createHash('sha256').update('run()').digest('base64')+"'"];
+  assert.deepEqual(inlineScriptHashes('<script>run()</script>'),expected);
+  assert.deepEqual(inlineScriptHashes('<script data-src="example">run()</script>'),expected);
+  assert.deepEqual(inlineScriptHashes('<script data-label="a > b">run()</script>'),expected);
+  assert.deepEqual(inlineScriptHashes('<script SRC="/external.js">run()</script>'),[]);
+  assert.deepEqual(inlineScriptHashes('<script>run()\r\n</script>'),inlineScriptHashes('<script>run()\n</script>'));
+});
+
+
+test("navigation groups separate browser retrieval from web APIs without counting planned tracks", () => {
+  const {navigationGroups}=require('../web/lib/overview.ts');
+  const groups=navigationGroups(catalog);
+  assert.deepEqual(groups.map(group=>group.id),["web-tools","browsers","browser-automation"]);
+  assert.deepEqual(groups[0].tracks.map(track=>track.id),["websearch","webextract"]);
+  assert.deepEqual(groups[1].tracks.map(track=>track.id),["webfetch","trajectory-replay","browserarena"]);
+  assert.deepEqual(groups[0].upcoming.map(track=>track.id),["webfetch-api"]);
+  assert.deepEqual(groups[2].upcoming.map(track=>track.id),["browser-use"]);
+  assert.equal(groups[2].tracks.length,0);
+  const published=trackOverview(catalog);
+  assert.equal(published.length,4);assert.equal(published.flatMap(track=>track.benchmarks).length,8);
+  assert.ok(groups.flatMap(group=>group.upcoming).every(item=>!published.some(track=>track.id===item.id)));
+});
+
+test("the homepage offers the evaluation repository star and translates the development preview", async () => {
+  const Home=require('../web/components/home.tsx').default;
+  const win=new Window();
+  try {
+    win.document.body.innerHTML=renderToStaticMarkup(React.createElement(Home,{catalog,snapshots:[],t:translator('zh',catalog,null)}));
+    const star=win.document.querySelector('.overview-star');
+    assert.equal(new URL(star.href).pathname,'/lexmount/webstone');assert.equal(new URL(star.href).hash,'');
+    assert.match(star.textContent,/Star/);
+    assert.match(win.document.querySelector('.overview-star-note').textContent,/觉得 Webstone 有用/);
+    assert.match(win.document.querySelector('.upcoming-overview').textContent,/浏览器自动化/);
+    assert.match(win.document.querySelector('.upcoming-overview').textContent,/开发中/);
+    assert.equal(win.document.querySelectorAll('.track-card').length,4);
+  } finally {await win.happyDOM.close();}
 });
