@@ -189,12 +189,12 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
     }
   }
   async function resource(url, serviceOrigin, depth, direct = false) {
+    if (direct) frames.add(url);
     await visit("entry", url, depth, async () => {
       // Yours serves the owner's uploaded file directly after the public manifest.
       // This gate checks anonymous delivery, not the report's prose, examples or forms.
       const response = await retrieve(url, "entry");
       entries.add(response.url.href);
-      if (direct) frames.add(response.url.href);
       if (!/text\/html/i.test(response.type)) throw new Error("Expected an HTML report entry");
       if (/text\/html/i.test(response.type)) {
         const html = new TextDecoder("utf-8", { fatal: true }).decode(response.bytes);

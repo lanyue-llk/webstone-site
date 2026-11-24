@@ -392,3 +392,10 @@ test("decoded-size limits stop high-expansion streams before EOF", { timeout: 50
   finally { clearTimeout(guard); }
   assert.equal(req.destroyed, true); assert.equal(response.destroyed, true); assert.equal(ended, false);
 });
+
+
+test("an entry reused as a required iframe remains a frame requirement", async () => {
+  const graph = await check(sample.request({ [sample.share]: () => html(`<iframe src="${sample.preview}"></iframe><iframe data-report-preview src="${sample.entry}"></iframe>`) }));
+  assert.ok(graph.entries.includes(sample.entry));
+  assert.ok(graph.frames.includes(sample.entry));
+});
