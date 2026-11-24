@@ -13,6 +13,11 @@ for (const [network, prefix] of [["2001::", 23], ["2001:db8::", 32], ["2002::", 
 const globalIPv6 = new BlockList();
 globalIPv6.addSubnet("2000::", 3, "ipv6");
 
+export function isPublicNetworkAddress(address) {
+  const family = isIP(address);
+  return Boolean(family) && (family !== 6 || globalIPv6.check(address, "ipv6")) && !privateNetworks.check(address, family === 6 ? "ipv6" : "ipv4");
+}
+
 export function reportLinks(catalog, snapshots, metadata) {
   return [...new Set([
     ...catalog.benchmarks.map(benchmark => benchmark.reportUrl),
@@ -25,7 +30,7 @@ export function reportLinks(catalog, snapshots, metadata) {
 
 export function anonymousRequest(address, options, transport = httpsRequest) {
   return new Promise((resolve, reject) => {
-    const req = transport(address, { lookup: options.lookup, signal: options.signal }, response => {
+    const req = transport(address, { lookup: options.lookup, signal: options.signal, headers: options.origin ? { Origin: options.origin } : undefined }, response => {
       if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
         resolve(new Response(null, { status: response.statusCode, headers: response.headers }));
         response.on("error", () => {});
@@ -115,8 +120,8 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       if (++requests > 40 || Date.now() >= deadline) throw new Error("Report exceeds the request or time budget");
       const records = await bounded(resolve(url.hostname, { all: true }));
       if (Date.now() >= deadline) throw new Error("Report exceeds the time budget");
-      if (!records.length || records.some(({ address }) => !isIP(address) || (isIP(address) === 6 && !globalIPv6.check(address, "ipv6")) || privateNetworks.check(address, isIP(address) === 6 ? "ipv6" : "ipv4"))) throw new Error("URL resolves to a private or reserved network");
-      if (/\/(?:login|signin|sign-in|auth)(?:\/|$)/i.test(url.pathname)) throw new Error("Report redirects to sign-in");
+      if (!records.length || records.some(({ address }) => !isPublicNetworkAddress(address))) throw new Error("URL resolves to a private or reserved network");
+      if (/\/(?:login|signin|sign-in|auth)(?:\/|$)/i.test(decodeURIComponent(url.pathname))) throw new Error("Report redirects to sign-in");
       const response = await request(url.href, { redirect: "manual", credentials: "omit", signal: AbortSignal.timeout(Math.max(1, Math.min(20000, deadline - Date.now()))), lookup: (_hostname, options, callback) => {
         const pinned = records.map(record => ({ address: record.address, family: isIP(record.address) }));
         if (options.all) callback(null, pinned);
@@ -134,7 +139,7 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       if (encoding && !/^(?:utf-?8|us-ascii)$/i.test(encoding)) throw new Error("Reports must use UTF-8 encoding");
       const bytes = Buffer.from(await response.arrayBuffer());
       if (kind === "entry") {
-        return { url, bytes, type, headers: response.headers };
+        return { url, bytes, type };
       }
       if (!bytes.length) throw new Error("Report returned an empty document");
       const body = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
@@ -149,11 +154,12 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       if (document.charset && !/^(?:utf-?8|us-ascii)$/i.test(document.charset)) throw new Error("Reports must use UTF-8 encoding");
       if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
 
-      return { url, headers: response.headers, ...document };
+      return { url, ...document };
     }
     throw new Error("Too many redirects");
   }
 
+  const frames = new Set(), entries = new Set();
   const active = new Set(), checked = new Set();
   async function visit(kind, url, depth, work, context = "") {
     if (depth > 5) throw new Error("Report contains too many nested previews");
@@ -164,80 +170,45 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
     active.add(key);
     try { await work(); checked.add(completedKey); } finally { active.delete(key); }
   }
-  function embeddingAllowed(headers, url, ancestors) {
-    if (!ancestors.length) return;
-    const directives = (headers.get("content-security-policy") ?? "").split(",").map(policy => policy.split(";").map(value => value.trim().split(/\s+/)).find(parts => parts[0]?.toLowerCase() === "frame-ancestors")).filter(Boolean);
-    const schemeMatches = (source, target) => source === target || source === "http:" && target === "https:" || source === "ws:" && ["wss:", "http:", "https:"].includes(target) || source === "wss:" && target === "https:";
-    function matches(source, ancestor) {
-      if (source.toLowerCase() === "'self'") return ancestor === url.origin;
-      if (source === "*") return true;
-      if (source === "'none'" || source.includes("'")) return false;
-      const parent = new URL(ancestor);
-      if (/^[a-z][a-z\d+.-]*:$/i.test(source)) return schemeMatches(source.toLowerCase(), parent.protocol);
-      try {
-        const wildcardHost = /^(?:[a-z][a-z\d+.-]*:\/\/)?\*\./i.test(source);
-        const wildcardPort = /:\*(?:\/|$)/.test(source);
-        const port = /:(\d+)(?:\/|$)/.exec(source)?.[1];
-        const candidate = source.replace(/(^|\/\/)\*\./, "$1").replace(/:\*(?=\/|$)/, "");
-        const target = new URL(candidate.includes("://") ? candidate : url.protocol + "//" + candidate);
-        if (target.username || target.password || target.search || target.hash) return false;
-        if (!schemeMatches(target.protocol, parent.protocol)) return false;
-        if (isIP(target.hostname.replace(/^\[|\]$/g, ""))) return false;
-        if (target.hostname !== "*" && (wildcardHost ? !parent.hostname.endsWith("." + target.hostname) : parent.hostname !== target.hostname)) return false;
-        const parentPort = parent.port || "443";
-        if (!wildcardPort && (port ? Number(port) !== Number(parentPort) : parent.port !== "")) return false;
-        return target.pathname === "/";
-      } catch { return false; }
-    }
-    if (directives.length) {
-      if (directives.some(parts => ancestors.some(ancestor => !parts.slice(1).some(source => matches(source, ancestor))))) throw new Error("Report preview blocks embedding in its public share");
-      return;
-    }
-    const options = (headers.get("x-frame-options") ?? "").toLowerCase().split(",").map(value => value.trim());
-    if (options.includes("deny") || options.includes("sameorigin") && ancestors.some(ancestor => ancestor !== url.origin)) throw new Error("Report preview blocks embedding in its public share");
-  }
-  async function embedded(document, base, depth, serviceOrigin = new URL(base).origin, rendering = { origin: serviceOrigin, ancestors: [] }) {
+  async function embedded(document, base, depth, serviceOrigin = new URL(base).origin) {
     if (depth > 5) throw new Error("Report contains too many nested previews");
     if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
     if (document.charset && !/^(?:utf-?8|us-ascii)$/i.test(document.charset)) throw new Error("Reports must use UTF-8 encoding");
     const origin = serviceOrigin;
     const documentBase = document.baseHref === null ? base : new URL(document.baseHref, base);
-    const ancestors = [...rendering.ancestors, rendering.origin];
     for (const frame of document.frames) {
       if (frame.srcdoc !== undefined) {
-        await embedded(await bounded(reportDocument(frame.srcdoc)), documentBase, depth + 1, origin, { origin: rendering.origin, ancestors });
+        await embedded(await bounded(reportDocument(frame.srcdoc)), documentBase, depth + 1, origin);
         continue;
       }
       const url = new URL(frame.src, documentBase);
       const firstParty = url.origin === origin;
-      if (firstParty && /\/api\/preview\//.test(url.pathname)) await preview(url.href, depth + 1, ancestors);
-      else if (firstParty && /\/(?:s|v)\/[A-Za-z0-9_-]+\/?$/.test(url.pathname)) await share(url.href, depth + 1, ancestors);
-      else if (frame.required) await resource(url.href, origin, depth + 1, { direct: true, ancestors });
+      if (firstParty && /\/api\/preview\//.test(decodeURIComponent(url.pathname))) await preview(url.href, depth + 1);
+      else if (firstParty && /\/(?:s|v)\/[A-Za-z0-9_-]+\/?$/.test(decodeURIComponent(url.pathname))) await share(url.href, depth + 1);
+      else if (frame.required) await resource(url.href, origin, depth + 1, true);
     }
   }
-  async function resource(url, serviceOrigin, depth, rendering) {
+  async function resource(url, serviceOrigin, depth, direct = false) {
     await visit("entry", url, depth, async () => {
       // Yours serves the owner's uploaded file directly after the public manifest.
       // This gate checks anonymous delivery, not the report's prose, examples or forms.
       const response = await retrieve(url, "entry");
-      if (rendering.direct) {
-        embeddingAllowed(response.headers, response.url, rendering.ancestors);
-        rendering = { origin: response.url.origin, ancestors: rendering.ancestors };
-      }
+      entries.add(response.url.href);
+      if (direct) frames.add(response.url.href);
       if (!/text\/html/i.test(response.type)) throw new Error("Expected an HTML report entry");
       if (/text\/html/i.test(response.type)) {
         const html = new TextDecoder("utf-8", { fatal: true }).decode(response.bytes);
         const document = await bounded(reportDocument(html));
         if (document.charset && !/^(?:utf-?8|us-ascii)$/i.test(document.charset)) throw new Error("Reports must use UTF-8 encoding");
         if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
-        await embedded(document, response.url, depth, serviceOrigin, rendering);
+        await embedded(document, response.url, depth, serviceOrigin);
       }
-    }, JSON.stringify([serviceOrigin, rendering]));
+    }, serviceOrigin);
   }
-  async function preview(url, depth, ancestors) {
+  async function preview(url, depth) {
     await visit("preview", url, depth, async () => {
       const page = await retrieve(url);
-      embeddingAllowed(page.headers, page.url, ancestors);
+      frames.add(url);
       const config = page.deliveryConfig;
       if (!config || typeof config.file !== "string" || !config.file) throw new Error("Anonymous preview did not expose its report delivery manifest");
       const manifestUrl = new URL(config.manifestUrl, page.url);
@@ -251,15 +222,14 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
         manifestUrl.searchParams.set("cursor", String(manifest.nextCursor));
       }
       if (!entry?.url) throw new Error("Report entry is missing from the anonymous delivery manifest");
-      const rendering = { origin: page.url.origin, ancestors };
-      await resource(entry.url, page.url.origin, depth, rendering);
-      await embedded(page, page.url, depth, page.url.origin, rendering);
-    }, JSON.stringify(ancestors));
+      await resource(entry.url, page.url.origin, depth);
+      await embedded(page, page.url, depth);
+    });
   }
-  async function share(url, depth, ancestors = []) {
+  async function share(url, depth) {
     await visit("share", url, depth, async () => {
       const page = await retrieve(url);
-      embeddingAllowed(page.headers, page.url, ancestors);
+      if (depth > 0) frames.add(url);
       const match = /^(.*)\/(s|v)\/([A-Za-z0-9_-]+)\/?$/.exec(page.url.pathname);
       if (!match) throw new Error("Use the report service's public share URL");
       const base = page.baseHref === null ? page.url : new URL(page.baseHref, page.url);
@@ -270,12 +240,13 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
         return target.origin === page.url.origin && (match[2] === "v" ? target.pathname.startsWith(prefix) : target.pathname.startsWith(prefix + match[3] + "/") || target.pathname === prefix + match[3]) ? [target] : [];
       });
       if (!previews.length) throw new Error("Public share has no report-service preview");
-      for (const target of previews) await preview(target.href, depth, [...ancestors, page.url.origin]);
+      for (const target of previews) await preview(target.href, depth);
       const otherFrames = page.frames.filter(frame => frame.srcdoc !== undefined || !previews.some(target => target.href === new URL(frame.src, base).href));
-      await embedded({ ...page, frames: otherFrames }, page.url, depth, page.url.origin, { origin: page.url.origin, ancestors });
-    }, JSON.stringify(ancestors));
+      await embedded({ ...page, frames: otherFrames }, page.url, depth);
+    });
   }
   await share(address, 0);
+  return { frames: [...frames], entries: [...entries] };
 }
 
 async function main() {
@@ -286,13 +257,20 @@ async function main() {
   const links = reportLinks(catalog, files.map(item => item.report), metadata);
   const failures = [];
   let next = 0;
-  await Promise.all(Array.from({ length: Math.min(4, links.length) }, async () => {
-    while (next < links.length) {
-      const link = links[next++];
-      try { await checkReportAccess(link); console.log(`Anonymous report access OK: ${link}`); }
-      catch (error) { failures.push(`${link}: ${error.message}`); }
-    }
-  }));
+  const { launchReportBrowser, verifyReportNavigation } = await import("./report-browser.mjs");
+  const browser = await launchReportBrowser();
+  try {
+    await Promise.all(Array.from({ length: Math.min(3, links.length) }, async () => {
+      while (next < links.length) {
+        const link = links[next++];
+        try {
+          const delivery = await checkReportAccess(link);
+          await verifyReportNavigation(browser, link, delivery);
+          console.log(`Anonymous report access OK: ${link}`);
+        } catch (error) { failures.push(`${link}: ${error.message}`); }
+      }
+    }));
+  } finally { await browser.close(); }
   if (failures.length) throw new Error(failures.join("\n"));
 }
 

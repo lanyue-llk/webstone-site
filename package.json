@@ -12,10 +12,12 @@
     "dev": "npm run prepare:data && npm run dev --workspace web",
     "build": "npm run prepare:data && npm run build --workspace web",
     "test": "node --experimental-strip-types --test web/lib/results.test.ts tests/data.test.mjs tests/submissions.test.mjs tests/charts.test.mjs tests/report-access.test.mjs",
-    "check:reports": "node scripts/check-report-access.mjs"
+    "check:reports": "node scripts/check-report-access.mjs",
+    "test:report-navigation": "node --test tests/report-navigation.test.mjs"
   },
   "devDependencies": {
     "happy-dom": "21.0.4",
-    "parse5": "8.1.1"
+    "parse5": "8.1.1",
+    "playwright": "1.65.1"
   }
 }
