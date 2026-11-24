@@ -40,23 +40,31 @@ export function anonymousRequest(address, options, transport = httpsRequest) {
       const decoders = { gzip: createGunzip, br: createBrotliDecompress, deflate: createInflate };
       if (encoding !== "identity" && !Object.hasOwn(decoders, encoding)) {
         reject(new Error("Unsupported report content encoding"));
-        req.destroy();
+        response.destroy(); req.destroy();
         return;
       }
       const decoded = encoding === "identity" ? response : response.pipe(decoders[encoding]());
+      let failed = false;
+      function fail(error) {
+        if (failed) return;
+        failed = true; reject(error);
+        response.destroy(error);
+        if (decoded !== response) decoded.destroy(error);
+        req.destroy(error);
+      }
       response.on("data", chunk => {
         wireSize += chunk.length;
-        if (wireSize > 20 * 1024 * 1024) req.destroy(new Error("Report exceeds the 20 MiB check limit"));
+        if (wireSize > 20 * 1024 * 1024) fail(new Error("Report exceeds the 20 MiB check limit"));
       });
       decoded.on("data", chunk => {
         size += chunk.length;
         if (size > 20 * 1024 * 1024) {
           const error = new Error("Decoded report exceeds the 20 MiB check limit");
-          reject(error); req.destroy(error); if (decoded !== response) decoded.destroy(error);
+          fail(error);
         } else chunks.push(chunk);
       });
-      response.on("error", reject);
-      decoded.on("error", reject);
+      response.on("error", fail);
+      decoded.on("error", fail);
       decoded.on("end", () => {
         try {
           const body = [204, 205, 304].includes(response.statusCode) ? null : Buffer.concat(chunks);

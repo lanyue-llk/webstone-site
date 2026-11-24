@@ -44,9 +44,9 @@ test("both language destinations are checked, withdrawn result links are exclude
 
 test("a title or sign-in wrapper cannot stand in for a public report preview", async () => {
   for (const content of ["<h1>Sign in</h1>", body, '<main><p>Please <a href="/login">sign in</a> to view this report.</p></main>']) {
-    await assert.rejects(check(publication({ [share]: () => html(content) })), /no report-service preview/);
+    await assert.rejects(check(publication({ [share]: () => html(content) })), /no report-service preview|authentication/);
   }
-  await assert.rejects(check(publication({ [preview]: () => html("<h1>Sign in</h1>") })), /delivery manifest/);
+  await assert.rejects(check(publication({ [preview]: () => html("<h1>Sign in</h1>") })), /delivery manifest|authentication/);
 });
 
 test("permission failures at every publication boundary block release", async () => {
@@ -68,7 +68,7 @@ test("a language-only entry follows its required report-service preview", async 
     "https://reports.example.org/english-manifest?file=en%2Findex.html": () => Response.json({ files: [{ path: "en/index.html", url: "https://cdn.example.org/english.html" }], nextCursor: null }),
     "https://cdn.example.org/english.html": () => html(body),
   }, '<iframe src="' + nested + '"></iframe>'));
-  await assert.rejects(check(publication({ [nested]: () => html("<h1>Sign in</h1>") }, '<iframe src="' + nested + '"></iframe>')), /delivery manifest/);
+  await assert.rejects(check(publication({ [nested]: () => html("<h1>Sign in</h1>") }, '<iframe src="' + nested + '"></iframe>')), /delivery manifest|authentication/);
 });
 
 test("delivery metadata and explicitly required embedded reports are both verified", async () => {
@@ -183,7 +183,7 @@ test("preview DNS is independently checked even on the share origin", async () =
   let lookups=0;const visited=[];const request=publication();
   await assert.rejects(checkReportAccess(share,{resolve:async()=>++lookups===1?[{address:"93.184.216.34"}]:[{address:"93.184.216.34"},{address:"10.0.0.1"}],request:async(url,options)=>{visited.push(url);return request(url,options);}}),/private or reserved/);
   assert.deepEqual(visited,[share]);
-  await assert.rejects(check(publication({[share]:()=>html('<iframe src="https://other.example.org/artifact-site/api/preview/abc/"></iframe>')})),/no report-service preview/);
+  await assert.rejects(check(publication({[share]:()=>html('<iframe src="https://other.example.org/artifact-site/api/preview/abc/"></iframe>')})),/no report-service preview|authentication/);
 });
 
 test("quoted UTF-8 HTML declarations are valid", async () => {
@@ -222,4 +222,29 @@ test("HTTPS cancellation bounds stalled headers and bodies and closes transport 
       if(response)assert.equal(response.destroyed,true);
     } finally {clearTimeout(guard);}
   }
+});
+
+
+test("HTML previews inside SVG integration points retain their access checks", async () => {
+  const denied="https://reports.example.org/private";
+  for(const ancestor of ["template","noscript","iframe","script","style"]) {
+    const content=body+'<svg><'+ancestor+'><foreignObject><iframe data-report-preview src="'+denied+'"></iframe></foreignObject></'+ancestor+'></svg>';
+    await assert.rejects(check(publication({[denied]:()=>new Response("Forbidden",{status:403})},content)),/403/);
+  }
+});
+
+
+test("delivered permission pages cannot stand in for a report", async () => {
+  for(const text of ["Sign in","Log in","Access denied","Unauthorized","Forbidden"]) await assert.rejects(check(publication({},"<h1>"+text+"</h1>")), /authentication|denies access/);
+  await check(publication({},'<header>Sign in</header>'+body));
+});
+
+test("decoder failure closes a corrupt response before a server ends its stream", {timeout:1000}, async () => {
+  let req,response;
+  const transport=(_url,_options,callback)=>{
+    req=new EventEmitter();req.destroyed=false;req.destroy=error=>{req.destroyed=true;if(error)req.emit("error",error);};
+    req.end=()=>{response=new Readable({read(){}});response.headers={"content-encoding":"gzip"};response.statusCode=200;callback(response);response.push(Buffer.from("invalid compressed bytes"));};return req;
+  };
+  await assert.rejects(anonymousRequest(entry,{},transport), error=>error.code==="Z_DATA_ERROR");
+  assert.equal(req.destroyed,true);assert.equal(response.destroyed,true);
 });
