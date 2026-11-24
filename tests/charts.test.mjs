@@ -407,3 +407,13 @@ test("repeated denied clipboard attempts focus and select the manual prompt each
     if(prior[3])Object.defineProperty(globalThis,'navigator',prior[3]);else delete globalThis.navigator;
   }
 });
+
+
+test("release verification rejects relaxed or stale script policies", async () => {
+  const {inlineScriptHashes,assertScriptPolicy}=await import('../scripts/secure-export.mjs');
+  const html='<script>window.ready=true</script>';
+  const expected="script-src 'self' "+inlineScriptHashes(html).join(" ")+"; frame-ancestors 'none'";
+  assert.doesNotThrow(()=>assertScriptPolicy(expected,expected,html));
+  for(const policy of [expected.replace(";", " https://untrusted.example;"),expected+"; script-src-elem * 'unsafe-inline'",expected+"; script-src-attr 'unsafe-inline'",expected.replace(inlineScriptHashes(html)[0],inlineScriptHashes('<script>other()</script>')[0]),expected+"; script-src *"])
+    assert.throws(()=>assertScriptPolicy(policy,expected,html));
+});
