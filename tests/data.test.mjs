@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, writeFile, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { prepareData, discoverResults, parseReportFile, validateSnapshot, validateCatalog } from "../scripts/prepare-data.mjs";
+import { releaseFingerprint, prepareData, discoverResults, parseReportFile, validateSnapshot, validateCatalog } from "../scripts/prepare-data.mjs";
 
 const catalog = JSON.parse(readFileSync(new URL("../benchmarks/catalog.json", import.meta.url), "utf8"));
 const files = await discoverResults(fileURLToPath(new URL("../results/", import.meta.url)), catalog);
@@ -415,4 +415,23 @@ test("navigation groups reject orphaned or duplicate placements and premature pu
   const premature = structuredClone(catalog);
   premature.navigationGroups[0].upcoming[0].id = premature.tracks[0].id;
   assert.throws(() => validateCatalog(premature), /separate from published tracks/);
+});
+
+
+test("static brand changes update the release while generated delivery files do not", async () => {
+  const folder = await mkdtemp(path.join(tmpdir(), "webstone-assets-"));
+  try {
+    for (const file of ["web/app/page.tsx", "web/components/card.tsx", "web/lib/labels.ts", "web/public/brand/webstone.png", "benchmarks/catalog.json", "reports/metadata.json", "web/next.config.ts", "web/package.json", "package-lock.json"]) {
+      await mkdir(path.dirname(path.join(folder, file)), { recursive: true });
+      await writeFile(path.join(folder, file), "initial content");
+    }
+    const first = await releaseFingerprint([], folder);
+    await writeFile(path.join(folder, "web/public/brand/webstone.png"), "updated brand image");
+    const second = await releaseFingerprint([], folder);
+    assert.notEqual(second, first);
+    await mkdir(path.join(folder, "web/public/results"), { recursive: true });
+    await writeFile(path.join(folder, "web/public/results/reports.json"), "generated data");
+    await writeFile(path.join(folder, "web/public/release.json"), "generated release");
+    assert.equal(await releaseFingerprint([], folder), second);
+  } finally { await rm(folder, { recursive: true, force: true }); }
 });
