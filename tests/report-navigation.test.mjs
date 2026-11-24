@@ -1,4 +1,4 @@
-import test, { before, after } from "node:test";
+import test, { before, after, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import {
   launchReportBrowser,
@@ -15,10 +15,27 @@ import { execFileSync } from "node:child_process";
 import { X509Certificate, createHash } from "node:crypto";
 let browser, server, directory, respond;
 const streams = new Set();
+const credentialViolations = [],
+  connectorAttempts = [],
+  pinnedAddresses = [];
+let streamBytes = 0;
+beforeEach(() => {
+  credentialViolations.length = 0;
+  connectorAttempts.length = 0;
+  pinnedAddresses.length = 0;
+  streamBytes = 0;
+});
+afterEach(() => {
+  assert.deepEqual(credentialViolations, []);
+  assert.ok(pinnedAddresses.every((address) => address === "93.184.216.34"));
+});
 const proxyOptions = {
   resolve: async () => [{ address: "93.184.216.34" }],
   connect: (options) => {
-    assert.notEqual(options.host, "127.0.0.1");
+    connectorAttempts.push(options.host);
+    options.lookup(options.host, { all: true }, (_error, records) =>
+      pinnedAddresses.push(...records.map((record) => record.address)),
+    );
     return connect({ host: "127.0.0.1", port: server.address().port });
   },
 };
@@ -57,18 +74,20 @@ before(async () => {
     .digest("base64");
   server = https.createServer({ key, cert }, async (request, response) => {
     try {
-      assert.equal(request.headers.authorization, undefined);
-      assert.equal(request.headers.cookie, undefined);
+      if (request.headers.authorization || request.headers.cookie)
+        credentialViolations.push(
+          "Credentials reached the public report server",
+        );
       if (request.url.startsWith("/large?")) {
         response.writeHead(200, {
           "content-type": "text/plain",
           "access-control-allow-origin": "*",
         });
         streams.add(response);
-        const timer = setInterval(
-          () => response.write(Buffer.alloc(16384, 65)),
-          5,
-        );
+        const timer = setInterval(() => {
+          streamBytes += 16384;
+          response.write(Buffer.alloc(16384, 65));
+        }, 5);
         response.once("close", () => {
           clearInterval(timer);
           streams.delete(response);
@@ -283,10 +302,12 @@ test("the browser checks the full ancestor chain across a CDN iframe", async () 
 });
 
 test("document redirects preserve their final URL and relative iframe base", async () => {
+  const original = "https://reports.example.org/original/page.html";
   const final = "https://reports.example.org/final/index.html";
   const child = "https://reports.example.org/final/child.html";
   respond = fixture({
-    [preview]: () =>
+    [entry]: () => html(`<iframe src="${original}"></iframe>`),
+    [original]: () =>
       new Response(null, { status: 302, headers: { location: final } }),
     [final]: () => html(`<iframe src="child.html"></iframe>`),
     [child]: () => html("<main>Report</main>"),
@@ -294,7 +315,7 @@ test("document redirects preserve their final URL and relative iframe base", asy
   await verifyReportNavigation(
     browser,
     share,
-    { frames: [preview, child], entries: [child] },
+    { frames: [preview, original, child], entries: [entry, final, child] },
     { proxyOptions, timeoutMs: 3000 },
   );
 });
@@ -360,6 +381,7 @@ test("a redirect to a private destination never bypasses the public proxy", asyn
     }),
     /Anonymous browser/,
   );
+  assert.ok(!connectorAttempts.includes("127.0.0.1"));
 });
 
 test("a loader that downloads but never renders the entry is inaccessible", async () => {
@@ -416,11 +438,12 @@ test("concurrent unbounded downloads are cut off by the streaming wire budget", 
         proxyOptions: { ...proxyOptions, maxBytes: 256 * 1024 },
       },
     ),
-    /Anonymous browser/,
+    (error) => error.cause?.code === "E_REPORT_DOWNLOAD_LIMIT",
   );
   for (let i = 0; streams.size && i < 100; i++)
     await new Promise((resolve) => setTimeout(resolve, 10));
   assert.equal(streams.size, 0);
+  assert.ok(streamBytes > 0 && streamBytes < 256 * 1024 + 1024 * 1024);
 });
 
 test("a rendered report may update its address without losing its loaded document", async () => {
@@ -430,4 +453,109 @@ test("a rendered report may update its address without losing its loaded documen
         `<script>history.replaceState(null,'','?lang=en')</script><main>Report</main>`,
       ),
   });
+});
+
+test("removing loader markers without writing the entry is still a delivery failure", async () => {
+  await assert.rejects(
+    check({
+      [preview]: () =>
+        html(
+          loader.replace(
+            "document.open();document.write(html);document.close();",
+            "document.getElementById('artifact-delivery-config').remove();throw new Error('Delivery failed');",
+          ),
+        ),
+    }),
+    /Anonymous browser/,
+  );
+});
+
+test(
+  "a renderer-blocking report is stopped at the navigation deadline",
+  { timeout: 6000 },
+  async () => {
+    const started = Date.now();
+    await assert.rejects(
+      check(
+        { [entry]: () => html(`<script>while(true){}</script>`) },
+        { timeoutMs: 1000 },
+      ),
+      /Anonymous browser/,
+    );
+    assert.ok(Date.now() - started < 4000);
+    await check();
+  },
+);
+
+test("a separate signed-in browser context cannot supply report credentials", async () => {
+  const owner = await browser.newContext({
+    extraHTTPHeaders: { Authorization: "Bearer test-only" },
+  });
+  await owner.addCookies([
+    {
+      name: "private-session",
+      value: "test-only",
+      domain: "reports.example.org",
+      path: "/",
+      secure: true,
+    },
+  ]);
+  try {
+    await check();
+    assert.deepEqual(credentialViolations, []);
+  } finally {
+    await owner.close();
+  }
+});
+
+test("a redirect chain ending at sign-in cannot count as report delivery", async () => {
+  await assert.rejects(
+    check({
+      [entry]: () =>
+        new Response(null, {
+          status: 302,
+          headers: { location: "https://cdn.example.org/login" },
+        }),
+      ["https://cdn.example.org/login"]: () => html("<main>Sign in</main>"),
+    }),
+    /Anonymous browser/,
+  );
+});
+
+test("a required iframe error document cannot be replaced by an unrelated successful fetch", async () => {
+  const child = "https://reports.example.org/required.html";
+  respond = fixture({
+    [entry]: () => html(`<iframe src="${child}"></iframe>`),
+    [child]: () =>
+      new Response("Missing", {
+        status: 404,
+        headers: { "content-type": "text/html" },
+      }),
+  });
+  await assert.rejects(
+    verifyReportNavigation(
+      browser,
+      share,
+      { frames: [preview, child], entries: [entry] },
+      { proxyOptions, timeoutMs: 1500 },
+    ),
+    /Anonymous browser/,
+  );
+});
+
+test("a successfully loaded required iframe that becomes blank loses its document evidence", async () => {
+  const child = "https://reports.example.org/required.html";
+  respond = fixture({
+    [entry]: () => html(`<iframe src="${child}"></iframe>`),
+    [child]: () => html(`<script>location.replace('about:blank')</script>`),
+  });
+  await assert.rejects(
+    verifyReportNavigation(
+      browser,
+      share,
+      { frames: [preview, child], entries: [entry] },
+      { proxyOptions, timeoutMs: 1500 },
+    ),
+    /Anonymous browser/,
+  );
 });

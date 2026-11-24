@@ -99,7 +99,7 @@ const chinese: Record<string, string> = {
   "Evaluation notes": "评测说明",
   "Version report": "版本评测报告",
   "Benchmarks": "评测基准",
-  "Version": "结果版本",
+  "Version": "版本",
   "Loading…": "正在加载…",
   "Retry": "重试",
   "Unable to load results. Please try again.": "加载结果失败，请重试。",
