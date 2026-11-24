@@ -32,17 +32,20 @@ export function reportDocument(html) {
       const rawPlain = parts.map(part => part.plain).join("").slice(0, 512);
       const all = normalize(rawAll), plain = normalize(rawPlain);
       const block = ["body", "main", "article", "section", "div", "p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "td", "th", "form", "dialog", "header", "footer", "aside"].includes(node.tagName);
-      summaries.set(node, { all: block ? "\n" + rawAll + "\n" : rawAll, plain: parentNavigation ? "" : block ? "\n" + rawPlain + "\n" : rawPlain });
+      const summaryAll = block ? "\n" + rawAll + "\n" : rawAll;
+      const summaryPlain = block ? "\n" + rawPlain + "\n" : rawPlain;
+      summaries.set(node, { all: summaryAll, plain: parentNavigation ? "" : summaryPlain });
       if (!parentHead && (attributes(node).role === "alert" || ["body", "main", "article", "section", "div", "p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "td", "th", "label", "form", "dialog", "a", "button", "summary"].includes(node.tagName))) {
         if (!parentNavigation && plain) blocks.push(plain);
         if (parentNavigation && (attributes(node).role === "alert" || /^h[1-6]$/.test(node.tagName))) blocks.push(all);
-        if (parentNavigation && /^(?:please )?(?:sign in|log in|login).*(?:to (?:view|access|continue)|required)/i.test(all)) blocks.push(all);
+        if (parentNavigation && (!/\b(?:account|profile|settings|dashboard)\b/i.test(all) || /\b(?:report|work|content|document|results)\b/i.test(all)) && /^(?:please )?(?:sign in|log in|login).*(?:to (?:view|access|continue)|required)/i.test(all)) blocks.push(all);
       }
       for (const child of node.childNodes ?? []) summaries.delete(child);
       continue;
     }
     if (++nodes > 100000 || depth > 256) throw new Error("Report document exceeds the HTML complexity limit");
     if (hidden(node)) continue;
+    if (node.tagName === "br") { summaries.set(node, { all: "\n", plain: parentNavigation ? "" : "\n" }); continue; }
     const attrs = attributes(node);
     if (node.tagName === "meta" && attrs["http-equiv"]?.toLowerCase() === "refresh") refresh = true;
     if (node.tagName === "base" && baseHref === null && attrs.href !== undefined) baseHref = attrs.href;
@@ -53,6 +56,7 @@ export function reportDocument(html) {
     }
     const inHead = parentHead || node.tagName === "head";
     const inNavigation = parentNavigation || ["nav", "a", "button", "summary", "footer", "header", "aside"].includes(node.tagName);
+    if (!inHead && node.tagName === "iframe" && (attrs.src || attrs.srcdoc !== undefined)) frames.push({ src: attrs.src, srcdoc: attrs.srcdoc });
     const inContent = parentContent || ["main", "article"].includes(node.tagName);
     if (inContent) hasPrimary = true;
     if (!inHead && !inNavigation) {
@@ -62,7 +66,6 @@ export function reportDocument(html) {
         if (inContent) primaryText.push(value);
 
       }
-      if (node.tagName === "iframe" && (attrs.src || attrs.srcdoc !== undefined)) frames.push({ src: attrs.src, srcdoc: attrs.srcdoc });
       if (node.tagName === "input" && attrs.type?.toLowerCase() === "password") password = true;
     }
     if (node.nodeName === "#text") summaries.set(node, { all: node.value.slice(0, 512), plain: inNavigation || inHead ? "" : node.value.slice(0, 512) });

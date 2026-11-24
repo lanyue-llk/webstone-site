@@ -309,3 +309,16 @@ test("page chrome cannot turn a main loading shell into a readable report", asyn
 test("PDFs are not approved without a dedicated password-free page validation", async () => {
   for(const body of ['%PDF-1.7 truncated','%PDF-1.7 /Encrypt 1 0 R']) await assert.rejects(check(async()=>new Response(body,{headers:{'content-type':'application/pdf'}})), /PDF reports require/);
 });
+
+
+test("rendered line breaks preserve access messages", async () => {
+  await assert.rejects(check(async()=>html('<h1>Access<br>denied</h1><p>Contact the owner.</p>')), /access-denied/);
+});
+
+test("optional account navigation stays separate from report access", async () => {
+  await check(async()=>html('<main>Measured results</main><nav><a href="/login">Sign in to view your account</a></nav>'));
+});
+
+test("visible iframes in page chrome still require anonymous access", async () => {
+  await assert.rejects(check(async url=>url===address ? html('<h1>Report preview</h1><aside><iframe src="/private"></iframe></aside>') : new Response('Forbidden',{status:403})), /403/);
+});
