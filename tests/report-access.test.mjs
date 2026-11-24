@@ -151,3 +151,14 @@ test("inert HTML, comments and hidden text do not expose readable reports or liv
 test("a non-heading login gate fails regardless of lengthy navigation", async () => {
   await assert.rejects(check(async()=>html('<p>You are not signed in.</p><nav>'+('Navigation '.repeat(600))+'</nav>')),/access-denied/);
 });
+
+
+test("standalone access-denied messages in generic containers fail beside navigation", async () => {
+  for (const tag of ['div','span']) await assert.rejects(check(async()=>html('<nav>Home</nav><'+tag+' role="alert">You are not signed in.</'+tag+'>')),/access-denied/);
+});
+
+test("embedded report destinations use the document base URL", async () => {
+  const visited=[];
+  await check(async target=>{visited.push(target);return target===address?html('<base href="https://cdn.example.org/reports/"><h1>Report preview</h1><iframe src="report.html"></iframe>'):html('<h1>Measured results</h1>')});
+  assert.deepEqual(visited,[address,'https://cdn.example.org/reports/report.html']);
+});

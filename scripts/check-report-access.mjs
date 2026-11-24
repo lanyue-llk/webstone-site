@@ -49,6 +49,7 @@ export function reportDocument(html) {
   const frames = [];
   const blocks = [];
   let deliveryConfig = null;
+  let baseHref = null;
   let password = false;
   let deniedMeta = false;
   const attributes = node => Object.fromEntries((node.attrs ?? []).map(({ name, value }) => [name, value]));
@@ -66,6 +67,7 @@ export function reportDocument(html) {
   function visit(node, inHead = false) {
     if (hidden(node)) return;
     const attrs = attributes(node);
+    if (node.tagName === "base" && baseHref === null && attrs.href !== undefined) baseHref = attrs.href;
     if (node.tagName === "meta" && /sign in to view this work/i.test(attrs.content ?? "")) deniedMeta = true;
     if (node.tagName === "script") {
       if (attrs.id === "artifact-delivery-config") deliveryConfig = JSON.parse((node.childNodes ?? []).map(node => node.value ?? "").join(""));
@@ -76,14 +78,14 @@ export function reportDocument(html) {
       if (node.nodeName === "#text") text.push(node.value);
       if (node.tagName === "iframe" && attrs.src) frames.push(attrs.src);
       if (node.tagName === "input" && attrs.type?.toLowerCase() === "password") password = true;
-      if (["h1", "h2", "h3", "p"].includes(node.tagName)) blocks.push(content(node).replace(/\s+/g, " ").trim());
+      if (node.tagName) blocks.push(content(node).replace(/\s+/g, " ").trim());
     }
     for (const child of node.childNodes ?? []) visit(child, inHead);
   }
   visit(document);
   const visible = text.join(" ").replace(/\s+/g, " ").trim();
   const gate = /^(?:access denied|forbidden|authentication required|you are not signed in[.!]?|sign in(?: to (?:view|continue|access)[^.]*)?[.!]?|sign in, then try opening[^.]*[.!]?|需要登录[。！]?|请先登录[。！]?|无权访问[。！]?|登录后.{0,8}(?:查看|访问)[。！]?)$/i;
-  return { readable: Boolean(visible), frames, deliveryConfig, denied: password || deniedMeta || blocks.some(block => gate.test(block)) || gate.test(visible) };
+  return { readable: Boolean(visible), frames, deliveryConfig, baseHref, denied: password || deniedMeta || blocks.some(block => gate.test(block)) || gate.test(visible) };
 }
 
 export async function checkReportAccess(address, { request = anonymousRequest, resolve = lookup } = {}) {
@@ -143,7 +145,7 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
     }
     const sources = page.frames;
     if (!sources.length && (/\/artifact-site\/(s|v)\//.test(page.url.pathname) || !page.readable)) throw new Error("Hosted report has no readable preview");
-    for (const source of sources) await validatePage(await retrieve(new URL(source.replaceAll("&amp;", "&"), page.url).href), depth + 1);
+    for (const source of sources) await validatePage(await retrieve(new URL(source, page.baseHref === null ? page.url : new URL(page.baseHref, page.url)).href), depth + 1);
   }
   await validatePage(await retrieve(address));
 }
