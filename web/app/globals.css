@@ -592,4 +592,5 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
 }
 .article-tags { align-content: start; }
 
-.brand > img { display: block; width: 100%; max-width: 195px; height: auto; border-radius: 7px; }
+.brand-mark { position: relative; display: block; flex: 0 0 44px; width: 44px; height: 35px; overflow: hidden; border-radius: 5px; }
+.brand-mark img { position: absolute; display: block; width: 106px; max-width: none; height: auto; left: -31px; top: 0; }
