@@ -4,6 +4,16 @@ export type Language = "en" | "zh";
 export const LANGUAGE_KEY = "webstone-language";
 
 const chinese: Record<string, string> = {
+  "Web Search: result lists, source excerpts and generated answers": "Web Search：搜索列表、补充原文与生成答案",
+  "Moli leads Web Fetch with an 89.8% pass rate": "Moli 以 89.8% 通过率拿下 Web Fetch 第一",
+  "Lexmount Web Search: retrieval quality, speed and cost": "Lexmount Web Search 发布：兼顾检索质量、速度与成本",
+  "Moli 1.1.4 / 1.1.8 / 1.1.9: success and resource use": "Moli 1.1.4 / 1.1.8 / 1.1.9 成功率与资源对比",
+  "WebArena-Verified: full trajectory replay with Moli": "WebArena-Verified 全量轨迹重放 · Moli",
+  "Web Extract: accuracy, speed and cost across 12 methods": "Web Extract 横评：12 个方案的准确度、速度与成本",
+  "Publication date not listed": "原文未标注发布日期",
+  "Track": "评测方向",
+  "Read article": "阅读文章",
+  "benchmarks": "个评测基准",
   "First published in the repository": "首次公开",
   "More metrics": "更多指标",
   "Category breakdown": "分类结果",
@@ -34,7 +44,7 @@ const chinese: Record<string, string> = {
   "Browser task success and timing across 812 recorded trajectories.": "在 812 条操作轨迹上测量浏览器的任务成功率和耗时。",
   "Structured extraction from web pages": "从网页提取结构化字段",
   "Compare extraction methods on SWDE pages and Zyte product pages.": "在 SWDE 网页和 Zyte 商品页上比较字段提取方案。",
-  "Benchmarks for the tools agents use on the web.": "评测智能体使用的网页工具。",
+  "The touchstone for your agent's web tools.": "检验 Agent Web 工具的试金石。",
   "Explore leaderboards": "查看排行榜",
   "Local tracks": "站内评测方向",
   "Result editions": "结果版本",

@@ -535,3 +535,24 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
   .radar-legend label { max-width: 100%; }
   .radar-figure svg { min-width: 420px; }
 }
+
+/* Editorial cards keep their reading width even when only one article matches. */
+.article-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); align-items: stretch; gap: 18px; }
+.article-card { padding: 22px; gap: 12px; border-color: #cbd9d0; box-shadow: 0 2px 6px #153c2710; }
+.article-topic { display: flex; align-items: center; gap: 8px; color: var(--track-ink); font-size: 13px; font-weight: 650; }
+.article-card h3 { font-size: 19px; line-height: 1.45; }
+.article-card h3 a { text-decoration: underline; text-decoration-color: #c4d5c9; text-underline-offset: 4px; }
+.article-card p { margin: 0; line-height: 1.65; }
+.article-date { font-size: 12px; color: #68776e; }
+.article-related { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; border-top: 1px solid #e2eae4; padding-top: 12px; font-size: 12px; }
+.article-related > span, .article-related-label { color: #627368; font-size: 12px; }
+.article-related a, .article-tags a { border: 1px solid #cbdad0; background: #f3f8f4; color: #23583f; border-radius: 6px; padding: 5px 8px; display: inline-flex; align-items: center; gap: 5px; min-height: 30px; }
+.article-tags { margin-top: 0; align-items: center; }
+.article-related-label { flex-basis: 100%; }
+.article-read { display: inline-flex; align-items: center; justify-content: center; gap: 7px; margin-top: auto; padding: 9px 12px; min-height: 38px; border: 1px solid #b6cbbd; border-radius: 7px; color: #23583f; background: #ecf4ee; font-size: 13px; font-weight: 600; }
+.article-read:hover, .article-related a:hover, .article-tags a:hover { background: #dcece0; border-color: #658e73; }
+.column-views button { border: 1px solid #b9ccbe; color: #365b43; background: #fff; padding: 7px 11px; min-height: 34px; font-size: 12px; }
+.column-views button:hover { background: #eaf3ed; border-color: #6c9279; }
+.column-views button[aria-pressed=true] { background: #285c42; border-color: #285c42; color: white; }
+.track-card li a { display: flex; padding: 6px 8px; border: 1px solid #d4e1d8; border-radius: 5px; color: #24563c; background: #f7faf7; }
+.track-card li a:hover { background: #e5efe7; }

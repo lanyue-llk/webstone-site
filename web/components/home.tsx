@@ -16,13 +16,16 @@ export function EvaluationArticles({ catalog, snapshots, t, current }: Props & {
     <div className="article-grid">{articles.map(article => {
       const Icon = TRACK_ICONS[article.track.id] ?? BookOpenText;
       return <article key={article.source} className="article-card" data-track={article.track.id}>
-        <div className="article-meta"><Icon size={18} aria-hidden="true" /><time dateTime={article.date}>{t("Results first published")} · {article.date}</time></div>
+        <div className="article-topic"><Icon size={18} aria-hidden="true" /><span>{t(article.track.name)}</span></div>
         <h3><a href={article.href} target="_blank" rel="noreferrer">{t(article.title)} <ArrowUpRight size={15} aria-hidden="true" /><span className="sr-only"> ({t("opens in a new tab")})</span></a></h3>
         <p>{t(article.summary)}</p>
+        <div className="article-date">{t("Publication date not listed")}</div>
+        <div className="article-related"><span>{t("Track")}</span><a href={benchmarkHref(article.trackLanding.id)}>{t(article.track.name)} <ArrowRight size={12} aria-hidden="true" /></a></div>
         <div className="article-tags">
-          <a href={benchmarkHref(article.trackLanding.id)}>{t(article.track.name)}</a>
-          {article.benchmarks.map(benchmark => <a key={benchmark.id} href={benchmarkHref(benchmark.id)}>{t(benchmark.name)}</a>)}
+          <span className="article-related-label">{t("Benchmarks")}</span>
+          {article.benchmarks.map(benchmark => <a key={benchmark.id} href={benchmarkHref(benchmark.id)}>{t(benchmark.name)} <ArrowRight size={12} aria-hidden="true" /></a>)}
         </div>
+        <a className="article-read" href={article.href} target="_blank" rel="noreferrer">{t("Read article")} <ArrowUpRight size={15} aria-hidden="true" /></a>
       </article>;
     })}</div>
   </section>;
@@ -31,7 +34,7 @@ export function EvaluationArticles({ catalog, snapshots, t, current }: Props & {
 export default function Home({ catalog, snapshots, t }: Props) {
   const tracks = trackOverview(catalog);
   const count = tracks.reduce((sum, track) => sum + track.benchmarks.length, 0);
-  const maxViews = Math.max(1, ...tracks.map(track => track.views.length));
+  const maxBenchmarks = Math.max(1, ...tracks.map(track => track.benchmarks.length));
   const firstBenchmark = tracks.flatMap(track => track.benchmarks)[0];
   const [copyStatus, setCopyStatus] = useState("");
   const prompt = t("Install the Webstone submission skill at {skill} and use it to submit these benchmark results and public evidence as a pull request to lexmount/webstone-site.").replace("{skill}", SUBMISSION_SKILL);
@@ -58,7 +61,7 @@ export default function Home({ catalog, snapshots, t }: Props) {
     <section className="overview-hero">
       <div>
         <h1>Webstone</h1>
-        <p>{t("Benchmarks for the tools agents use on the web.")}</p>
+        <p>{t("The touchstone for your agent's web tools.")}</p>
         <div className="overview-actions">
           {firstBenchmark && <a href={benchmarkHref(firstBenchmark.id)} className="overview-primary">{t("Explore leaderboards")} <ArrowRight size={17} aria-hidden="true" /></a>}
           <a href="#submit-results">{t("Submit results")}</a>
@@ -78,10 +81,10 @@ export default function Home({ catalog, snapshots, t }: Props) {
         if (!landing) return null;
         return <div key={track.id} className="track-card" data-track={track.id}>
           <h3><a href={benchmarkHref(landing.id)}><Icon size={18} aria-hidden="true" />{t(track.name)}<ArrowRight size={15} aria-hidden="true" /></a></h3>
-          <div className="track-volume" aria-label={`${track.views.length} ${t("Benchmark views")}`}>
-            {Array.from({ length: maxViews }, (_, index) => <span key={index} className={index < track.views.length ? "filled" : ""} aria-hidden="true" />)}
+          <div className="track-volume" aria-label={`${track.benchmarks.length} ${t("Benchmarks")}`}>
+            {Array.from({ length: maxBenchmarks }, (_, index) => <span key={index} className={index < track.benchmarks.length ? "filled" : ""} aria-hidden="true" />)}
           </div>
-          <p className="track-volume-label">{track.views.length} {t("benchmark views")}</p>
+          <p className="track-volume-label">{track.benchmarks.length} {t("benchmarks")}</p>
           <ul>{track.benchmarks.map(benchmark => <li key={benchmark.id}><a href={benchmarkHref(benchmark.id)}>{t(benchmark.name)}</a></li>)}</ul>
         </div>;
       })}</div>

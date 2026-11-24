@@ -16,12 +16,12 @@ export function trackOverview(catalog: Catalog) {
 }
 
 const articles = [
-  { source: "lexbench-websearch-v2", title: "Web search across three output layers", summary: "Compare ranked results, supplemental text and generated answers on two query sets.", benchmarkIds: ["lexbench-websearch", "simpleqa-verified"], versionReport: true },
-  { source: "webmainbench-v1", title: "How browsers retrieve web content", summary: "Live pages test what browsers can retrieve. Frozen pages test how well they preserve text, code and tables.", benchmarkIds: ["lexbench-webfetch", "webmainbench"] },
-  { source: "lexbench-websearch-v1", title: "Comparing web search services", summary: "Retrieval quality, response time and quoted prices for search APIs.", benchmarkIds: ["lexbench-websearch", "simpleqa-verified"] },
-  { source: "lexbench-headless-372-v1", title: "Headless browsers with layout on and off", summary: "Task success, memory and mean latency across seven Moli configurations.", benchmarkIds: ["lexbench-headless-372"] },
-  { source: "webarena-verified-v1", title: "Replaying WebArena tasks", summary: "Browser task success and timing across 812 recorded trajectories.", benchmarkIds: ["webarena-verified"] },
-  { source: "lexbench-swde-v1", title: "Structured extraction from web pages", summary: "Compare extraction methods on SWDE pages and Zyte product pages.", benchmarkIds: ["lexbench-swde", "lexbench-zyte-product-extraction"] },
+  { source: "lexbench-websearch-v2", title: "Web Search: result lists, source excerpts and generated answers", summary: "Compare ranked results, supplemental text and generated answers on two query sets.", benchmarkIds: ["lexbench-websearch", "simpleqa-verified"], versionReport: true },
+  { source: "webmainbench-v1", title: "Moli leads Web Fetch with an 89.8% pass rate", summary: "Live pages test what browsers can retrieve. Frozen pages test how well they preserve text, code and tables.", benchmarkIds: ["lexbench-webfetch", "webmainbench"] },
+  { source: "lexbench-websearch-v1", title: "Lexmount Web Search: retrieval quality, speed and cost", summary: "Retrieval quality, response time and quoted prices for search APIs.", benchmarkIds: ["lexbench-websearch", "simpleqa-verified"] },
+  { source: "lexbench-headless-372-v1", title: "Moli 1.1.4 / 1.1.8 / 1.1.9: success and resource use", summary: "Task success, memory and mean latency across seven Moli configurations.", benchmarkIds: ["lexbench-headless-372"] },
+  { source: "webarena-verified-v1", title: "WebArena-Verified: full trajectory replay with Moli", summary: "Browser task success and timing across 812 recorded trajectories.", benchmarkIds: ["webarena-verified"] },
+  { source: "lexbench-swde-v1", title: "Web Extract: accuracy, speed and cost across 12 methods", summary: "Compare extraction methods on SWDE pages and Zyte product pages.", benchmarkIds: ["lexbench-swde", "lexbench-zyte-product-extraction"] },
 ];
 
 export function evaluationArticles(catalog: Catalog, snapshots: Snapshot[], current?: BenchmarkInfo) {
