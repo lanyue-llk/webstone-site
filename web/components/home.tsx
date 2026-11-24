@@ -9,6 +9,19 @@ import type { BenchmarkInfo, Catalog, Snapshot } from "../lib/results";
 type Props = { catalog: Catalog; snapshots: Snapshot[]; language?: Language; t: (value: string) => string };
 export const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2 };
 
+function reportLanguageNotice(originalLanguage: string | undefined, editionLanguage: string | undefined, language: Language) {
+  if (!editionLanguage) return null;
+  if (originalLanguage && originalLanguage !== editionLanguage) {
+    const translated: Record<string, string> = { zh: "Translated from Chinese", en: "Translated from English" };
+    return translated[originalLanguage] ?? null;
+  }
+  if (editionLanguage !== language) {
+    const originals: Record<string, string> = { zh: "Chinese original", en: "English original" };
+    return originals[editionLanguage] ?? null;
+  }
+  return null;
+}
+
 export function EvaluationReports({ catalog, snapshots, t, current, language = "en" }: Props & { current?: BenchmarkInfo }) {
   const reports = evaluationReports(catalog, snapshots, current, language);
   const [page, setPage] = useState(0);
@@ -19,9 +32,7 @@ export function EvaluationReports({ catalog, snapshots, t, current, language = "
     <h2 id="reports-heading">{t("Reports")}</h2>
     <div className="article-grid">{reports.slice(selectedPage * 6, (selectedPage + 1) * 6).map(article => {
       const Icon = TRACK_ICONS[article.track.id] ?? BookOpenText;
-      const notice = article.originalLanguage && article.language && article.originalLanguage !== article.language
-        ? (article.originalLanguage === "zh" ? "Translated from Chinese" : article.originalLanguage === "en" ? "Translated from English" : null)
-        : article.language && article.language !== language ? (article.language === "zh" ? "Chinese original" : "English original") : null;
+      const notice = reportLanguageNotice(article.originalLanguage, article.language, language);
       return <article key={article.source} className="article-card" data-track={article.track.id}>
         <div className="article-topic"><Icon size={18} aria-hidden="true" /><span>{t(article.track.name)}</span></div>
         <h3><a href={article.href} hrefLang={article.language} target="_blank" rel="noreferrer">{t(article.title)} <ArrowUpRight size={15} aria-hidden="true" /><span className="sr-only"> ({t("opens in a new tab")})</span></a></h3>
