@@ -252,3 +252,20 @@ test("compressed HTML and manifests are decoded before inspection", async () => 
     assert.deepEqual(await manifest.json(),{files:[]});
   }
 });
+
+
+test("authentication failure examples in report prose remain readable", async () => {
+  await check(async () => html('<h1>Results</h1><p>Unauthorized requests returned <code>Forbidden</code>, as expected.</p>'));
+  await assert.rejects(check(async () => html('<h1>Please sign in to view this report</h1><button>Continue with Google</button>')), /access-denied/);
+});
+
+test("malformed content encodings reject asynchronously without terminating the checker", async () => {
+  const {Readable}=await import('node:stream');const {EventEmitter}=await import('node:events');
+  for(const encoding of ['constructor','__proto__','unknown']) {
+    const transport=(_url,options,callback)=>{
+      assert.equal(options.auth,undefined);assert.equal(options.headers,undefined);
+      const req=new EventEmitter();req.destroy=()=>{};req.end=()=>queueMicrotask(()=>{const response=Readable.from(['body']);response.statusCode=200;response.headers={'content-type':'text/html','content-encoding':encoding};callback(response);});return req;
+    };
+    await assert.rejects(anonymousRequest(address,{},transport),/Unsupported.*encoding/);
+  }
+});

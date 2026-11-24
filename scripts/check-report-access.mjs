@@ -30,7 +30,7 @@ export function anonymousRequest(address, options, transport = httpsRequest) {
       let size = 0;
       const encoding = String(response.headers["content-encoding"] ?? "identity").toLowerCase().trim();
       const decoders = { gzip: createGunzip, br: createBrotliDecompress, deflate: createInflate };
-      if (encoding !== "identity" && !decoders[encoding]) {
+      if (encoding !== "identity" && !Object.hasOwn(decoders, encoding)) {
         reject(new Error("Unsupported report content encoding"));
         req.destroy();
         return;
@@ -91,9 +91,9 @@ export function reportDocument(html) {
       const all = normalize(parts.map(part => part.all).join(" "));
       const plain = normalize(parts.map(part => part.plain).join(" "));
       summaries.set(node, { all, plain: parentNavigation ? "" : plain });
-      if (!parentHead && node.tagName) {
+      if (!parentHead && ["body", "main", "article", "section", "div", "p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "td", "th", "label", "form", "dialog", "a", "button", "summary"].includes(node.tagName)) {
         if (!parentNavigation && plain) blocks.push(plain);
-        if (parentNavigation && /^(?:sign in|log in|login).*(?:to (?:view|access|continue)|required)/i.test(all)) blocks.push(all);
+        if (parentNavigation && /^(?:please )?(?:sign in|log in|login).*(?:to (?:view|access|continue)|required)/i.test(all)) blocks.push(all);
       }
       for (const child of node.childNodes ?? []) summaries.delete(child);
       continue;
@@ -114,7 +114,7 @@ export function reportDocument(html) {
       if (node.nodeName === "#text") {
         const value = node.value.replace(/\s+/g, " ").trim();
         text.push(value);
-        if (value) blocks.push(value);
+
       }
       if (node.tagName === "iframe" && (attrs.src || attrs.srcdoc !== undefined)) frames.push({ src: attrs.src, srcdoc: attrs.srcdoc });
       if (node.tagName === "input" && attrs.type?.toLowerCase() === "password") password = true;
@@ -125,7 +125,7 @@ export function reportDocument(html) {
     for (let index = children.length - 1; index >= 0; index--) stack.push({ node: children[index], depth: depth + 1, inHead, inNavigation });
   }
   const visible = text.join(" ").replace(/\s+/g, " ").trim();
-  const gate = /^(?:access denied|forbidden|authentication required|you are not signed in[.!]?|(?:sign in|log in|login)(?: required| to (?:view|continue|access)[^.]*)?[.!]?|sign in, then try opening[^.]*[.!]?|需要登录[。！]?|请先登录[。！]?|无权访问[。！]?|登录后.{0,8}(?:查看|访问)[。！]?)$/i;
+  const gate = /^(?:access denied|forbidden|authentication required|you are not signed in[.!]?|(?:please )?(?:sign in|log in|login)(?: required| to (?:view|continue|access)[^.]*)?[.!]?|sign in, then try opening[^.]*[.!]?|需要登录[。！]?|请先登录[。！]?|无权访问[。！]?|登录后.{0,8}(?:查看|访问)[。！]?)$/i;
   return { readable: Boolean(visible) && !/^(?:loading[. …]*|please wait[. …]*|redirecting[. …]*|正在加载[. …]*)$/i.test(visible), frames, deliveryConfig, baseHref, refresh, denied: password || deniedMeta || blocks.some(block => gate.test(block)) || gate.test(visible) };
 }
 
