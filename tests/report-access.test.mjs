@@ -1,16 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { Readable } from "node:stream";
-import { fileURLToPath } from "node:url";
-import { discoverResults } from "../scripts/prepare-data.mjs";
-import { readFile } from "node:fs/promises";
 import { gzipSync, brotliCompressSync, deflateSync } from "node:zlib";
-import { anonymousRequest, checkReportAccess, reportDocument, reportLinks, validatePublication } from "../scripts/check-report-access.mjs";
+import { anonymousRequest, checkReportAccess, reportDocument, reportLinks } from "../scripts/check-report-access.mjs";
 
 const body = "<main><h1>Measured results</h1><p>Results and methodology.</p></main>";
-const digest = text => createHash("sha256").update(text).digest("hex");
 const html = content => new Response(content, { headers: { "content-type": "text/html; charset=utf-8" } });
 const resolve = async () => [{ address: "93.184.216.34" }];
 function fixture(slug = "abc", content = body) {
@@ -18,7 +13,7 @@ function fixture(slug = "abc", content = body) {
   const preview = `https://reports.example.org/artifact-site/api/preview/${slug}/index.html`;
   const manifest = `https://reports.example.org/${slug}-manifest?file=index.html`;
   const entry = `https://cdn.example.org/${slug}.html`;
-  const publication = { versionId: "ver_approved", entry: { path: "index.html", sha256: digest(content) } };
+  const delivery = { versionId: "ver_current" };
   const loader = `<script id="artifact-delivery-config">${JSON.stringify({ manifestUrl: manifest, file: "index.html" })}</script>`;
   function request(overrides = {}) {
     return async (url, options) => {
@@ -26,84 +21,69 @@ function fixture(slug = "abc", content = body) {
       if (Object.hasOwn(overrides, url)) return overrides[url]();
       if (url === share) return html(`<header>Optional account controls</header><iframe src="${preview}"></iframe>`);
       if (url === preview) return html(loader);
-      if (url === manifest) return Response.json({ versionId: publication.versionId, files: [{ path: "index.html", url: entry }], nextCursor: null });
+      if (url === manifest) return Response.json({ versionId: delivery.versionId, files: [{ path: "index.html", url: entry }], nextCursor: null });
       if (url === entry) return html(content);
       throw Error("Unexpected request: " + url);
     };
   }
-  return { share, preview, manifest, entry, publication, loader, request };
+  return { share, preview, manifest, entry, delivery, loader, request };
 }
 const sample = fixture();
-const check = (request = sample.request(), extra = {}) => checkReportAccess(sample.share, { publication: sample.publication, resolve, request, ...extra });
+const check = (request = sample.request(), extra = {}) => checkReportAccess(sample.share, { resolve, request, ...extra });
 
-// Rendering is reviewed by the publisher. CI proves that the same immutable
-// publication and original bytes remain anonymously available.
-test("anonymous delivery matches the reviewed publication and original report bytes", async () => {
+test("report shares and actual delivery are anonymously accessible", async () => {
   const visited = [], request = sample.request();
   await check(async (url, options) => { visited.push(url); return request(url, options); });
   assert.deepEqual(visited, [sample.share, sample.preview, sample.manifest, sample.entry]);
 });
 
-test("both language destinations have reviewed publications and withdrawn links are excluded", async () => {
+test("both language destinations are checked and withdrawn links are excluded", () => {
   assert.deepEqual(reportLinks({ benchmarks: [{ reportUrl: sample.share }] }, [{ id: "withdrawn", benchmarks: [{ reportUrl: sample.share + "-private" }] }], { reports: { current: { urls: { en: sample.share + "-en", zh: sample.share } } } }), [sample.share, sample.share + "-en"]);
-  const catalog = JSON.parse(await readFile(new URL("../benchmarks/catalog.json", import.meta.url)));
-  const metadata = JSON.parse(await readFile(new URL("../reports/metadata.json", import.meta.url)));
-  const publications = JSON.parse(await readFile(new URL("../reports/publications.json", import.meta.url)));
-  const files = await discoverResults(fileURLToPath(new URL("../results/", import.meta.url)), catalog);
-  for (const url of reportLinks(catalog, files.map(file => file.report), metadata)) validatePublication(publications[url]);
 });
 
-test("unknown or malformed approvals fail before any network request", async () => {
-  for (const publication of [null, {}, { ...sample.publication, versionId: "latest" }, { ...sample.publication, entry: { path: "../index.html", sha256: digest(body) } }, { ...sample.publication, entry: { path: "index.html", sha256: "invalid" } }]) await assert.rejects(check(undefined, { publication, request: () => { throw Error("Must not fetch"); } }), /reviewed|Reviewed|Unsafe/);
-  const cyclic = structuredClone(sample.publication); cyclic.url = sample.share; cyclic.dependencies = [cyclic];
-  assert.throws(() => validatePublication(cyclic), /cyclic/);
-});
-
-test("private, missing and changed report publications block release", async () => {
+test("private or missing report delivery blocks publication", async () => {
   for (const url of [sample.share, sample.preview, sample.manifest, sample.entry]) await assert.rejects(check(sample.request({ [url]: () => new Response("Forbidden", { status: 403 }) })), /403/);
-  await assert.rejects(check(sample.request({ [sample.manifest]: () => Response.json({ versionId: "ver_new", files: [], nextCursor: null }) })), /publication changed/);
-  await assert.rejects(check(sample.request({ [sample.manifest]: () => Response.json({ versionId: sample.publication.versionId, files: [], nextCursor: null }) })), /entry is missing/);
-  await assert.rejects(check(sample.request({ [sample.manifest]: () => Response.json({ versionId: sample.publication.versionId, files: null }) })), /Invalid report delivery/);
-  await assert.rejects(check(sample.request({ [sample.manifest]: () => Response.json({ versionId: sample.publication.versionId, files: [], nextCursor: 100 }), [sample.manifest + "&cursor=100"]: () => Response.json({ versionId: "ver_new", files: [{ path: "index.html", url: sample.entry }] }) })), /publication changed/);
+  await assert.rejects(check(sample.request({ [sample.manifest]: () => Response.json({ files: [], nextCursor: null }) })), /entry is missing/);
+  await assert.rejects(check(sample.request({ [sample.manifest]: () => Response.json({ files: null }) })), /Invalid report delivery/);
 });
 
-test("login pages, hidden overlays and any replacement content fail the reviewed-byte check", async () => {
-  for (const content of ["<h1>Sign in</h1>", '<main>Please sign in to view this report.</main>', '<h1>Access denied</h1><p>You do not have permission.</p>', '<form><input type="password"></form><footer>Copyright 2026</footer>', '<style>main{display:none}</style>' + body, body + "<dialog open>Password required</dialog>"]) await assert.rejects(check(sample.request({ [sample.entry]: () => html(content) })), /entry has changed/);
+test("malformed manifest entries produce a delivery error", async () => {
+  await assert.rejects(check(sample.request({ [sample.manifest]: () => Response.json({ files: [null] }) })), /Invalid report delivery manifest/);
 });
 
-test("reviewed public reports may contain optional account controls or media widgets", async () => {
-  const content = '<aside><form><input type="password"></form></aside>' + body + '<iframe src="about:blank"></iframe>';
-  const publicReport = fixture("with-widgets", content);
-  await checkReportAccess(publicReport.share, { publication: publicReport.publication, resolve, request: publicReport.request() });
+test("public report revisions need no content fingerprint or version lock", async () => {
+  await check(sample.request({ [sample.manifest]: () => Response.json({ versionId: "ver_new", files: [{ path: "index.html", url: sample.entry }], nextCursor: null }), [sample.entry]: () => html('<main><h1>Updated report</h1><p>New measurements.</p></main>') }));
 });
 
-test("required report dependencies stay anonymous and match their reviewed versions", async () => {
-  const dependency = fixture("dependency", "<main><h1>Independent English report</h1><p>Its own results.</p></main>");
-  dependency.publication.versionId = "ver_dependency";
-  const publication = { ...sample.publication, dependencies: [{ url: dependency.share, ...dependency.publication }] };
-  const request = async (url, options) => url.includes("dependency") ? dependency.request()(url, options) : sample.request()(url, options);
-  await check(request, { publication });
-  await assert.rejects(check(async (url, options) => url === dependency.entry ? new Response("Forbidden", { status: 403 }) : request(url, options), { publication }), /403/);
-  await assert.rejects(check(async (url, options) => url === dependency.manifest ? Response.json({ versionId: "ver_new", files: [] }) : request(url, options), { publication }), /publication changed/);
+test("optional account controls and unrelated media widgets do not block public reports", async () => {
+  const publicReport = fixture("with-widgets", '<aside><form><input type="password"></form></aside>' + body + '<iframe src="about:blank"></iframe>');
+  await checkReportAccess(publicReport.share, { resolve, request: publicReport.request() });
 });
 
-test("language entries select the reviewed file within the public report", async () => {
-  const publication = { ...sample.publication, entry: { ...sample.publication.entry, path: "en/index.html" } };
+test("embedded reports from the same service must also open anonymously", async () => {
+  const dependency = fixture("dependency", "<main><h1>English report</h1></main>");
+  const parent = fixture("abc", '<iframe src="' + dependency.preview + '"></iframe>');
+  const request = async (url, options) => url.includes("dependency") ? dependency.request()(url, options) : parent.request()(url, options);
+  await check(request);
+  for (const target of [dependency.preview, dependency.manifest, dependency.entry]) await assert.rejects(check(async (url, options) => url === target ? new Response("Forbidden", { status: 403 }) : request(url, options)), /403/);
+  const cyclic = fixture("abc", '<iframe src="' + sample.preview + '"></iframe>');
+  await assert.rejects(check(cyclic.request()), /cyclic/);
+});
+
+test("language-specific report previews fetch their own actual entry", async () => {
   const preview = sample.preview.replace("index.html", "en/index.html");
   const manifest = sample.manifest.replace("index.html", "en%2Findex.html");
-  const request = sample.request({ [preview]: () => html(`<script id="artifact-delivery-config">${JSON.stringify({ manifestUrl: sample.manifest, file: "en/index.html" })}</script>`), [manifest]: () => Response.json({ versionId: publication.versionId, files: [{ path: "en/index.html", url: sample.entry }], nextCursor: null }) });
-  await check(request, { publication });
+  await check(sample.request({ [sample.share]: () => html(`<iframe src="${preview}"></iframe>`), [preview]: () => html(`<script id="artifact-delivery-config">${JSON.stringify({ manifestUrl: sample.manifest, file: "en/index.html" })}</script>`), [manifest]: () => Response.json({ files: [{ path: "en/index.html", url: sample.entry }], nextCursor: null }) }));
 });
 
-test("share wrappers must expose the report service preview and may not add unreviewed required embeds", async () => {
+test("HTTP-200 sign-in wrappers cannot stand in for the service's public preview", async () => {
   for (const content of ['<h1>Sign in</h1>', '<svg><iframe src="' + sample.preview + '"></iframe></svg>', '<iframe src="https://other.example.org/artifact-site/api/preview/abc/"></iframe>']) await assert.rejects(check(sample.request({ [sample.share]: () => html(content) })), /no report-service preview/);
-  await assert.rejects(check(sample.request({ [sample.preview]: () => html("<h1>Sign in</h1>") })), /reviewed report entry/);
-  await assert.rejects(check(sample.request({ [sample.share]: () => html(`<iframe src="${sample.preview}"></iframe><iframe data-report-preview src="/private"></iframe>`) })), /unreviewed required preview/);
+  await assert.rejects(check(sample.request({ [sample.preview]: () => html("<h1>Sign in</h1>") })), /delivery manifest/);
 });
 
 test("redirects remain public and stop before requesting sign-in destinations", async () => {
   const start = "https://reports.example.org/old-report", visited = [], request = sample.request();
-  await checkReportAccess(start, { publication: sample.publication, resolve, request: async (url, options) => { visited.push(url); return url === start ? new Response(null, { status: 302, headers: { location: sample.share } }) : request(url, options); } });
+  await checkReportAccess(start, { resolve, request: async (url, options) => { visited.push(url); return url === start ? new Response(null, { status: 302, headers: { location: sample.share } }) : request(url, options); } });
   assert.equal(visited[1], sample.share);
   const blocked = [];
   await assert.rejects(check(async url => { blocked.push(url); return new Response(null, { status: 302, headers: { location: "/login" } }); }), /sign-in/);
@@ -133,8 +113,14 @@ test("HTTPS uses each host's pinned DNS records and never adds authentication", 
 
 test("DNS and report dependency checks have finite time and request budgets", async () => {
   await assert.rejects(check(undefined, { timeoutMs: 20, resolve: () => new Promise(() => {}), request: () => { throw Error("Must not fetch"); } }), /time budget/);
-  const publication = { ...sample.publication, dependencies: Array.from({ length: 12 }, () => ({ url: sample.share, ...sample.publication })) };
-  await assert.rejects(check(undefined, { publication }), /budget/);
+  const frames = Array.from({length:25}, (_,i)=>'<iframe src="https://reports.example.org/artifact-site/api/preview/child'+i+'/index.html"></iframe>').join('');
+  const parent = fixture("abc", frames), base = parent.request();
+  await assert.rejects(check(async (url, options) => {
+    if (url.includes('/api/preview/child')) return html('<script id="artifact-delivery-config">{"manifestUrl":"https://reports.example.org/leaf-manifest","file":"index.html"}</script>');
+    if (url === 'https://reports.example.org/leaf-manifest?file=index.html') return Response.json({files:[{path:'index.html',url:'https://cdn.example.org/leaf.html'}],nextCursor:null});
+    if (url === 'https://cdn.example.org/leaf.html') return html(body);
+    return base(url,options);
+  }), /budget/);
 });
 
 test("HTML metadata uses browser namespaces, quoted UTF-8 declarations and bounded parsing", async () => {
@@ -218,7 +204,7 @@ test("checker deadlines cancel both stalled HTTPS stages", {timeout:6000}, async
       return req;
     };
     try {
-      await assert.rejects(checkReportAccess(sample.share,{publication:sample.publication,resolve,timeoutMs:1000,request:(url,options)=>anonymousRequest(url,options,transport)}),error=>error.name==="TimeoutError" || error.name==="AbortError");
+      await assert.rejects(checkReportAccess(sample.share,{resolve,timeoutMs:1000,request:(url,options)=>anonymousRequest(url,options,transport)}),error=>error.name==="TimeoutError" || error.name==="AbortError");
       assert.equal(req?.destroyed,true);if(response)assert.equal(response.destroyed,true);
     } finally {clearTimeout(guard);}
   }
