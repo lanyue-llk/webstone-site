@@ -18,7 +18,8 @@
       "taskCount": 372,
       "notes": [
         "Functional success and resource use are measured on separate task populations.",
-        "Deltas compare each configuration with Moli 1.1.4 with layout off."
+        "Deltas compare each configuration with Moli 1.1.4 with layout off.",
+        "The Moli 1.1.4 baseline directly tested one task and inherited 371 common failures. Other configurations directly tested all 372 tasks. Each tested task used three attempts."
       ],
       "reportUrl": "https://yours.lexmount.cn/artifact-site/s/gdwtSGOel0va",
       "providers": [
@@ -197,7 +198,8 @@
       "Mean CPU time across five calls on each of 209 fixed tasks; not per-task wall-clock latency.": "固定的 209 题，每题调用 5 次，统计平均 CPU 时间；该值不是任务的实际经过时间。",
       "Functional success uses 372 tasks. Resource statistics use a separate 557-task experiment, restricted to 1,045 calls across 209 frozen common-pass tasks. CPU time is not wall-clock latency.": "功能成功率覆盖 372 题。资源统计来自独立的 557 题实验，仅统计固定共同通过的 209 题，共 1,045 次调用。CPU 时间不是实际经过时间。",
       "Layout off": "关闭布局",
-      "Layout on": "开启布局"
+      "Layout on": "开启布局",
+      "The Moli 1.1.4 baseline directly tested one task and inherited 371 common failures. Other configurations directly tested all 372 tasks. Each tested task used three attempts.": "Moli 1.1.4 基线实测 1 题，其余 371 题沿用共同失败结果。其他配置均实测 372 题，每道实测题运行 3 次。"
     }
   },
   "release": {
