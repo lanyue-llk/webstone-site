@@ -347,3 +347,10 @@ test("wire limits stop identity and low-output compressed streams before EOF", {
     assert.equal(req.destroyed,true);assert.equal(response.destroyed,true);assert.equal(ended,false);
   }
 });
+
+
+test("public previews cannot prohibit their own share-page embedding", async () => {
+  for (const headers of [{'x-frame-options':'DENY'},{'content-security-policy':"default-src 'self'; frame-ancestors 'none'"}]) {
+    await assert.rejects(check(sample.request({[sample.preview]:()=>new Response(sample.loader,{headers:{'content-type':'text/html',...headers}})})),/blocks embedding/);
+  }
+});
