@@ -59,6 +59,7 @@ export async function verifyReportNavigation(
   const deadline = Date.now() + timeoutMs;
   const observed = new Set();
   const aliases = new Map();
+  const frameDocuments = new Map();
   try {
     context = await browser.newContext({
       serviceWorkers: "block",
@@ -73,6 +74,8 @@ export async function verifyReportNavigation(
         for (let current = request; current; current = current.redirectedFrom())
           chain.push(reportDestination(current.url()));
         aliases.set(reportDestination(request.url()), chain);
+        if (request.isNavigationRequest())
+          frameDocuments.set(request.frame(), chain);
         for (const url of chain) observed.add(url);
       } catch {
         /* Optional requests can finish while their context closes. */
@@ -112,7 +115,11 @@ export async function verifyReportNavigation(
         page.frames().flatMap((frame) => {
           try {
             const url = reportDestination(frame.url());
-            return [url, ...(aliases.get(url) ?? [])];
+            return [
+              url,
+              ...(aliases.get(url) ?? []),
+              ...(frameDocuments.get(frame) ?? []),
+            ];
           } catch {
             return [];
           }

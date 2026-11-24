@@ -422,3 +422,12 @@ test("concurrent unbounded downloads are cut off by the streaming wire budget", 
     await new Promise((resolve) => setTimeout(resolve, 10));
   assert.equal(streams.size, 0);
 });
+
+test("a rendered report may update its address without losing its loaded document", async () => {
+  await check({
+    [entry]: () =>
+      html(
+        `<script>history.replaceState(null,'','?lang=en')</script><main>Report</main>`,
+      ),
+  });
+});
