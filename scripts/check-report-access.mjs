@@ -25,6 +25,12 @@ export function reportLinks(catalog, snapshots, metadata) {
 export function anonymousRequest(address, options, transport = httpsRequest) {
   return new Promise((resolve, reject) => {
     const req = transport(address, { lookup: options.lookup, signal: options.signal }, response => {
+      if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
+        resolve(new Response(null, { status: response.statusCode, headers: response.headers }));
+        response.on("error", () => {});
+        response.destroy?.();
+        return;
+      }
       const chunks = [];
       let wireSize = 0;
       let size = 0;
@@ -116,16 +122,19 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
         continue;
       }
       if (!response.ok) throw new Error(`Anonymous request returned HTTP ${response.status}`);
-      const body = await response.text();
-      if (!body.trim()) throw new Error("Report returned an empty document");
       const type = response.headers.get("content-type") ?? "";
+      const encoding = /charset\s*=\s*["']?([^;\s"']+)/i.exec(type)?.[1];
+      if (encoding && !/^(?:utf-?8|us-ascii)$/i.test(encoding)) throw new Error("Reports must use UTF-8 encoding");
+      const body = new TextDecoder("utf-8", { fatal: true }).decode(await response.arrayBuffer());
+      if (!body.trim()) throw new Error("Report returned an empty document");
       if (json) {
         if (!/application\/json/i.test(type)) throw new Error("Expected a report delivery manifest");
         return JSON.parse(body);
       }
       if (/application\/pdf/i.test(type)) throw new Error("PDF reports require a separate anonymous-readability check; publish a readable HTML report");
-      if (!/text\/html/i.test(type)) throw new Error("Expected a readable HTML report or PDF");
+      if (!/text\/html/i.test(type)) throw new Error("Expected a readable HTML report");
       const document = await bounded(reportDocument(body));
+      if (document.charset && !/^(?:utf-?8|us-ascii)$/i.test(document.charset)) throw new Error("Reports must use UTF-8 encoding");
       if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
       if (document.denied) throw new Error("Anonymous reader received a sign-in or access-denied page");
       if (!document.readable && !document.frames.length && !document.deliveryConfig) throw new Error("Report has no readable content");
@@ -160,10 +169,9 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       }
       if (!entry?.url) throw new Error("Report entry is missing from the anonymous delivery manifest");
       await validatePage(await retrieve(entry.url), depth + 1);
-      return;
     }
     const sources = page.frames;
-    if (!sources.length && (!page.inline && /\/artifact-site\/(s|v)\//.test(page.url.pathname) || !page.readable)) throw new Error("Hosted report has no readable preview");
+    if (!sources.length && !page.deliveryConfig && (!page.inline && /\/artifact-site\/(s|v)\//.test(page.url.pathname) || !page.readable)) throw new Error("Hosted report has no readable preview");
     const base = page.baseHref === null ? page.url : new URL(page.baseHref, page.url);
     const destinations = new Set();
     for (const frame of sources) {

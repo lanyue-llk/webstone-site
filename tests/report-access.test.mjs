@@ -337,6 +337,56 @@ test("corrupt and truncated supported encodings reject through asynchronous deco
   const {gzipSync,brotliCompressSync,deflateSync}=await import('node:zlib');
   for(const [encoding,compress] of [['gzip',gzipSync],['br',brotliCompressSync],['deflate',deflateSync]]) for(const body of [Buffer.from('invalid compressed bytes'),compress(Buffer.from('<h1>Measured results</h1>'.repeat(20))).subarray(0,4)]) {
     const transport=(_url,_options,callback)=>{const req=new EventEmitter();req.destroy=()=>{};req.end=()=>queueMicrotask(()=>{const response=Readable.from([body]);response.statusCode=200;response.headers={'content-type':'text/html','content-encoding':encoding};callback(response);});return req;};
-    await assert.rejects(anonymousRequest(address,{},transport));
+    await assert.rejects(anonymousRequest(address,{},transport), error => /^(?:Z_(?:DATA|BUF)_ERROR|ERR_(?:_ERROR_FORMAT_)?PADDING_1)$/.test(error.code ?? ''));
   }
+});
+
+
+test("redirect headers are followed without decoding or buffering their bodies", async () => {
+  const {Readable}=await import('node:stream');const {EventEmitter}=await import('node:events');
+  for(const encoding of ['unsupported','gzip']) {
+    let read=false,destroyed=false;
+    const transport=(_url,_options,callback)=>{const req=new EventEmitter();req.end=()=>queueMicrotask(()=>{const response=new Readable({read(){read=true;throw Error('Must not read redirect body');}});response.statusCode=302;response.headers={location:'/final','content-encoding':encoding,'content-length':'999999999'};response.on('close',()=>{destroyed=true;});callback(response);});return req;};
+    const response=await anonymousRequest(address,{},transport);
+    assert.equal(response.status,302);assert.equal(response.headers.get('location'),'/final');assert.equal(read,false);
+    await new Promise(resolve=>setImmediate(resolve));assert.equal(destroyed,true);
+  }
+});
+
+test("declared legacy encodings and invalid UTF-8 cannot hide authentication gates", async () => {
+  await assert.rejects(check(async()=>new Response('Login required',{headers:{'content-type':'text/html; charset=GB18030'}})), /UTF-8/);
+  await assert.rejects(check(async()=>html('<meta charset="gb18030"><h1>Login required</h1>')), /UTF-8/);
+  await assert.rejects(check(async()=>new Response(Buffer.from([0xff,0xfe,0xd0]),{headers:{'content-type':'text/html'}})),error=>error.code==='ERR_ENCODING_INVALID_ENCODED_DATA');
+});
+
+test("delivery metadata never suppresses validation of visible embedded reports", async () => {
+  await assert.rejects(check(async url=>{
+    if(url===address)return html('<script id="artifact-delivery-config">{"manifestUrl":"https://reports.example.org/manifest","file":"index.html"}</script><iframe src="/private"></iframe>');
+    if(url.includes('/manifest'))return Response.json({files:[{path:'index.html',url:'https://reports.example.org/entry'}],nextCursor:null});
+    return url.endsWith('/entry')?html('<h1>Measured results</h1>'):new Response('Forbidden',{status:403});
+  }), /403/);
+});
+
+test("inline style order and importance determine which messages are visible", async () => {
+  await assert.rejects(check(async()=>html('<h1 style="display:none;display:block">Access denied</h1><p>Contact the owner.</p>')), /access-denied/);
+  await check(async()=>html('<main>Measured results</main><h1 style="display:none!important;display:block">Access denied</h1>'));
+  await assert.rejects(check(async()=>html('<div style="visibility:hidden"><h1 style="visibility:visible">Access denied</h1></div><p>Contact the owner.</p>')), /access-denied/);
+});
+
+test("hidden metadata still controls redirects, bases and delivery", async () => {
+  await assert.rejects(check(async()=>html('<meta hidden http-equiv="refresh" content="0;url=/login"><h1>Measured results</h1>')), /refresh/);
+  await assert.rejects(check(async url=>{
+    if(url===address)return html('<h1>Measured results</h1><div hidden><script id="artifact-delivery-config">{"manifestUrl":"https://reports.example.org/manifest","file":"index.html"}</script></div>');
+    if(url.includes('/manifest'))return Response.json({files:[{path:'index.html',url:'https://reports.example.org/private'}],nextCursor:null});
+    return new Response('Forbidden',{status:403});
+  }), /403/);
+});
+
+test("public report content can coexist with an optional account password form", async () => {
+  await check(async()=>html('<header><form><input type="password"></form></header><main>Measured results</main>'));
+});
+
+
+test("an inline display override can make otherwise hidden messages visible", async () => {
+  await assert.rejects(check(async()=>html('<h1 hidden style="display:block">Access denied</h1><p>Contact the owner.</p>')), /access-denied/);
 });
