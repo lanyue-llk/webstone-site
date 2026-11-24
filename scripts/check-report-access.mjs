@@ -136,24 +136,25 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       const document = await bounded(reportDocument(body));
       if (document.charset && !/^(?:utf-?8|us-ascii)$/i.test(document.charset)) throw new Error("Reports must use UTF-8 encoding");
       if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
-      if (document.denied) throw new Error("Anonymous reader received a sign-in or access-denied page");
+
       if (!document.readable && !document.frames.length && !document.deliveryConfig) throw new Error("Report has no readable content");
       return { url, body, pdf: false, ...document };
     }
     throw new Error("Too many redirects");
   }
 
-  async function validatePage(page, depth = 0) {
+  async function validatePage(page, depth = 0, requireDelivery = false) {
     if (Date.now() >= deadline) throw new Error("Report exceeds the time budget");
-    const identity = page.url.href + (page.inline ? "#inline-" + createHash("sha256").update(page.body).digest("hex") : "");
+    const identity = (requireDelivery ? "delivery:" : "document:") + page.url.href + (page.inline ? "#inline-" + createHash("sha256").update(page.body).digest("hex") : "");
     if (active.has(identity)) throw new Error("Report contains a cyclic preview chain");
     if (validated.has(identity)) return;
     active.add(identity);
-    try { await validatePageContent(page, depth); validated.add(identity); }
+    try { await validatePageContent(page, depth, requireDelivery); validated.add(identity); }
     finally { active.delete(identity); }
   }
 
-  async function validatePageContent(page, depth) {
+  async function validatePageContent(page, depth, requireDelivery) {
+    if (requireDelivery && !page.deliveryConfig) throw new Error("Anonymous preview did not expose its report delivery manifest");
     if (page.pdf) return;
     if (depth > 5) throw new Error("Report contains too many nested previews");
     if (page.deliveryConfig) {
@@ -170,8 +171,8 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       if (!entry?.url) throw new Error("Report entry is missing from the anonymous delivery manifest");
       await validatePage(await retrieve(entry.url), depth + 1);
     }
-    const sources = page.frames;
-    if (!sources.length && !page.deliveryConfig && (!page.inline && /\/artifact-site\/(s|v)\//.test(page.url.pathname) || !page.readable)) throw new Error("Hosted report has no readable preview");
+    const sources = page.frames.filter(frame => frame.required || !page.readable);
+    if (!sources.length && !page.deliveryConfig && !page.readable) throw new Error("Hosted report has no readable preview");
     const base = page.baseHref === null ? page.url : new URL(page.baseHref, page.url);
     const destinations = new Set();
     for (const frame of sources) {
@@ -180,13 +181,27 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       destinations.add(destination);
       if (frame.srcdoc !== undefined) {
         const inline = await bounded(reportDocument(frame.srcdoc));
-        if (inline.refresh || inline.denied) throw new Error("Inline report requires sign-in or redirects");
+        if (inline.refresh) throw new Error("Inline report requires sign-in or redirects");
         if (!inline.readable && !inline.frames.length && !inline.deliveryConfig) throw new Error("Inline report has no readable content");
         await validatePage({ url: base, body: frame.srcdoc, pdf: false, ...inline, inline: true }, depth + 1);
-      } else await validatePage(await retrieve(new URL(frame.src, base).href), depth + 1);
+      } else {
+        const url = new URL(frame.src, base);
+        await validatePage(await retrieve(url.href), depth + 1, /\/api\/preview\//.test(url.pathname));
+      }
     }
   }
-  await validatePage(await retrieve(address));
+  const root = await retrieve(address);
+  const share = /^(.*)\/(s|v)\/([A-Za-z0-9_-]+)\/?$/.exec(root.url.pathname);
+  if (!share) throw new Error("Use the report service's public share URL");
+  const base = root.baseHref === null ? root.url : new URL(root.baseHref, root.url);
+  const prefix = share[1] + "/api/preview/";
+  const previews = root.frames.filter(frame => {
+    if (!frame.src || frame.srcdoc !== undefined) return false;
+    const url = new URL(frame.src, base);
+    return url.origin === root.url.origin && (share[2] === "v" ? url.pathname.startsWith(prefix) : url.pathname.startsWith(prefix + share[3] + "/") || url.pathname === prefix + share[3]);
+  });
+  if (!previews.length) throw new Error("Public share has no report-service preview");
+  for (const frame of previews) await validatePage(await retrieve(new URL(frame.src, base).href), 0, true);
 }
 
 async function main() {
