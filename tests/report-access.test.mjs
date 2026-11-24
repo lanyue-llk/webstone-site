@@ -73,7 +73,17 @@ test("embedded reports from the same service must also open anonymously", async 
 test("language-specific report previews fetch their own actual entry", async () => {
   const preview = sample.preview.replace("index.html", "en/index.html");
   const manifest = sample.manifest.replace("index.html", "en%2Findex.html");
-  await check(sample.request({ [sample.share]: () => html(`<iframe src="${preview}"></iframe>`), [preview]: () => html(`<script id="artifact-delivery-config">${JSON.stringify({ manifestUrl: sample.manifest, file: "en/index.html" })}</script>`), [manifest]: () => Response.json({ files: [{ path: "en/index.html", url: sample.entry }], nextCursor: null }) }));
+  const entry = "https://cdn.example.org/english.html";
+  const visited = [];
+  const request = sample.request({
+    [sample.share]: () => html(`<iframe src="${preview}"></iframe>`),
+    [preview]: () => html(`<script id="artifact-delivery-config">${JSON.stringify({ manifestUrl: sample.manifest, file: "en/index.html" })}</script>`),
+    [manifest]: () => Response.json({ files: [{ path: "en/index.html", url: entry }], nextCursor: null }),
+    [sample.manifest]: () => { throw new Error("Must not fetch default-language manifest"); },
+    [entry]: () => html(body),
+  });
+  await check(async (url, options) => { visited.push(url); return request(url, options); });
+  assert.ok(visited.includes(manifest)); assert.ok(visited.includes(entry)); assert.ok(!visited.includes(sample.entry));
 });
 
 test("HTTP-200 sign-in wrappers cannot stand in for the service's public preview", async () => {
@@ -306,14 +316,15 @@ test("shared delivery is checked separately for each report-service origin", asy
 
 
 test("anonymous delivery does not judge owner-authored report content", async () => {
-  for (const content of [' ', '<html></html>', '<form><input type="password"><button>Sign in</button></form>']) {
+  for (const content of ['', ' ', '<html></html>', '<form><input type="password"><button>Sign in</button></form>']) {
     await check(sample.request({[sample.entry]:()=>html(content)}));
   }
 });
 
 test("nested shares at the depth boundary are not traversed twice", async () => {
-  const base=sample.request();
+  const base=sample.request(); const visited=[];
   await check(async (url,options)=>{
+    visited.push(url);
     const match=/\/(?:s|api\/preview)\/level(\d+)/.exec(url);
     if(match) {
       const level=Number(match[1]);
@@ -327,6 +338,9 @@ test("nested shares at the depth boundary are not traversed twice", async () => 
     if(url===sample.entry)return html('<iframe src="https://reports.example.org/artifact-site/s/level1"></iframe>');
     return base(url,options);
   });
+  for(let level=1;level<=5;level++) {
+    for(const url of ['https://reports.example.org/artifact-site/s/level'+level,'https://reports.example.org/artifact-site/api/preview/level'+level+'/index.html','https://reports.example.org/manifest'+level+'?file=index.html','https://cdn.example.org/level'+level+'.html']) assert.equal(visited.filter(item=>item===url).length,1,url);
+  }
 });
 
 test("wire limits stop identity and low-output compressed streams before EOF", {timeout:6000}, async () => {
@@ -353,4 +367,22 @@ test("public previews cannot prohibit their own share-page embedding", async () 
   for (const headers of [{'x-frame-options':'DENY'},{'content-security-policy':"default-src 'self'; frame-ancestors 'none'"}]) {
     await assert.rejects(check(sample.request({[sample.preview]:()=>new Response(sample.loader,{headers:{'content-type':'text/html',...headers}})})),/blocks embedding/);
   }
+});
+
+
+test("preview embedding policies authorize every containing origin", async () => {
+  for (const policy of ["frame-ancestors https://unrelated.example", "frame-ancestors 'self'; frame-ancestors *", "frame-ancestors *, frame-ancestors 'none'"]) {
+    const headers={'content-type':'text/html','content-security-policy':policy};
+    if(policy.includes("'self'")) headers['content-security-policy']="frame-ancestors https://unrelated.example; frame-ancestors *";
+    await assert.rejects(check(sample.request({[sample.preview]:()=>new Response(sample.loader,{headers})})),/blocks embedding/);
+  }
+  for(const policy of ["frame-ancestors 'self'", "frame-ancestors https://reports.example.org", "frame-ancestors https://*.example.org", "frame-ancestors https:","frame-ancestors *"]) {
+    await check(sample.request({[sample.preview]:()=>new Response(sample.loader,{headers:{'content-type':'text/html','content-security-policy':policy,'x-frame-options':'DENY'}})}));
+  }
+  const redirected='https://other.example.org/preview';
+  await assert.rejects(check(sample.request({
+    [sample.preview]:()=>new Response(null,{status:302,headers:{location:redirected}}),
+    [redirected]:()=>new Response(sample.loader,{headers:{'content-type':'text/html','x-frame-options':'SAMEORIGIN'}})
+  })),/blocks embedding/);
+  await check(sample.request({[sample.preview]:()=>new Response(sample.loader,{headers:{'content-type':'text/html','x-frame-options':'SAMEORIGIN'}})}));
 });

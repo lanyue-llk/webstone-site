@@ -133,10 +133,10 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       const encoding = /charset\s*=\s*["']?([^;\s"']+)/i.exec(type)?.[1];
       if (encoding && !/^(?:utf-?8|us-ascii)$/i.test(encoding)) throw new Error("Reports must use UTF-8 encoding");
       const bytes = Buffer.from(await response.arrayBuffer());
-      if (!bytes.length) throw new Error("Report returned an empty document");
       if (kind === "entry") {
-        return { url, bytes, type };
+        return { url, bytes, type, headers: response.headers };
       }
+      if (!bytes.length) throw new Error("Report returned an empty document");
       const body = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       if (!body.trim()) throw new Error("Report returned an empty document");
       if (kind === "json") {
@@ -164,45 +164,76 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
     active.add(key);
     try { await work(); checked.add(completedKey); } finally { active.delete(key); }
   }
-  async function embedded(document, base, depth, serviceOrigin = new URL(base).origin) {
+  function embeddingAllowed(headers, url, ancestors) {
+    if (!ancestors.length) return;
+    const directives = (headers.get("content-security-policy") ?? "").split(",").map(policy => policy.split(";").map(value => value.trim().split(/\s+/)).find(parts => parts[0]?.toLowerCase() === "frame-ancestors")).filter(Boolean);
+    function matches(source, ancestor) {
+      if (source === "'self'") return ancestor === url.origin;
+      if (source === "*") return true;
+      if (source === "'none'" || source.includes("'")) return false;
+      const parent = new URL(ancestor);
+      if (/^[a-z][a-z\d+.-]*:$/i.test(source)) return source === parent.protocol || source === "http:" && parent.protocol === "https:";
+      try {
+        const wildcardHost = /^(?:[a-z][a-z\d+.-]*:\/\/)?\*\./i.test(source);
+        const wildcardPort = /:\*(?:\/|$)/.test(source);
+        const candidate = source.replace(/(^|\/\/)\*\./, "$1").replace(/:\*(?=\/|$)/, "");
+        const target = new URL(candidate.includes("://") ? candidate : url.protocol + "//" + candidate);
+        if (target.username || target.password || target.search || target.hash) return false;
+        if (target.protocol !== parent.protocol && !(target.protocol === "http:" && parent.protocol === "https:")) return false;
+        if (wildcardHost ? !parent.hostname.endsWith("." + target.hostname) : parent.hostname !== target.hostname) return false;
+        if (!wildcardPort && target.port !== parent.port) return false;
+        return target.pathname === "/";
+      } catch { return false; }
+    }
+    if (directives.length) {
+      if (directives.some(parts => ancestors.some(ancestor => !parts.slice(1).some(source => matches(source, ancestor))))) throw new Error("Report preview blocks embedding in its public share");
+      return;
+    }
+    const options = (headers.get("x-frame-options") ?? "").toLowerCase().split(",").map(value => value.trim());
+    if (options.includes("deny") || options.includes("sameorigin") && ancestors.some(ancestor => ancestor !== url.origin)) throw new Error("Report preview blocks embedding in its public share");
+  }
+  async function embedded(document, base, depth, serviceOrigin = new URL(base).origin, rendering = { origin: serviceOrigin, ancestors: [] }) {
     if (depth > 5) throw new Error("Report contains too many nested previews");
     if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
     if (document.charset && !/^(?:utf-?8|us-ascii)$/i.test(document.charset)) throw new Error("Reports must use UTF-8 encoding");
     const origin = serviceOrigin;
     const documentBase = document.baseHref === null ? base : new URL(document.baseHref, base);
+    const ancestors = [...rendering.ancestors, rendering.origin];
     for (const frame of document.frames) {
       if (frame.srcdoc !== undefined) {
-        await embedded(await bounded(reportDocument(frame.srcdoc)), documentBase, depth + 1, origin);
+        await embedded(await bounded(reportDocument(frame.srcdoc)), documentBase, depth + 1, origin, { origin: rendering.origin, ancestors });
         continue;
       }
       const url = new URL(frame.src, documentBase);
       const firstParty = url.origin === origin;
-      if (firstParty && /\/api\/preview\//.test(url.pathname)) await preview(url.href, depth + 1);
-      else if (firstParty && /\/(?:s|v)\/[A-Za-z0-9_-]+\/?$/.test(url.pathname)) await share(url.href, depth + 1);
-      else if (frame.required) await resource(url.href, origin, depth + 1);
+      if (firstParty && /\/api\/preview\//.test(url.pathname)) await preview(url.href, depth + 1, ancestors);
+      else if (firstParty && /\/(?:s|v)\/[A-Za-z0-9_-]+\/?$/.test(url.pathname)) await share(url.href, depth + 1, ancestors);
+      else if (frame.required) await resource(url.href, origin, depth + 1, { direct: true, ancestors });
     }
   }
-  async function resource(url, serviceOrigin, depth) {
+  async function resource(url, serviceOrigin, depth, rendering) {
     await visit("entry", url, depth, async () => {
       // Yours serves the owner's uploaded file directly after the public manifest.
       // This gate checks anonymous delivery, not the report's prose, examples or forms.
       const response = await retrieve(url, "entry");
+      if (rendering.direct) {
+        embeddingAllowed(response.headers, response.url, rendering.ancestors);
+        rendering = { origin: response.url.origin, ancestors: rendering.ancestors };
+      }
       if (!/text\/html/i.test(response.type)) throw new Error("Expected an HTML report entry");
       if (/text\/html/i.test(response.type)) {
         const html = new TextDecoder("utf-8", { fatal: true }).decode(response.bytes);
         const document = await bounded(reportDocument(html));
         if (document.charset && !/^(?:utf-?8|us-ascii)$/i.test(document.charset)) throw new Error("Reports must use UTF-8 encoding");
         if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
-        await embedded(document, response.url, depth, serviceOrigin);
+        await embedded(document, response.url, depth, serviceOrigin, rendering);
       }
-    }, serviceOrigin);
+    }, JSON.stringify([serviceOrigin, rendering]));
   }
-  async function preview(url, depth) {
+  async function preview(url, depth, ancestors) {
     await visit("preview", url, depth, async () => {
       const page = await retrieve(url);
-      const frameOptions = (page.headers.get("x-frame-options") ?? "").trim().toLowerCase();
-      const policy = page.headers.get("content-security-policy") ?? "";
-      if (frameOptions === "deny" || /(?:^|;)\s*frame-ancestors\s+'none'(?:\s|;|$)/i.test(policy)) throw new Error("Report preview blocks embedding in its public share");
+      embeddingAllowed(page.headers, page.url, ancestors);
       const config = page.deliveryConfig;
       if (!config || typeof config.file !== "string" || !config.file) throw new Error("Anonymous preview did not expose its report delivery manifest");
       const manifestUrl = new URL(config.manifestUrl, page.url);
@@ -216,13 +247,15 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
         manifestUrl.searchParams.set("cursor", String(manifest.nextCursor));
       }
       if (!entry?.url) throw new Error("Report entry is missing from the anonymous delivery manifest");
-      await resource(entry.url, page.url.origin, depth);
-      await embedded(page, page.url, depth);
-    });
+      const rendering = { origin: page.url.origin, ancestors };
+      await resource(entry.url, page.url.origin, depth, rendering);
+      await embedded(page, page.url, depth, page.url.origin, rendering);
+    }, JSON.stringify(ancestors));
   }
-  async function share(url, depth) {
+  async function share(url, depth, ancestors = []) {
     await visit("share", url, depth, async () => {
       const page = await retrieve(url);
+      embeddingAllowed(page.headers, page.url, ancestors);
       const match = /^(.*)\/(s|v)\/([A-Za-z0-9_-]+)\/?$/.exec(page.url.pathname);
       if (!match) throw new Error("Use the report service's public share URL");
       const base = page.baseHref === null ? page.url : new URL(page.baseHref, page.url);
@@ -233,10 +266,10 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
         return target.origin === page.url.origin && (match[2] === "v" ? target.pathname.startsWith(prefix) : target.pathname.startsWith(prefix + match[3] + "/") || target.pathname === prefix + match[3]) ? [target] : [];
       });
       if (!previews.length) throw new Error("Public share has no report-service preview");
-      for (const target of previews) await preview(target.href, depth);
+      for (const target of previews) await preview(target.href, depth, [...ancestors, page.url.origin]);
       const otherFrames = page.frames.filter(frame => frame.srcdoc !== undefined || !previews.some(target => target.href === new URL(frame.src, base).href));
-      await embedded({ ...page, frames: otherFrames }, page.url, depth);
-    });
+      await embedded({ ...page, frames: otherFrames }, page.url, depth, page.url.origin, { origin: page.url.origin, ancestors });
+    }, JSON.stringify(ancestors));
   }
   await share(address, 0);
 }
