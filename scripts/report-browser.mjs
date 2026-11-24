@@ -31,6 +31,7 @@ export function reportDestination(value) {
   ]);
   const s3Keys = new Set([
     "x-amz-algorithm",
+    "x-amz-content-sha256",
     "x-amz-credential",
     "x-amz-date",
     "x-amz-expires",
@@ -41,7 +42,7 @@ export function reportDestination(value) {
   for (const key of [...url.searchParams.keys()])
     if (
       (cos && cosKeys.has(key.toLowerCase())) ||
-      (s3 && s3Keys.has(key.toLowerCase()))
+      ((s3 || cos) && s3Keys.has(key.toLowerCase()))
     )
       url.searchParams.delete(key);
   return url.href;
@@ -58,6 +59,7 @@ export async function verifyReportNavigation(
   const deadline = Date.now() + timeoutMs;
   const observed = new Set();
   const aliases = new Map();
+  const frameDocuments = new Map();
   try {
     context = await browser.newContext({
       serviceWorkers: "block",
@@ -72,6 +74,8 @@ export async function verifyReportNavigation(
         for (let current = request; current; current = current.redirectedFrom())
           chain.push(reportDestination(current.url()));
         aliases.set(reportDestination(request.url()), chain);
+        if (request.isNavigationRequest())
+          frameDocuments.set(request.frame(), chain);
         for (const url of chain) observed.add(url);
       } catch {
         /* Optional requests can finish while their context closes. */
@@ -111,7 +115,11 @@ export async function verifyReportNavigation(
         page.frames().flatMap((frame) => {
           try {
             const url = reportDestination(frame.url());
-            return [url, ...(aliases.get(url) ?? [])];
+            return [
+              url,
+              ...(aliases.get(url) ?? []),
+              ...(frameDocuments.get(frame) ?? []),
+            ];
           } catch {
             return [];
           }
