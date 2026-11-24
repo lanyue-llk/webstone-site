@@ -132,3 +132,11 @@ test("the HTTPS transport receives the validated lookup callback", async () => {
     const req=new EventEmitter();req.end=()=>{const response=new EventEmitter();response.statusCode=200;response.headers={};callback(response);response.emit('data',Buffer.from('report'));response.emit('end')};return req;
   });
 });
+
+test("the static export authorizes exact build scripts and excludes external script bodies", async () => {
+  const {inlineScriptHashes}=await import('../scripts/secure-export.mjs');
+  const hashes=inlineScriptHashes('<script>window.ready=true</script><script src="/app.js"></script>');
+  assert.equal(hashes.length,1);
+  assert.match(hashes[0],/^'sha256-[A-Za-z0-9+/]+=*'$/);
+  assert.notDeepEqual(hashes,inlineScriptHashes('<script>window.ready=false</script>'));
+});

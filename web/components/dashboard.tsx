@@ -16,8 +16,7 @@ import { historicalPublication } from "../lib/historical-publications";
 import { decisionMetrics, hasPricingInformation } from "../lib/comparisons";
 
 import Home, { EvaluationReports, TRACK_ICONS } from "./home";
-import { benchmarkHref, EVALUATION_URL, SUBMISSION_URL } from "../lib/overview";
-const DATASETS_URL = "https://huggingface.co/datasets?author=Lexmount";
+import { benchmarkHref, DATASETS_URL, EVALUATION_URL, SUBMISSION_URL } from "../lib/overview";
 const GITHUB_URL = "https://github.com/lexmount/webstone-site";
 const LEGACY_DATE_NOTE = "The evaluation date was not supplied; the displayed date is the date of import.";
 type Selection = { benchmark: string; version: string; metric: string };

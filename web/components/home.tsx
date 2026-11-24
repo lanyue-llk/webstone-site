@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ArrowRight, ArrowUpRight, BookOpenText, Bot, Clipboard, FileJson2, Globe2, Layers3, Search } from "lucide-react";
-import { benchmarkHref, evaluationReports, EVALUATION_URL, EVALUATION_SKILL, SUBMISSION_SKILL, SUBMISSION_URL, trackOverview } from "../lib/overview";
+import { benchmarkHref, evaluationReports, DATASETS_URL, EVALUATION_URL, EVALUATION_SKILL, SUBMISSION_SKILL, SUBMISSION_URL, trackOverview } from "../lib/overview";
 import type { BenchmarkInfo, Catalog, Snapshot } from "../lib/results";
 
 type Props = { catalog: Catalog; snapshots: Snapshot[]; t: (value: string) => string };
@@ -53,8 +53,6 @@ export default function Home({ catalog, snapshots, t }: Props) {
         <p>{t("The touchstone for your agent's web tools.")}</p>
         <div className="overview-actions">
           {firstBenchmark && <a href={benchmarkHref(firstBenchmark.id)} className="overview-primary">{t("Explore leaderboards")} <ArrowRight size={17} aria-hidden="true" /></a>}
-          <a href="#run-evaluation">{t("Run an evaluation")}</a>
-          <a href="#submit-results">{t("Submit results")}</a>
         </div>
       </div>
       <dl className="overview-stats">
@@ -62,6 +60,26 @@ export default function Home({ catalog, snapshots, t }: Props) {
         <div><dt>{t("Benchmarks")}</dt><dd>{count}</dd></div>
         <div><dt>{t("Result editions")}</dt><dd>{snapshots.length}</dd></div>
       </dl>
+    </section>
+    <section className="getting-started" aria-label={t("Get started")}>
+      <article id="run-evaluation" className="getting-started-card">
+        <Bot size={23} aria-hidden="true" />
+        <h2>{t("Run an evaluation")}</h2>
+        <p>{t("Choose benchmarks, run tools and score results with Webstone.")}</p>
+        <div className="getting-started-actions"><AgentPrompt id="evaluation-prompt" prompt={evaluationPrompt} t={t} /><a href={EVALUATION_URL} target="_blank" rel="noreferrer">webstone <ArrowUpRight size={14} aria-hidden="true" /></a></div>
+      </article>
+      <article id="submit-results" className="getting-started-card">
+        <FileJson2 size={23} aria-hidden="true" />
+        <h2>{t("Submit results")}</h2>
+        <p>{t("Send measured results and public evidence to the leaderboard.")}</p>
+        <div className="getting-started-actions"><AgentPrompt id="submission-prompt" prompt={submissionPrompt} t={t} /><a href={SUBMISSION_URL} target="_blank" rel="noreferrer">webstone-site <ArrowUpRight size={14} aria-hidden="true" /></a></div>
+      </article>
+      <article className="getting-started-card">
+        <img src="/huggingface.svg" width={25} height={25} alt="" aria-hidden="true" />
+        <h2>{t("Get datasets")}</h2>
+        <p>{t("Browse the dataset cards, tasks and reference data.")}</p>
+        <div className="getting-started-actions"><a className="dataset-action" href={DATASETS_URL} target="_blank" rel="noreferrer">{t("Datasets")} <ArrowUpRight size={16} aria-hidden="true" /></a></div>
+      </article>
     </section>
     <section className="track-overview" aria-labelledby="track-overview-heading">
       <h2 id="track-overview-heading">{t("Explore by track")}</h2>
@@ -80,22 +98,6 @@ export default function Home({ catalog, snapshots, t }: Props) {
       })}</div>
     </section>
     <EvaluationReports catalog={catalog} snapshots={snapshots} t={t} />
-    <section className="overview-submit" id="run-evaluation" aria-labelledby="evaluation-heading">
-      <div>
-        <h2 id="evaluation-heading">{t("Run an evaluation")}</h2>
-        <p>{t("Use Webstone to choose benchmarks, prepare environments, run tools and score results. The evaluation skill guides your agent through each step.")}</p>
-        <a href={EVALUATION_URL} target="_blank" rel="noreferrer">lexmount/webstone <ArrowUpRight size={14} aria-hidden="true" /></a>
-      </div>
-      <AgentPrompt id="evaluation-prompt" prompt={evaluationPrompt} t={t} />
-    </section>
-    <section className="overview-submit" id="submit-results" aria-labelledby="submission-heading">
-      <div>
-        <h2 id="submission-heading">{t("Submit results")}</h2>
-        <p>{t("Already have measured results? The webstone-site submission skill checks the format and prepares a result PR for the leaderboard.")}</p>
-        <a href={SUBMISSION_URL} target="_blank" rel="noreferrer">lexmount/webstone-site <ArrowUpRight size={14} aria-hidden="true" /></a>
-      </div>
-      <AgentPrompt id="submission-prompt" prompt={submissionPrompt} t={t} />
-    </section>
   </div>;
 }
 
@@ -103,17 +105,9 @@ function AgentPrompt({ id, prompt, t }: { id: string; prompt: string; t: Props["
   const [copyStatus, setCopyStatus] = useState("");
 
   async function copyPrompt() {
-    const field = document.getElementById(id);
     try {
       await navigator.clipboard.writeText(prompt);
     } catch {
-      const selection = window.getSelection();
-      if (!field || !selection) return;
-      field.focus();
-      const range = document.createRange();
-      range.selectNodeContents(field);
-      selection.removeAllRanges();
-      selection.addRange(range);
       setCopyStatus("Select and copy the prompt below.");
       return;
     }
@@ -124,7 +118,7 @@ function AgentPrompt({ id, prompt, t }: { id: string; prompt: string; t: Props["
     <div className="prompt-panel">
       <button type="button" onClick={copyPrompt}><Clipboard size={16} aria-hidden="true" />{t(copyStatus === "Prompt copied" ? copyStatus : "Copy prompt")}</button>
       <span className="sr-only" role="status">{copyStatus && t(copyStatus)}</span>
-      <p id={id} tabIndex={-1}>{prompt}</p>
+      {copyStatus === "Select and copy the prompt below." && <textarea id={id} aria-label={t("Copy prompt")} readOnly value={prompt} autoFocus onFocus={event => event.currentTarget.select()} />}
       {copyStatus === "Select and copy the prompt below." && <p className="copy-hint">{t("Prompt selected. Use your device’s copy command.")}</p>}
     </div>
   );

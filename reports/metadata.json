@@ -22,7 +22,7 @@
     "lexbench-headless-372-v1": {
       "publishedAt": "2026-09-20T09:30:59.106Z",
       "title": "Moli 1.1.4 / 1.1.8 / 1.1.9: success and resource use",
-      "summary": "Task success, memory and mean latency across seven Moli configurations.",
+      "summary": "Task success, memory and CPU time across seven Moli configurations.",
       "benchmarkIds": [
         "lexbench-headless-372"
       ]

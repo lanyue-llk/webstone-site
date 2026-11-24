@@ -1,6 +1,8 @@
 import reportMetadata from "../../reports/metadata.json";
 import type { BenchmarkInfo, Catalog, Snapshot } from "./results.ts";
 
+export const DATASETS_URL = "https://huggingface.co/datasets?author=Lexmount";
+
 export const EVALUATION_URL = "https://github.com/lexmount/webstone#for-agents";
 export const EVALUATION_SKILL = "https://github.com/lexmount/webstone/blob/main/.agents/skills/webstone/SKILL.md";
 

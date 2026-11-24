@@ -4,6 +4,12 @@ export type Language = "en" | "zh";
 export const LANGUAGE_KEY = "webstone-language";
 
 const chinese: Record<string, string> = {
+  "Get started": "开始使用",
+  "Get datasets": "获取数据集",
+  "Choose benchmarks, run tools and score results with Webstone.": "用 Webstone 选择评测基准、运行工具并评分。",
+  "Send measured results and public evidence to the leaderboard.": "将实测结果和公开证据提交到排行榜。",
+  "Browse the dataset cards, tasks and reference data.": "查看数据集说明、评测任务和参考数据。",
+  "Task success, memory and CPU time across seven Moli configurations.": "比较 Moli 七种配置的任务成功率、内存占用和 CPU 时间。",
   "Table metrics": "表格指标",
   "Reset metrics": "恢复默认指标",
   "Select at least three metrics for a radar chart.": "请至少选择三项指标来绘制雷达图。",
@@ -58,7 +64,7 @@ const chinese: Record<string, string> = {
   "Browser task success and timing across 812 recorded trajectories.": "在 812 条操作轨迹上测量浏览器的任务成功率和耗时。",
   "Structured extraction from web pages": "从网页提取结构化字段",
   "Compare extraction methods on SWDE pages and Zyte product pages.": "在 SWDE 网页和 Zyte 商品页上比较字段提取方案。",
-  "The touchstone for your agent's web tools.": "检验 Agent Web 工具的试金石。",
+  "The touchstone for your agent's web tools.": "Agent Web Tools 的试金石。",
   "Explore leaderboards": "查看排行榜",
   "Local tracks": "站内评测方向",
   "Result editions": "结果版本",

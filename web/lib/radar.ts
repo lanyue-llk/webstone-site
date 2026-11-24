@@ -69,7 +69,7 @@ export function radarAxes(benchmark: Benchmark): Axis[] {
 
   if (cost) resources.push(metricAxis(cost));
 
-  return [
+  const axes = [
     ...quality.map(metric => {
       const axis = metricAxis(metric);
       return { ...axis, value: (provider: Provider) => {
@@ -80,4 +80,5 @@ export function radarAxes(benchmark: Benchmark): Axis[] {
     ...resources.flatMap(axis => resourceAxis(axis, benchmark.providers) ?? []),
     ...categories,
   ];
+  return axes.filter(axis => axis.defaultSelected).length >= 3 ? axes : axes.map(axis => ({ ...axis, defaultSelected: true }));
 }

@@ -200,9 +200,12 @@ test("the homepage directs evaluation and result submission to their own reposit
     const submission = win.document.querySelector("#submit-results");
     assert.equal(evaluation.querySelector("a").getAttribute("href"), EVALUATION_URL);
     assert.equal(submission.querySelector("a").getAttribute("href"), SUBMISSION_URL);
-    assert.ok(evaluation.querySelector("#evaluation-prompt").textContent.includes(EVALUATION_SKILL));
-    assert.ok(submission.querySelector("#submission-prompt").textContent.includes(SUBMISSION_SKILL));
-    assert.ok(!evaluation.querySelector("#evaluation-prompt").textContent.includes(SUBMISSION_SKILL));
+    assert.equal(evaluation.querySelector("#evaluation-prompt"), null);
+    assert.equal(submission.querySelector("#submission-prompt"), null);
+    const cards = win.document.querySelector(".getting-started");
+    assert.equal(cards.children.length, 3);
+    assert.ok(cards.compareDocumentPosition(win.document.querySelector(".track-overview")) & win.Node.DOCUMENT_POSITION_FOLLOWING);
+    assert.equal(cards.querySelector(".dataset-action").getAttribute("href"), "https://huggingface.co/datasets?author=Lexmount");
     assert.equal(evaluation.querySelectorAll("button").length, 1);
     assert.equal(submission.querySelectorAll("button").length, 1);
   } finally {
@@ -331,5 +334,37 @@ test("every published benchmark edition shares table and radar controls in both 
     }
   } finally {
     [globalThis.window, globalThis.document, globalThis.fetch, globalThis.IS_REACT_ACT_ENVIRONMENT] = previous;
+  }
+});
+
+
+test("profiles with only two disclosed quality metrics include all available categories by default", () => {
+  const { benchmark } = load("lexbench-webfetch");
+  for (const provider of benchmark.providers) for (const id of ["totalMean", "totalP50", "totalP95"]) provider.scores[id] = null;
+  const axes = radarAxes(benchmark);
+  assert.ok(axes.filter(axis => axis.defaultSelected).length >= 3);
+  assert.ok(axes.filter(axis => axis.id.startsWith("category:")).every(axis => axis.defaultSelected));
+  assert.ok(!axes.some(axis => axis.id === "totalMean"));
+});
+
+test("homepage copy actions copy the correct skill without displaying long prompts", async () => {
+  const Home=require('../web/components/home.tsx').default;
+  const {EVALUATION_SKILL,SUBMISSION_SKILL}=require('../web/lib/overview.ts');
+  const win=new Window(); const copied=[];
+  const prior=[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT,Object.getOwnPropertyDescriptor(globalThis,'navigator')];
+  [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+  Object.defineProperty(globalThis,'navigator',{configurable:true,value:{clipboard:{writeText:async value=>copied.push(value)}}});
+  const root=require('react-dom/client').createRoot(win.document.body);
+  try {
+    await React.act(async()=>root.render(React.createElement(Home,{catalog,snapshots:[],t:text=>text})));
+    assert.equal(win.document.querySelectorAll('textarea').length,0);
+    for (const id of ['run-evaluation','submit-results']) await React.act(async()=>win.document.querySelector('#'+id+' button').click());
+    assert.ok(copied[0].includes(EVALUATION_SKILL)); assert.ok(copied[1].includes(SUBMISSION_SKILL));
+    assert.ok(!win.document.body.textContent.includes(EVALUATION_SKILL));
+    assert.equal(win.document.querySelectorAll('textarea').length,0);
+  } finally {
+    await React.act(async()=>root.unmount());await win.happyDOM.close();
+    [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=prior;
+    if(prior[3])Object.defineProperty(globalThis,'navigator',prior[3]);else delete globalThis.navigator;
   }
 });

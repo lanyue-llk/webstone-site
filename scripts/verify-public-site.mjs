@@ -22,6 +22,12 @@ assert.ok(matched, `Public release does not match the built source: ${lastFailur
 const entry = await request("/");
 assert.equal(entry.status, 200);
 assert.match(entry.headers.get("cache-control") ?? "", /no-store/);
+assert.equal(entry.headers.get("x-content-type-options"), "nosniff");
+assert.equal(entry.headers.get("x-frame-options"), "DENY");
+const policy = entry.headers.get("content-security-policy") ?? "";
+assert.match(policy, /script-src 'self' 'sha256-/);
+assert.doesNotMatch(policy.split(";").find(part => part.includes("script-src")) ?? "", /unsafe-inline|unsafe-eval/);
+assert.match(policy, /frame-ancestors 'none'/);
 const html = await entry.text();
 assert.match(html, /Webstone/);
 const stylesheet = /href="([^"?]+\.css)(?:\?[^"]*)?"/.exec(html)?.[1];
