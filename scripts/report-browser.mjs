@@ -1,160 +1,119 @@
 import { chromium } from "playwright";
-import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
-import {
-  anonymousRequest,
-  isPublicNetworkAddress,
-} from "./check-report-access.mjs";
+import { createPublicBrowserProxy } from "./public-browser-proxy.mjs";
 import { publicEvidenceUrl } from "./prepare-data.mjs";
 
-export function launchReportBrowser() {
+export function launchReportBrowser({ args = [] } = {}) {
   return chromium.launch({
     ...(process.env.REPORT_BROWSER_CHANNEL
       ? { channel: process.env.REPORT_BROWSER_CHANNEL }
       : {}),
     headless: true,
-    args: ["--host-resolver-rules=MAP * ~NOTFOUND"],
+    args: ["--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1", ...args],
   });
 }
 
-const destination = (value) => {
+export function reportDestination(value) {
   const url = new URL(value);
-  return url.origin + url.pathname;
-};
+  url.hash = "";
+  const cos = /\.cos\.[a-z0-9-]+\.myqcloud\.com$/i.test(url.hostname);
+  const s3 = /(?:^|\.)s3(?:[.-][a-z0-9-]+)*\.amazonaws\.com(?:\.cn)?$/i.test(
+    url.hostname,
+  );
+  const cosKeys = new Set([
+    "q-sign-algorithm",
+    "q-ak",
+    "q-sign-time",
+    "q-key-time",
+    "q-header-list",
+    "q-url-param-list",
+    "q-signature",
+    "x-cos-security-token",
+  ]);
+  const s3Keys = new Set([
+    "x-amz-algorithm",
+    "x-amz-credential",
+    "x-amz-date",
+    "x-amz-expires",
+    "x-amz-signedheaders",
+    "x-amz-signature",
+    "x-amz-security-token",
+  ]);
+  for (const key of [...url.searchParams.keys()])
+    if (
+      (cos && cosKeys.has(key.toLowerCase())) ||
+      (s3 && s3Keys.has(key.toLowerCase()))
+    )
+      url.searchParams.delete(key);
+  return url.href;
+}
 
 export async function verifyReportNavigation(
   browser,
   address,
   delivery,
-  { resolve = lookup, request = anonymousRequest, timeoutMs = 30000 } = {},
+  { timeoutMs = 30000, proxyOptions = {} } = {},
 ) {
-  const context = await browser.newContext({
-    serviceWorkers: "block",
-    acceptDownloads: false,
-  });
-  const controller = new AbortController();
+  const proxy = await createPublicBrowserProxy({ timeoutMs, ...proxyOptions });
+  let context;
   const deadline = Date.now() + timeoutMs;
   const observed = new Set();
   const aliases = new Map();
-  context.on("requestfinished", async (incoming) => {
-    try {
-      const response = await incoming.response();
-      if (response?.ok())
-        for (const url of aliases.get(incoming) ?? []) observed.add(url);
-    } catch {
-      /* A context can close while an optional request finishes. */
-    }
-  });
-  let calls = 0,
-    bytes = 0;
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    await context.routeWebSocket("**/*", (socket) => socket.close());
-    await context.route("**/*", async (route) => {
+    context = await browser.newContext({
+      serviceWorkers: "block",
+      acceptDownloads: false,
+      proxy: { server: proxy.server },
+    });
+    context.on("requestfinished", async (request) => {
       try {
-        const incoming = route.request();
-        if (
-          ["image", "font", "media"].includes(incoming.resourceType()) ||
-          !["GET", "HEAD"].includes(incoming.method())
-        )
-          return await route.abort();
-        let url = new URL(incoming.url());
-        const originalOrigin = url.origin;
+        const response = await request.response();
+        if (!response?.ok()) return;
+        const chain = [];
+        for (let current = request; current; current = current.redirectedFrom())
+          chain.push(reportDestination(current.url()));
+        aliases.set(reportDestination(request.url()), chain);
+        for (const url of chain) observed.add(url);
+      } catch {
+        /* Optional requests can finish while their context closes. */
+      }
+    });
+    await context.routeWebSocket("**/*", (socket) => socket.close());
+    let requests = 0;
+    await context.route("**/*", async (route) => {
+      const request = route.request();
+      try {
+        const url = new URL(request.url());
         if (
           !publicEvidenceUrl(url.href) ||
           /\/(?:login|signin|sign-in|auth)(?:\/|$)/i.test(
             decodeURIComponent(url.pathname),
-          )
+          ) ||
+          ["image", "font", "media"].includes(request.resourceType()) ||
+          !["GET", "HEAD"].includes(request.method())
         )
-          throw new Error("Navigation requires a public URL without sign-in");
-        controller.signal.throwIfAborted();
-        let onAbort;
-        let records;
-        try {
-          records = await Promise.race([
-            resolve(url.hostname, { all: true }),
-            new Promise((_, reject) => {
-              onAbort = () => reject(new Error("Navigation cancelled"));
-              controller.signal.addEventListener("abort", onAbort, {
-                once: true,
-              });
-            }),
-          ]);
-        } finally {
-          controller.signal.removeEventListener("abort", onAbort);
-        }
-        controller.signal.throwIfAborted();
-        if (
-          !records.length ||
-          records.some((record) => !isPublicNetworkAddress(record.address))
-        )
-          throw new Error(
-            "Navigation resolves to a private or reserved network",
-          );
-        let response;
-        for (let redirects = 0; redirects <= 5; redirects++) {
-          if (++calls > 200 || Date.now() >= deadline)
-            throw new Error("Report navigation exceeds its budget");
-          if (
-            url.origin !== originalOrigin ||
-            !publicEvidenceUrl(url.href) ||
-            /\/(?:login|signin|sign-in|auth)(?:\/|$)/i.test(
-              decodeURIComponent(url.pathname),
-            )
-          )
-            throw new Error(
-              "Use a canonical share URL without cross-origin or sign-in redirects",
-            );
-          response = await request(url.href, {
-            credentials: "omit",
-            redirect: "manual",
-            signal: controller.signal,
-            origin: incoming.headers().origin,
-            lookup: (_host, options, callback) => {
-              const pinned = records.map((record) => ({
-                address: record.address,
-                family: isIP(record.address),
-              }));
-              if (options.all) callback(null, pinned);
-              else callback(null, pinned[0].address, pinned[0].family);
-            },
-          });
-          if (![301, 302, 303, 307, 308].includes(response.status)) break;
-          if (!response.headers.get("location") || redirects === 5)
-            throw new Error("Invalid report navigation redirect");
-          url = new URL(response.headers.get("location"), url);
-        }
-        const body = Buffer.from(await response.arrayBuffer());
-        bytes += body.length;
-        if (bytes > 100 * 1024 * 1024)
-          throw new Error("Report navigation exceeds its download budget");
-        aliases.set(incoming, [
-          destination(incoming.url()),
-          destination(url.href),
-        ]);
-        const headers = Object.fromEntries(response.headers);
-        // Playwright otherwise supplies a permissive CORS header for mocked responses.
-        if (
-          incoming.headers().origin &&
-          !response.headers.has("access-control-allow-origin")
-        )
-          headers["access-control-allow-origin"] = "";
-        await route.fulfill({ status: response.status, headers, body });
+          return await route.abort();
+        if (++requests > 200) return await route.abort();
+        await route.continue();
       } catch {
         await route.abort().catch(() => {});
       }
     });
     const page = await context.newPage();
-    await page.goto(address, { waitUntil: "networkidle", timeout: timeoutMs });
-    const required = delivery.entries.map(destination);
-    const frames = delivery.frames.map(destination);
+    await page.goto(address, {
+      waitUntil: "domcontentloaded",
+      timeout: timeoutMs,
+    });
+    const required = delivery.entries.map(reportDestination);
+    const frames = delivery.frames.map(reportDestination);
     while (Date.now() < deadline) {
+      if (proxy.failure) throw proxy.failure;
       const loadedFrames = new Set(
-        page.frames().map((frame) => {
+        page.frames().flatMap((frame) => {
           try {
-            return destination(frame.url());
+            const url = reportDestination(frame.url());
+            return [url, ...(aliases.get(url) ?? [])];
           } catch {
-            return "";
+            return [];
           }
         }),
       );
@@ -162,25 +121,34 @@ export async function verifyReportNavigation(
         required.every((url) => observed.has(url)) &&
         frames.every((url) => loadedFrames.has(url))
       ) {
-        await page.waitForLoadState("networkidle", {
-          timeout: Math.max(1, deadline - Date.now()),
-        });
-        return;
+        if (proxy.failure) throw proxy.failure;
+        const pending = await Promise.all(
+          page
+            .frames()
+            .map((frame) =>
+              frame
+                .evaluate(
+                  () =>
+                    Boolean(
+                      document.getElementById("artifact-delivery-config"),
+                    ) || Boolean(document.getElementById("artifact-loading")),
+                )
+                .catch(() => true),
+            ),
+        );
+        if (!pending.some(Boolean)) return;
       }
       await new Promise((resolve) => setTimeout(resolve, 25));
     }
     throw new Error(
       "Anonymous browser could not load the report preview and delivery",
     );
-  } catch (error) {
+  } catch {
     throw new Error(
-      error.message.startsWith("Anonymous browser")
-        ? error.message
-        : "Anonymous browser could not open the report",
+      "Anonymous browser could not open the report preview and delivery",
     );
   } finally {
-    clearTimeout(timer);
-    controller.abort();
-    await context.close();
+    await context?.close();
+    await proxy.close();
   }
 }
