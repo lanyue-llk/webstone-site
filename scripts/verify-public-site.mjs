@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { assertScriptPolicy } from "./secure-export.mjs";
 import { setTimeout } from "node:timers/promises";
 
 const origin = process.env.SITE_ORIGIN;
@@ -30,6 +31,10 @@ assert.doesNotMatch(policy.split(";").find(part => part.includes("script-src")) 
 assert.match(policy, /frame-ancestors 'none'/);
 const html = await entry.text();
 assert.match(html, /Webstone/);
+const builtHeaders = await readFile(new URL("../web/out/_headers", import.meta.url), "utf8");
+const builtPolicy = builtHeaders.match(/^\s*Content-Security-Policy:\s*(.+)$/mi)?.[1];
+assert.ok(builtPolicy, "Build must include its security policy");
+assertScriptPolicy(policy, builtPolicy, html);
 const stylesheet = /href="([^"?]+\.css)(?:\?[^"]*)?"/.exec(html)?.[1];
 assert.ok(stylesheet);
 const asset = await request(stylesheet);

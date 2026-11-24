@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight, BookOpenText, Bot, Clipboard, FileJson2, Globe2, Layers3, Search } from "lucide-react";
 import { benchmarkHref, evaluationReports, DATASETS_URL, EVALUATION_URL, EVALUATION_SKILL, SUBMISSION_SKILL, SUBMISSION_URL, trackOverview } from "../lib/overview";
 import type { BenchmarkInfo, Catalog, Snapshot } from "../lib/results";
@@ -103,12 +103,15 @@ export default function Home({ catalog, snapshots, t }: Props) {
 
 function AgentPrompt({ id, prompt, t }: { id: string; prompt: string; t: Props["t"] }) {
   const [copyStatus, setCopyStatus] = useState("");
+  const promptRef = useRef<HTMLTextAreaElement>(null);
 
   async function copyPrompt() {
     try {
       await navigator.clipboard.writeText(prompt);
     } catch {
       setCopyStatus("Select and copy the prompt below.");
+      promptRef.current?.focus();
+      promptRef.current?.select();
       return;
     }
     setCopyStatus("Prompt copied");
@@ -118,7 +121,7 @@ function AgentPrompt({ id, prompt, t }: { id: string; prompt: string; t: Props["
     <div className="prompt-panel">
       <button type="button" onClick={copyPrompt}><Clipboard size={16} aria-hidden="true" />{t(copyStatus === "Prompt copied" ? copyStatus : "Copy prompt")}</button>
       <span className="sr-only" role="status">{copyStatus && t(copyStatus)}</span>
-      {copyStatus === "Select and copy the prompt below." && <textarea id={id} aria-label={t("Copy prompt")} readOnly value={prompt} autoFocus onFocus={event => event.currentTarget.select()} />}
+      {copyStatus === "Select and copy the prompt below." && <textarea ref={promptRef} id={id} aria-label={t("Copy prompt")} readOnly value={prompt} autoFocus onFocus={event => event.currentTarget.select()} />}
       {copyStatus === "Select and copy the prompt below." && <p className="copy-hint">{t("Prompt selected. Use your device’s copy command.")}</p>}
     </div>
   );

@@ -272,7 +272,13 @@ export default function Dashboard() {
               <h2 className="sr-only">{t("Leaderboard")}</h2>
               <div className="table-toolbar"><span>{benchmark.providerCount} {t("methods")} · {benchmark.taskCount.toLocaleString()} {t("cases")}</span><div className="column-views table-controls" role="group" aria-label={t("Table columns")}>
                 {benchmark.categories.length > 0 && <button aria-pressed={showCategories} onClick={() => setShowCategories(current => !current)}>{t("Category breakdown")}</button>}
-                {benchmark.metrics.some(item => !decisionMetrics(benchmark, false, selection.metric).includes(item)) && <button aria-pressed={moreMetrics} onClick={() => setMoreMetrics(current => !current)}>{t("More metrics")}</button>}
+                {benchmark.metrics.some(item => !decisionMetrics(benchmark, false, benchmark.primaryMetric).includes(item)) && <button aria-pressed={moreMetrics} onClick={() => {
+                  if (moreMetrics && !decisionMetrics(benchmark, false, benchmark.primaryMetric).some(item => item.id === selection.metric)) {
+                    setSelection(current => ({ ...current, metric: benchmark.primaryMetric }));
+                    setDirection(primaryMetric?.direction ?? "desc");
+                  }
+                  setMoreMetrics(current => !current);
+                }}>{t("More metrics")}</button>}
               </div></div>
               <p className="sample-scope">{benchmark.metrics.filter(item => result?.metricSamples?.[item.id]?.sampleCount !== null && result?.metricSamples?.[item.id]?.sampleCount !== undefined && result.metricSamples[item.id].sampleCount !== benchmark.taskCount).map(item => `${t(item.label)}: ${result!.metricSamples![item.id].sampleCount} ${t("samples")}`).join(" · ")}</p>
               {benchmark.trackId === "websearch" && snapshot?.source.kind === "report-page" && <p className="sample-scope">{t("Latency comes from separate runs with different concurrency.")}</p>}

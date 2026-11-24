@@ -1,11 +1,41 @@
+import { parse } from "parse5";
+import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 export function inlineScriptHashes(html) {
-  return [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
-    .filter(([, attributes, content]) => !/\bsrc\s*=/i.test(attributes) && content.trim())
-    .map(([, , content]) => `'sha256-${createHash("sha256").update(content).digest("base64")}'`);
+  const stack = [parse(html)];
+  const hashes = [];
+  while (stack.length) {
+    const node = stack.pop();
+    if (node.tagName === "script" && node.namespaceURI === "http://www.w3.org/1999/xhtml" && !node.attrs.some(attr => attr.name === "src")) {
+      const content = (node.childNodes ?? []).map(child => child.value ?? "").join("");
+      if (content.trim()) hashes.push(`'sha256-${createHash("sha256").update(content).digest("base64")}'`);
+    }
+    stack.push(...(node.childNodes ?? []));
+  }
+  return hashes;
+}
+
+export function assertScriptPolicy(policy, expectedPolicy, html) {
+  function directives(value) {
+    const result = new Map();
+    for (const part of value.split(";").filter(part => part.trim())) {
+      const [directive, ...sources] = part.trim().split(/\s+/);
+      const name = directive.toLowerCase();
+      assert.ok(!result.has(name), "Duplicate CSP directive: " + name);
+      result.set(name, sources);
+    }
+    return result;
+  }
+  const actual = directives(policy), expected = directives(expectedPolicy);
+  const sources = actual.get("script-src") ?? [];
+  assert.ok(sources.length > 0, "Missing script-src policy");
+  assert.ok(sources.every(source => source === "'self'" || /^'sha256-[A-Za-z0-9+/]{43}='$/.test(source)), "Unexpected script source");
+  assert.ok(!actual.has("script-src-elem") && !actual.has("script-src-attr"), "Unexpected script policy override");
+  assert.deepEqual(new Set(sources), new Set(expected.get("script-src")), "Published script sources must match the build policy");
+  for (const hash of inlineScriptHashes(html)) assert.ok(sources.includes(hash), "Published policy must authorize every inline script");
 }
 
 async function main() {

@@ -44,9 +44,9 @@ test("both language destinations are checked, withdrawn result links are exclude
 
 test("a title or sign-in wrapper cannot stand in for a public report preview", async () => {
   for (const content of ["<h1>Sign in</h1>", body, '<main><p>Please <a href="/login">sign in</a> to view this report.</p></main>']) {
-    await assert.rejects(check(publication({ [share]: () => html(content) })), /no report-service preview/);
+    await assert.rejects(check(publication({ [share]: () => html(content) })), /no report-service preview|authentication/);
   }
-  await assert.rejects(check(publication({ [preview]: () => html("<h1>Sign in</h1>") })), /delivery manifest/);
+  await assert.rejects(check(publication({ [preview]: () => html("<h1>Sign in</h1>") })), /delivery manifest|authentication/);
 });
 
 test("permission failures at every publication boundary block release", async () => {
@@ -68,7 +68,7 @@ test("a language-only entry follows its required report-service preview", async 
     "https://reports.example.org/english-manifest?file=en%2Findex.html": () => Response.json({ files: [{ path: "en/index.html", url: "https://cdn.example.org/english.html" }], nextCursor: null }),
     "https://cdn.example.org/english.html": () => html(body),
   }, '<iframe src="' + nested + '"></iframe>'));
-  await assert.rejects(check(publication({ [nested]: () => html("<h1>Sign in</h1>") }, '<iframe src="' + nested + '"></iframe>')), /delivery manifest/);
+  await assert.rejects(check(publication({ [nested]: () => html("<h1>Sign in</h1>") }, '<iframe src="' + nested + '"></iframe>')), /delivery manifest|authentication/);
 });
 
 test("delivery metadata and explicitly required embedded reports are both verified", async () => {
@@ -183,7 +183,7 @@ test("preview DNS is independently checked even on the share origin", async () =
   let lookups=0;const visited=[];const request=publication();
   await assert.rejects(checkReportAccess(share,{resolve:async()=>++lookups===1?[{address:"93.184.216.34"}]:[{address:"93.184.216.34"},{address:"10.0.0.1"}],request:async(url,options)=>{visited.push(url);return request(url,options);}}),/private or reserved/);
   assert.deepEqual(visited,[share]);
-  await assert.rejects(check(publication({[share]:()=>html('<iframe src="https://other.example.org/artifact-site/api/preview/abc/"></iframe>')})),/no report-service preview/);
+  await assert.rejects(check(publication({[share]:()=>html('<iframe src="https://other.example.org/artifact-site/api/preview/abc/"></iframe>')})),/no report-service preview|authentication/);
 });
 
 test("quoted UTF-8 HTML declarations are valid", async () => {
@@ -206,20 +206,85 @@ test("foreign SVG elements cannot impersonate HTML report previews or metadata",
 
 test("HTTPS cancellation bounds stalled headers and bodies and closes transport resources", {timeout:2000}, async () => {
   for(const stage of ["headers","body"]) {
+    const controller = new AbortController();
     let req,response,guard;
     const transport=(_url,options,callback)=>{
       req=new EventEmitter();req.destroyed=false;
       req.destroy=error=>{req.destroyed=true;response?.destroy(error);req.emit("error",error);};
       guard=setTimeout(()=>req.destroy(new Error("Independent test guard expired")),500);
+      assert.equal(options.signal, controller.signal);
+      options.signal.addEventListener("abort",()=>req.destroy(options.signal.reason),{once:true});
+      req.end=()=>{if(stage==="body"){response=new Readable({read(){}});response.statusCode=200;response.headers={"content-type":"text/html"};callback(response);} queueMicrotask(()=>controller.abort());};
+      return req;
+    };
+    try {
+      await assert.rejects(anonymousRequest(entry,{signal:controller.signal},transport), error=>error.name==="TimeoutError" || error.name==="AbortError");
+      assert.equal(req.destroyed,true);
+      if(response)assert.equal(response.destroyed,true);
+    } finally {clearTimeout(guard);}
+  }
+});
+
+
+test("HTML previews inside SVG integration points retain their access checks", async () => {
+  const denied="https://reports.example.org/private";
+  for(const ancestor of ["template","noscript","iframe","script","style"]) {
+    const content=body+'<svg><'+ancestor+'><foreignObject><iframe data-report-preview src="'+denied+'"></iframe></foreignObject></'+ancestor+'></svg>';
+    await assert.rejects(check(publication({[denied]:()=>new Response("Forbidden",{status:403})},content)),/403/);
+  }
+});
+
+
+test("delivered permission pages cannot stand in for a report", async () => {
+  for(const text of ["Sign in","Log in","Access denied","Unauthorized","Forbidden","Please sign in to view this report.","You must log in to access this report.","Authentication required","Access denied Contact the owner.","Access denied Please sign in to view this report."]) await assert.rejects(check(publication({},"<h1>"+text+"</h1>")), /authentication|denies access/);
+  await check(publication({},'<header>Sign in</header>'+body));
+});
+
+test("decoder failure closes a corrupt response before a server ends its stream", {timeout:1000}, async () => {
+  let req,response;
+  const transport=(_url,_options,callback)=>{
+    req=new EventEmitter();req.destroyed=false;req.destroy=error=>{req.destroyed=true;if(error)req.emit("error",error);};
+    req.end=()=>{response=new Readable({read(){}});response.headers={"content-encoding":"gzip"};response.statusCode=200;callback(response);response.push(Buffer.from("invalid compressed bytes"));};return req;
+  };
+  await assert.rejects(anonymousRequest(entry,{},transport), error=>error.code==="Z_DATA_ERROR");
+  assert.equal(req.destroyed,true);assert.equal(response.destroyed,true);
+});
+
+
+test("foreign script and style source text cannot conceal a frame-only private report", async () => {
+  const denied="https://reports.example.org/private";
+  for(const tag of ["script","style"]) await assert.rejects(check(publication({[denied]:()=>new Response("Forbidden",{status:403})},'<svg><'+tag+'>text { fill: red; }</'+tag+'></svg><iframe src="'+denied+'"></iframe>')), /403/);
+});
+
+
+test("optional sign-in text does not block the actual public report preview", async () => {
+  const publicEntry="https://cdn.example.org/public-report.html";
+  await check(publication({[publicEntry]:()=>html(body)},'<header>Sign in</header><iframe data-report-preview src="'+publicEntry+'"></iframe><iframe src="about:blank"></iframe>'));
+  const page=await reportDocument('<header>Sign in</header>'+loader);
+  assert.equal(page.authentication,true);assert.ok(page.deliveryConfig);
+});
+
+
+test("denial headings and login forms are distinguished from optional account controls", async () => {
+  for(const content of ['<h1>Access denied</h1><p>You do not have permission to view this report.</p>','<form><label>Email<input type="email"></label><label>Password<input type="password"></label><button>Sign in</button></form>']) await assert.rejects(check(publication({},content)),/authentication|denies access/);
+  await check(publication({},'<header><h1>Sign in</h1><form><label>Email<input type="email"></label><label>Password<input type="password"></label></form></header>'+body));
+});
+
+test("checker deadlines cancel both stalled HTTPS stages", {timeout:6000}, async () => {
+  for(const stage of ["headers","body"]) {
+    let req,response,guard;
+    const transport=(_url,options,callback)=>{
+      req=new EventEmitter();req.destroyed=false;
+      req.destroy=error=>{req.destroyed=true;response?.destroy(error);req.emit("error",error);};
+      guard=setTimeout(()=>req.destroy(new Error("Independent test guard expired")),2000);
       assert.ok(options.signal instanceof AbortSignal);
       options.signal.addEventListener("abort",()=>req.destroy(options.signal.reason),{once:true});
       req.end=()=>{if(stage==="body"){response=new Readable({read(){}});response.statusCode=200;response.headers={"content-type":"text/html"};callback(response);}};
       return req;
     };
     try {
-      await assert.rejects(checkReportAccess(share,{resolve,timeoutMs:30,request:(url,options)=>anonymousRequest(url,options,transport)}), error=>error.name==="TimeoutError" || error.name==="AbortError");
-      assert.equal(req.destroyed,true);
-      if(response)assert.equal(response.destroyed,true);
+      await assert.rejects(checkReportAccess(share,{resolve,timeoutMs:1000,request:(url,options)=>anonymousRequest(url,options,transport)}),error=>error.name==="TimeoutError" || error.name==="AbortError");
+      assert.equal(req?.destroyed,true);if(response)assert.equal(response.destroyed,true);
     } finally {clearTimeout(guard);}
   }
 });

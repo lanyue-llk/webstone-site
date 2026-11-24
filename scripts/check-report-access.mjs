@@ -40,23 +40,31 @@ export function anonymousRequest(address, options, transport = httpsRequest) {
       const decoders = { gzip: createGunzip, br: createBrotliDecompress, deflate: createInflate };
       if (encoding !== "identity" && !Object.hasOwn(decoders, encoding)) {
         reject(new Error("Unsupported report content encoding"));
-        req.destroy();
+        response.destroy(); req.destroy();
         return;
       }
       const decoded = encoding === "identity" ? response : response.pipe(decoders[encoding]());
+      let failed = false;
+      function fail(error) {
+        if (failed) return;
+        failed = true; reject(error);
+        response.destroy(error);
+        if (decoded !== response) decoded.destroy(error);
+        req.destroy(error);
+      }
       response.on("data", chunk => {
         wireSize += chunk.length;
-        if (wireSize > 20 * 1024 * 1024) req.destroy(new Error("Report exceeds the 20 MiB check limit"));
+        if (wireSize > 20 * 1024 * 1024) fail(new Error("Report exceeds the 20 MiB check limit"));
       });
       decoded.on("data", chunk => {
         size += chunk.length;
         if (size > 20 * 1024 * 1024) {
           const error = new Error("Decoded report exceeds the 20 MiB check limit");
-          reject(error); req.destroy(error); if (decoded !== response) decoded.destroy(error);
+          fail(error);
         } else chunks.push(chunk);
       });
-      response.on("error", reject);
-      decoded.on("error", reject);
+      response.on("error", fail);
+      decoded.on("error", fail);
       decoded.on("end", () => {
         try {
           const body = [204, 205, 304].includes(response.statusCode) ? null : Buffer.concat(chunks);
@@ -139,6 +147,7 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       if (document.charset && !/^(?:utf-?8|us-ascii)$/i.test(document.charset)) throw new Error("Reports must use UTF-8 encoding");
       if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
 
+      if (document.authentication && !document.frames.length && !document.deliveryConfig) throw new Error("Report entry requires authentication or denies access");
       if (!document.readable && !document.frames.length && !document.deliveryConfig) throw new Error("Report has no readable content");
       return { url, body, pdf: false, ...document };
     }
@@ -173,7 +182,8 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       if (!entry?.url) throw new Error("Report entry is missing from the anonymous delivery manifest");
       await validatePage(await retrieve(entry.url), depth + 1);
     }
-    const sources = page.frames.filter(frame => frame.required || !page.readable);
+    const hasRequired = page.frames.some(frame => frame.required);
+    const sources = page.frames.filter(frame => frame.required || (!page.readable && !hasRequired && !page.deliveryConfig));
     if (!sources.length && !page.deliveryConfig && !page.readable) throw new Error("Hosted report has no readable preview");
     const base = page.baseHref === null ? page.url : new URL(page.baseHref, page.url);
     const destinations = new Set();
