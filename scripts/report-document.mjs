@@ -16,13 +16,14 @@ function reportDocument(html) {
     if (++nodes > 100000 || depth > 256) throw new Error("Report document exceeds the HTML complexity limit");
     const attrs = Object.fromEntries((node.attrs ?? []).map(({ name, value }) => [name, value]));
     const inert = parentInert || ["template", "noscript"].includes(node.tagName);
-    const head = parentHead || node.tagName === "head";
+    const htmlElement = node.namespaceURI === "http://www.w3.org/1999/xhtml";
+    const head = parentHead || (htmlElement && node.tagName === "head");
     if (!inert) {
-      if (node.tagName === "meta" && attrs["http-equiv"]?.toLowerCase() === "refresh") refresh = true;
-      if (node.tagName === "base" && baseHref === null && attrs.href !== undefined) baseHref = attrs.href;
-      if (node.tagName === "meta" && charset === null && (attrs.charset || attrs["http-equiv"]?.toLowerCase() === "content-type")) charset = attrs.charset ?? /charset\s*=\s*["']?([^;\s"']+)/i.exec(attrs.content ?? "")?.[1] ?? null;
-      if (node.tagName === "script" && attrs.id === "artifact-delivery-config" && deliveryConfig === null) deliveryConfig = JSON.parse((node.childNodes ?? []).map(child => child.value ?? "").join(""));
-      if (!head && node.tagName === "iframe") {
+      if (htmlElement && node.tagName === "meta" && attrs["http-equiv"]?.toLowerCase() === "refresh") refresh = true;
+      if (htmlElement && node.tagName === "base" && baseHref === null && attrs.href !== undefined) baseHref = attrs.href;
+      if (htmlElement && node.tagName === "meta" && charset === null && (attrs.charset || attrs["http-equiv"]?.toLowerCase() === "content-type")) charset = attrs.charset ?? /charset\s*=\s*["']?([^;\s"']+)/i.exec(attrs.content ?? "")?.[1] ?? null;
+      if (htmlElement && node.tagName === "script" && attrs.id === "artifact-delivery-config" && deliveryConfig === null) deliveryConfig = JSON.parse((node.childNodes ?? []).map(child => child.value ?? "").join(""));
+      if (htmlElement && !head && node.tagName === "iframe") {
         const required = Object.hasOwn(attrs, "data-report-preview");
         if (required && !attrs.src?.trim() && attrs.srcdoc === undefined) throw new Error("Required report preview has no source");
         if (attrs.src || attrs.srcdoc !== undefined) frames.push({ src: attrs.src, srcdoc: attrs.srcdoc, required });

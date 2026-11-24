@@ -189,3 +189,30 @@ test("preview DNS is independently checked even on the share origin", async () =
 test("quoted UTF-8 HTML declarations are valid", async () => {
   await check(publication({}, '<meta http-equiv="Content-Type" content=\'text/html; charset="UTF-8"\'>'+body));
 });
+
+
+test("foreign SVG elements cannot impersonate HTML report previews or metadata", async () => {
+  await assert.rejects(check(publication({[share]:()=>html('<svg><iframe src="'+preview+'"></iframe></svg>')})), /no readable content|no report-service preview/);
+  const document=await reportDocument('<svg><script id="artifact-delivery-config">{}</script><base href="https://invalid.example.org/"></base></svg>'+body);
+  assert.equal(document.deliveryConfig,null);assert.equal(document.baseHref,null);
+});
+
+test("HTTPS cancellation bounds stalled headers and bodies and closes transport resources", {timeout:2000}, async () => {
+  for(const stage of ["headers","body"]) {
+    let req,response,guard;
+    const transport=(_url,options,callback)=>{
+      req=new EventEmitter();req.destroyed=false;
+      req.destroy=error=>{req.destroyed=true;response?.destroy(error);req.emit("error",error);};
+      guard=setTimeout(()=>req.destroy(new Error("Independent test guard expired")),500);
+      assert.ok(options.signal instanceof AbortSignal);
+      options.signal.addEventListener("abort",()=>req.destroy(options.signal.reason),{once:true});
+      req.end=()=>{if(stage==="body"){response=new Readable({read(){}});response.statusCode=200;response.headers={"content-type":"text/html"};callback(response);}};
+      return req;
+    };
+    try {
+      await assert.rejects(checkReportAccess(share,{resolve,timeoutMs:30,request:(url,options)=>anonymousRequest(url,options,transport)}), error=>error.name==="TimeoutError" || error.name==="AbortError");
+      assert.equal(req.destroyed,true);
+      if(response)assert.equal(response.destroyed,true);
+    } finally {clearTimeout(guard);}
+  }
+});
