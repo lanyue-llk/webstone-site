@@ -60,7 +60,7 @@ export function validateCatalog(catalog) {
       if (![group.name, group.description].every(value => typeof value === "string" && value.trim())) throw new Error("Missing navigation group information");
       if (group.upcoming !== undefined && !Array.isArray(group.upcoming)) throw new Error("Invalid upcoming tracks");
       for (const item of group.upcoming ?? []) {
-        if (![item.name, item.description].every(value => typeof value === "string" && value.trim()) || catalog.tracks.some(track => track.id === item.id)) throw new Error("An upcoming track must be separate from published tracks");
+        if (!record(item) || ![item.name, item.description].every(value => typeof value === "string" && value.trim()) || catalog.tracks.some(track => track.id === item.id)) throw new Error("An upcoming track must be separate from published tracks");
         upcoming.push(item);
       }
     }

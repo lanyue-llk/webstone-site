@@ -60,7 +60,7 @@
     },
     {
       "id": "browsers",
-      "name": "Browsers",
+      "name": "Browser Capabilities",
       "description": "Browser retrieval and task replay."
     },
     {
@@ -97,8 +97,8 @@
     },
     {
       "id": "trajectory-replay",
-      "name": "Browser Task Replay",
-      "description": "Replay tasks across browsers",
+      "name": "Trajectory Replay",
+      "description": "Replay recorded actions",
       "groupId": "browsers"
     },
     {
@@ -1363,7 +1363,7 @@
     "zh": {
       "Web Fetch": "Web Fetch",
       "Web Search": "Web Search",
-      "Trajectory Replay": "轨迹回放",
+      "Trajectory Replay": "Trajectory Replay",
       "Web Extract": "Web Extract",
       "Content retrieval": "网页内容获取",
       "Search retrieval": "搜索结果",
@@ -1549,15 +1549,14 @@
       "Compare browsers on page retrieval and recorded tasks.": "比较浏览器的网页获取与任务回放能力。",
       "Browser Automation": "Browser Automation",
       "Browser agents and end-to-end testing.": "浏览器智能体与端到端测试。",
-      "Browser Task Replay": "Browser Task Replay",
-      "Replay tasks across browsers": "在不同浏览器上回放任务",
+      "Replay recorded actions": "回放预先记录的操作",
       "Web Fetch API": "Web Fetch API",
       "Content retrieval services": "网页内容获取服务",
       "Browser Use": "Browser Use",
       "Browser agents": "浏览器智能体",
       "End-to-end Testing": "端到端测试",
       "Browser workflow tests": "浏览器流程测试",
-      "Browsers": "Browsers",
+      "Browser Capabilities": "Browser Capabilities",
       "Browser tasks performed by agents.": "由智能体完成浏览器任务。"
     },
     "en": {
