@@ -20,12 +20,16 @@ function reportDocument(html) {
     if (!inert) {
       if (node.tagName === "meta" && attrs["http-equiv"]?.toLowerCase() === "refresh") refresh = true;
       if (node.tagName === "base" && baseHref === null && attrs.href !== undefined) baseHref = attrs.href;
-      if (node.tagName === "meta" && charset === null && (attrs.charset || attrs["http-equiv"]?.toLowerCase() === "content-type")) charset = attrs.charset ?? /charset\s*=\s*([^;\s]+)/i.exec(attrs.content ?? "")?.[1] ?? null;
+      if (node.tagName === "meta" && charset === null && (attrs.charset || attrs["http-equiv"]?.toLowerCase() === "content-type")) charset = attrs.charset ?? /charset\s*=\s*["']?([^;\s"']+)/i.exec(attrs.content ?? "")?.[1] ?? null;
       if (node.tagName === "script" && attrs.id === "artifact-delivery-config" && deliveryConfig === null) deliveryConfig = JSON.parse((node.childNodes ?? []).map(child => child.value ?? "").join(""));
-      if (!head && node.tagName === "iframe" && (attrs.src || attrs.srcdoc !== undefined)) frames.push({ src: attrs.src, srcdoc: attrs.srcdoc, required: Object.hasOwn(attrs, "data-report-preview") });
+      if (!head && node.tagName === "iframe") {
+        const required = Object.hasOwn(attrs, "data-report-preview");
+        if (required && !attrs.src?.trim() && attrs.srcdoc === undefined) throw new Error("Required report preview has no source");
+        if (attrs.src || attrs.srcdoc !== undefined) frames.push({ src: attrs.src, srcdoc: attrs.srcdoc, required });
+      }
       if (!head && node.nodeName === "#text") text.push(node.value);
     }
-    if (["script", "style"].includes(node.tagName)) continue;
+    if (["script", "style", "iframe"].includes(node.tagName)) continue;
     const children = node.childNodes ?? [];
     for (let index = children.length - 1; index >= 0; index--) stack.push({ node: children[index], depth: depth + 1, inert, head });
   }

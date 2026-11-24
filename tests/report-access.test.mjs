@@ -87,19 +87,19 @@ test("redirects follow public shares and stop before requesting a sign-in page",
 });
 
 test("each secondary destination and every DNS answer is validated before requests", async () => {
-  for (const location of ["redirect", "preview", "manifest", "entry", "required-frame"]) {
+  for (const location of ["redirect", "manifest", "entry", "required-frame"]) {
     const privateUrl = "https://private.example.org/report";
     const request = publication({
-      ...(location === "preview" ? { [share]: () => html('<base href="https://private.example.org/"><iframe src="/artifact-site/api/preview/abc/"></iframe>') } : {}),
+      
       ...(location === "manifest" ? { [preview]: () => html('<script id="artifact-delivery-config">{"manifestUrl":"' + privateUrl + '","file":"index.html"}</script>') } : {}),
       ...(location === "entry" ? { [manifest]: () => Response.json({ files: [{ path: "index.html", url: privateUrl }], nextCursor: null }) } : {}),
       ...(location === "redirect" ? { [share]: () => new Response(null, { status: 302, headers: { location: privateUrl } }) } : {}),
     }, location === "required-frame" ? body + '<iframe data-report-preview src="' + privateUrl + '"></iframe>' : body);
     const visited = [];
-    await assert.rejects(checkReportAccess(share, { resolve: async host => host === "private.example.org" ? [{ address: "93.184.216.34" }, { address: "10.0.0.1" }] : resolve(), request: async (url, options) => { visited.push(url); return request(url, options); } }), /private or reserved|no report-service preview/);
+    await assert.rejects(checkReportAccess(share, { resolve: async host => host === "private.example.org" ? [{ address: "93.184.216.34" }, { address: "10.0.0.1" }] : resolve(), request: async (url, options) => { visited.push(url); return request(url, options); } }), /private or reserved/);
     assert.ok(visited.every(url => !url.includes("private.example.org")));
   }
-  for (const ip of ["127.0.0.1", "169.254.169.254", "::1", "fd00::1", "::ffff:10.0.0.1"]) await assert.rejects(checkReportAccess(share, { resolve: async () => [{ address: ip }], request: () => { throw Error("Must not fetch"); } }), /private or reserved/);
+  for (const ip of ["127.0.0.1", "169.254.169.254", "::1", "fd00::1", "::ffff:10.0.0.1", "240.0.0.1", "ff02::1", "fec0::1", "192.0.2.1", "2001:db8::1"]) await assert.rejects(checkReportAccess(share, { resolve: async () => [{ address: ip }], request: () => { throw Error("Must not fetch"); } }), /private or reserved/);
 });
 
 test("connections use pinned DNS results at the actual HTTPS boundary without authentication", async () => {
@@ -109,7 +109,13 @@ test("connections use pinned DNS results at the actual HTTPS boundary without au
     const req = new EventEmitter(); req.end = () => { const response = Readable.from([Buffer.from(body)]); response.statusCode = 200; response.headers = { "content-type": "text/html" }; callback(response); }; return req;
   };
   assert.equal(await (await anonymousRequest(entry, { lookup: pinned }, transport)).text(), body);
-  await check(async (url, options) => { const records = await new Promise((resolve, reject) => options.lookup("reports.example.org", { all: true }, (error, records) => error ? reject(error) : resolve(records))); assert.deepEqual(records, [{ address: "93.184.216.34", family: 4 }]); return publication()(url, options); });
+  const addresses = { "reports.example.org": "93.184.216.34", "cdn.example.org": "8.8.8.8" };
+  await checkReportAccess(share, { resolve: async host => [{ address: addresses[host] }], request: async (url, options) => {
+    const host = new URL(url).hostname;
+    const records = await new Promise((resolve, reject) => options.lookup(host, { all: true }, (error, records) => error ? reject(error) : resolve(records)));
+    assert.deepEqual(records, [{ address: addresses[host], family: 4 }]);
+    return publication()(url, options);
+  } });
 });
 
 test("cyclic previews, excessive requests and stalled DNS checks have finite budgets", async () => {
@@ -161,4 +167,25 @@ test("redirect bodies are discarded before decoding and empty responses do not c
 test("HTML parser allocation and depth are bounded independently of the checker", async () => {
   for (const content of ["<i></i>".repeat(500000), "<div>".repeat(300) + body + "</div>".repeat(300)]) await assert.rejects(reportDocument(content), /complexity/);
   assert.equal((await reportDocument(body)).readable, true);
+});
+
+
+test("required report embeds cannot be bypassed at the share entrance or by fallback text", async () => {
+  const denied="https://reports.example.org/private";
+  const frame='<iframe data-report-preview src="'+denied+'"></iframe>';
+  await assert.rejects(check(publication({[share]:()=>html('<iframe src="'+preview+'"></iframe>'+frame),[denied]:()=>new Response("Forbidden",{status:403})})), /403/);
+  await assert.rejects(check(publication({[denied]:()=>new Response("Forbidden",{status:403})}, '<iframe src="'+denied+'">Your browser does not support frames.</iframe>')), /403/);
+  for(const source of ['', ' src=""', ' src="   "']) await assert.rejects(check(publication({},body+'<iframe data-report-preview'+source+'></iframe>')), /no source/);
+  await check(publication({},body+'<iframe></iframe>'));
+});
+
+test("preview DNS is independently checked even on the share origin", async () => {
+  let lookups=0;const visited=[];const request=publication();
+  await assert.rejects(checkReportAccess(share,{resolve:async()=>++lookups===1?[{address:"93.184.216.34"}]:[{address:"93.184.216.34"},{address:"10.0.0.1"}],request:async(url,options)=>{visited.push(url);return request(url,options);}}),/private or reserved/);
+  assert.deepEqual(visited,[share]);
+  await assert.rejects(check(publication({[share]:()=>html('<iframe src="https://other.example.org/artifact-site/api/preview/abc/"></iframe>')})),/no report-service preview/);
+});
+
+test("quoted UTF-8 HTML declarations are valid", async () => {
+  await check(publication({}, '<meta http-equiv="Content-Type" content=\'text/html; charset="UTF-8"\'>'+body));
 });

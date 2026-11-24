@@ -9,8 +9,10 @@ import { fileURLToPath } from "node:url";
 import { discoverResults, publicEvidenceUrl } from "./prepare-data.mjs";
 
 const privateNetworks = new BlockList();
-for (const [network, prefix] of [["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8], ["169.254.0.0", 16], ["172.16.0.0", 12], ["192.168.0.0", 16], ["198.18.0.0", 15], ["224.0.0.0", 4]]) privateNetworks.addSubnet(network, prefix, "ipv4");
-for (const [network, prefix] of [["::", 128], ["::1", 128], ["fc00::", 7], ["fe80::", 10]]) privateNetworks.addSubnet(network, prefix, "ipv6");
+for (const [network, prefix] of [["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8], ["169.254.0.0", 16], ["172.16.0.0", 12], ["192.0.0.0", 24], ["192.0.2.0", 24], ["192.88.99.0", 24], ["192.168.0.0", 16], ["198.18.0.0", 15], ["198.51.100.0", 24], ["203.0.113.0", 24], ["224.0.0.0", 4], ["240.0.0.0", 4]]) privateNetworks.addSubnet(network, prefix, "ipv4");
+for (const [network, prefix] of [["2001::", 23], ["2001:db8::", 32], ["2002::", 16], ["3fff::", 20]]) privateNetworks.addSubnet(network, prefix, "ipv6");
+const globalIPv6 = new BlockList();
+globalIPv6.addSubnet("2000::", 3, "ipv6");
 
 export function reportLinks(catalog, snapshots, metadata) {
   return [...new Set([
@@ -108,7 +110,7 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       if (++requests > 40 || Date.now() >= deadline) throw new Error("Report exceeds the request or time budget");
       const records = await bounded(resolve(url.hostname, { all: true }));
       if (Date.now() >= deadline) throw new Error("Report exceeds the time budget");
-      if (!records.length || records.some(({ address }) => privateNetworks.check(address, isIP(address) === 6 ? "ipv6" : "ipv4"))) throw new Error("URL resolves to a private or reserved network");
+      if (!records.length || records.some(({ address }) => !isIP(address) || (isIP(address) === 6 && !globalIPv6.check(address, "ipv6")) || privateNetworks.check(address, isIP(address) === 6 ? "ipv6" : "ipv4"))) throw new Error("URL resolves to a private or reserved network");
       if (/\/(?:login|signin|sign-in|auth)(?:\/|$)/i.test(url.pathname)) throw new Error("Report redirects to sign-in");
       const response = await request(url.href, { redirect: "manual", credentials: "omit", signal: AbortSignal.timeout(Math.max(1, Math.min(20000, deadline - Date.now()))), lookup: (_hostname, options, callback) => {
         const pinned = records.map(record => ({ address: record.address, family: isIP(record.address) }));
@@ -201,6 +203,8 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
     return url.origin === root.url.origin && (share[2] === "v" ? url.pathname.startsWith(prefix) : url.pathname.startsWith(prefix + share[3] + "/") || url.pathname === prefix + share[3]);
   });
   if (!previews.length) throw new Error("Public share has no report-service preview");
+  const required = root.frames.filter(frame => frame.required);
+  if (required.length) await validatePage({ ...root, frames: required });
   for (const frame of previews) await validatePage(await retrieve(new URL(frame.src, base).href), 0, true);
 }
 
