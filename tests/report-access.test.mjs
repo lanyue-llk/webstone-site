@@ -132,3 +132,12 @@ test("the HTTPS transport receives the validated lookup callback", async () => {
     const req=new EventEmitter();req.end=()=>{const response=new EventEmitter();response.statusCode=200;response.headers={};callback(response);response.emit('data',Buffer.from('report'));response.emit('end')};return req;
   });
 });
+
+
+test("optional closed login dialogs do not prevent anonymous report reading", async () => {
+  await check(async()=>html('<h1>Benchmark results</h1><p>Measured quality and timing.</p><dialog><h2>Sign in</h2><input type="password"></dialog>'));
+});
+
+test("readable preview wrappers still require accessible embedded reports", async () => {
+  await assert.rejects(check(async target=>target===address?html('<h1>Report preview</h1><iframe src="/private"></iframe>'):new Response('Forbidden',{status:403})),/403/);
+});

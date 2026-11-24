@@ -71,11 +71,12 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       }
       if (/application\/pdf/i.test(type) && body.startsWith("%PDF-")) return { url, body, pdf: true };
       if (!/text\/html/i.test(type)) throw new Error("Expected a readable HTML report or PDF");
-      const visible = body.replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, "").replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+      const accessBody = body.replace(/<dialog\b(?![^>]*\bopen(?:[\s=>]))[^>]*>[\s\S]*?<\/dialog>/gi, "");
+      const visible = accessBody.replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, "").replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
       const denied = visible.length < 4000 && /sign in to view this work|you are not signed in|sign in, then try opening|authentication required|需要登录|登录后.{0,8}(?:查看|访问)/i.test(visible);
       if (!visible.trim() && !/id=["\']artifact-delivery-config["\']/.test(body) && !/<iframe\b/i.test(body)) throw new Error("Report has no readable content");
-      const denialHeading = /<(?:h[1-3]|title)\b[^>]*>\s*(?:Access denied|Forbidden|Authentication required|Sign in(?: to (?:view|continue|access)[^<]*)?|需要登录|请先登录|无权访问)\s*<\//i.test(body);
-      if (denialHeading || denied || /<meta[^>]+Sign in to view this work/i.test(body) || /<input[^>]+type=["']password/i.test(body)) throw new Error("Anonymous reader received a sign-in or access-denied page");
+      const denialHeading = /<(?:h[1-3]|title)\b[^>]*>\s*(?:Access denied|Forbidden|Authentication required|Sign in(?: to (?:view|continue|access)[^<]*)?|需要登录|请先登录|无权访问)\s*<\//i.test(accessBody);
+      if (denialHeading || denied || /<meta[^>]+Sign in to view this work/i.test(body) || /<input[^>]+type=["']password/i.test(accessBody)) throw new Error("Anonymous reader received a sign-in or access-denied page");
       return { url, body, pdf: false, readable: Boolean(visible.trim()) };
     }
     throw new Error("Too many redirects");
@@ -100,12 +101,9 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       await validatePage(await retrieve(entry.url), depth + 1);
       return;
     }
-    const hosted = /\/artifact-site\/(s|v)\//.test(page.url.pathname);
-    if (hosted || !page.readable) {
-      const source = page.body.match(/<iframe\b[^>]*\bsrc=["']([^"']+)/i)?.[1];
-      if (!source) throw new Error("Hosted report has no readable preview");
-      await validatePage(await retrieve(new URL(source.replaceAll("&amp;", "&"), page.url).href), depth + 1);
-    }
+    const sources = [...page.body.matchAll(/<iframe\b[^>]*\bsrc=["']([^"']+)/gi)].map(match => match[1]);
+    if (!sources.length && (/\/artifact-site\/(s|v)\//.test(page.url.pathname) || !page.readable)) throw new Error("Hosted report has no readable preview");
+    for (const source of sources) await validatePage(await retrieve(new URL(source.replaceAll("&amp;", "&"), page.url).href), depth + 1);
   }
   await validatePage(await retrieve(address));
 }
