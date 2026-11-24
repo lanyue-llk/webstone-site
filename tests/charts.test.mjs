@@ -205,6 +205,8 @@ test("the homepage directs evaluation and result submission to their own reposit
 });
 
 test("the dashboard exposes two repository guides and preserves each pricing value in its own cell", async () => {
+  const { prepareData } = await import("../scripts/prepare-data.mjs");
+  await prepareData();
   const Dashboard = require("../web/components/dashboard.tsx").default;
   const { EVALUATION_URL, SUBMISSION_URL } = require("../web/lib/overview.ts");
   const { formatPricing } = require("../web/lib/results.ts");
