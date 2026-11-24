@@ -889,74 +889,6 @@
       "outputLayer": "L3"
     },
     {
-      "id": "lexbench-headless-372",
-      "name": "LexBench Headless Browser",
-      "datasetName": "LexBench-Headless-Browser",
-      "datasetUrl": "https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser",
-      "reportUrl": "https://yours.lexmount.cn/artifact-site/s/gdwtSGOel0va",
-      "trackId": "trajectory-replay",
-      "description": "Compare Moli builds with layout on and off on a 372-task subset of the LexBench Headless Browser protocol, measuring success, memory and latency.",
-      "providerLabel": "Build",
-      "definitions": [
-        {
-          "id": "standard",
-          "primaryMetric": "successRate",
-          "metrics": [
-            {
-              "id": "successRate",
-              "label": "Task success",
-              "unit": "percent",
-              "direction": "desc",
-              "description": "Passed tasks divided by the total number of evaluated tasks."
-            },
-            {
-              "id": "successDelta",
-              "label": "Success Δ",
-              "unit": "points",
-              "direction": "desc",
-              "decimals": 2,
-              "signed": true,
-              "description": "Change in percentage points against the Moli 1.1.4 baseline with layout off."
-            },
-            {
-              "id": "pss",
-              "label": "PSS",
-              "unit": "mib",
-              "direction": "asc",
-              "decimals": 2,
-              "description": "Peak proportional set size (PSS) during execution, in MiB."
-            },
-            {
-              "id": "pssDelta",
-              "label": "PSS Δ",
-              "unit": "percent",
-              "direction": "asc",
-              "decimals": 2,
-              "signed": true,
-              "description": "Percentage change in PSS against the baseline."
-            },
-            {
-              "id": "latency",
-              "label": "Mean latency",
-              "unit": "ms",
-              "direction": "asc",
-              "decimals": 2,
-              "description": "Mean latency per task, in milliseconds."
-            },
-            {
-              "id": "latencyDelta",
-              "label": "Latency Δ",
-              "unit": "percent",
-              "direction": "asc",
-              "decimals": 2,
-              "signed": true,
-              "description": "Percentage change in mean latency against the baseline."
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "webarena-verified",
       "name": "LexBench WebArena Replay",
       "datasetName": "LexBench-WebArena-Replay",
@@ -1024,6 +956,74 @@
               "direction": "asc",
               "decimals": 1,
               "description": "95th percentile of action latency. The sample count is the number of actions executed by this setup."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lexbench-headless-372",
+      "name": "LexBench Headless Browser",
+      "datasetName": "LexBench-Headless-Browser",
+      "datasetUrl": "https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser",
+      "reportUrl": "https://yours.lexmount.cn/artifact-site/s/gdwtSGOel0va",
+      "trackId": "trajectory-replay",
+      "description": "Compare Moli builds with layout on and off on a 372-task subset of the LexBench Headless Browser protocol, measuring success, memory and latency.",
+      "providerLabel": "Build",
+      "definitions": [
+        {
+          "id": "standard",
+          "primaryMetric": "successRate",
+          "metrics": [
+            {
+              "id": "successRate",
+              "label": "Task success",
+              "unit": "percent",
+              "direction": "desc",
+              "description": "Passed tasks divided by the total number of evaluated tasks."
+            },
+            {
+              "id": "successDelta",
+              "label": "Success Δ",
+              "unit": "points",
+              "direction": "desc",
+              "decimals": 2,
+              "signed": true,
+              "description": "Change in percentage points against the Moli 1.1.4 baseline with layout off."
+            },
+            {
+              "id": "pss",
+              "label": "PSS",
+              "unit": "mib",
+              "direction": "asc",
+              "decimals": 2,
+              "description": "Peak proportional set size (PSS) during execution, in MiB."
+            },
+            {
+              "id": "pssDelta",
+              "label": "PSS Δ",
+              "unit": "percent",
+              "direction": "asc",
+              "decimals": 2,
+              "signed": true,
+              "description": "Percentage change in PSS against the baseline."
+            },
+            {
+              "id": "latency",
+              "label": "Mean latency",
+              "unit": "ms",
+              "direction": "asc",
+              "decimals": 2,
+              "description": "Mean latency per task, in milliseconds."
+            },
+            {
+              "id": "latencyDelta",
+              "label": "Latency Δ",
+              "unit": "percent",
+              "direction": "asc",
+              "decimals": 2,
+              "signed": true,
+              "description": "Percentage change in mean latency against the baseline."
             }
           ]
         }

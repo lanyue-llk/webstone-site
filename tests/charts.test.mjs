@@ -97,6 +97,8 @@ test("the home overview counts search layers as views and shares articles with t
   assert.equal(articles.at(-1).date, "2026-09-20");
   assert.ok(articles.every(report => Number.isFinite(Date.parse(report.publishedAt))));
   assert.deepEqual(tracks.map(track => track.id), ["webfetch", "websearch", "webextract", "trajectory-replay"]);
+  assert.deepEqual(tracks.find(track => track.id === "trajectory-replay").benchmarks.map(bench => bench.id),
+    ["webarena-verified", "lexbench-headless-372"]);
   for (const view of catalog.benchmarks) {
     const related = evaluationReports(catalog, snapshots, view);
     assert.ok(related.length, view.id);
