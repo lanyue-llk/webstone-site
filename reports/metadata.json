@@ -8,7 +8,11 @@
       "benchmarkIds": [
         "lexbench-webfetch",
         "webmainbench"
-      ]
+      ],
+      "originalLanguage": "zh",
+      "urls": {
+        "zh": "https://yours.lexmount.cn/artifact-site/s/sBygxmqjB5wc"
+      }
     },
     "lexbench-websearch-v1": {
       "publishedAt": "2026-10-22T14:06:05.138Z",
@@ -17,7 +21,11 @@
       "benchmarkIds": [
         "lexbench-websearch",
         "simpleqa-verified"
-      ]
+      ],
+      "originalLanguage": "zh",
+      "urls": {
+        "zh": "https://yours.lexmount.cn/artifact-site/s/-FtUMQm-NmQa"
+      }
     },
     "lexbench-headless-372-v1": {
       "publishedAt": "2026-09-20T09:30:59.106Z",
@@ -25,7 +33,11 @@
       "summary": "Task success, memory and CPU time across seven Moli configurations.",
       "benchmarkIds": [
         "lexbench-headless-372"
-      ]
+      ],
+      "originalLanguage": "zh",
+      "urls": {
+        "zh": "https://yours.lexmount.cn/artifact-site/s/gdwtSGOel0va"
+      }
     },
     "webarena-verified-v1": {
       "publishedAt": "2026-09-24T07:24:34.258Z",
@@ -33,7 +45,11 @@
       "summary": "Browser task success and timing across 812 recorded trajectories.",
       "benchmarkIds": [
         "webarena-verified"
-      ]
+      ],
+      "originalLanguage": "zh",
+      "urls": {
+        "zh": "https://yours.lexmount.cn/artifact-site/s/EFLrNgujgsVc"
+      }
     },
     "lexbench-swde-v1": {
       "publishedAt": "2026-11-10T09:12:50.006Z",
@@ -42,7 +58,11 @@
       "benchmarkIds": [
         "lexbench-swde",
         "lexbench-zyte-product-extraction"
-      ]
+      ],
+      "originalLanguage": "zh",
+      "urls": {
+        "zh": "https://yours.lexmount.cn/artifact-site/s/-eNSiFI3n7XX"
+      }
     },
     "lexbench-websearch-v2": {
       "publishedAt": "2026-10-22T06:18:04.612Z",
@@ -52,7 +72,11 @@
         "lexbench-websearch",
         "simpleqa-verified"
       ],
-      "versionReport": true
+      "versionReport": true,
+      "originalLanguage": "zh",
+      "urls": {
+        "zh": "https://yours.lexmount.cn/artifact-site/s/XEDGrWHPjAbu"
+      }
     }
   }
 }

@@ -4,6 +4,8 @@ export type Language = "en" | "zh";
 export const LANGUAGE_KEY = "webstone-language";
 
 const chinese: Record<string, string> = {
+  "Chinese original": "中文原文",
+  "English original": "英文原文",
   "Get started": "开始使用",
   "Get datasets": "获取数据集",
   "Choose benchmarks, run tools and score results with Webstone.": "用 Webstone 选择评测基准、运行工具并评分。",

@@ -240,7 +240,7 @@ export default function Dashboard() {
       <main id="main" className="main-content">
         {!entries && !error && <div className="loading-panel" role="status">{t("Loading…")}</div>}
         {error && <div className="empty-state" role="alert"><p>{t(error)}</p><button className="text-button" onClick={() => window.location.reload()}>{t("Retry")}</button></div>}
-        {entries && catalog && (!selection.benchmark ? <Home catalog={catalog} snapshots={snapshots} t={t} /> : <>
+        {entries && catalog && (!selection.benchmark ? <Home catalog={catalog} snapshots={snapshots} t={t} language={language} /> : <>
           <div className="results-controls">
             {details?.searchGroup ? <div className="search-selectors">
               <div className="column-views layer-control" role="group" aria-label={t("Output layer")}>{(["L1", "L2", "L3"] as const).map((layer, index) => <button key={layer} aria-pressed={details.outputLayer === layer} onClick={() => {
@@ -306,7 +306,7 @@ export default function Dashboard() {
 
             </section>
             <Insights key={`${benchmark.id}-${selection.version}`} benchmark={benchmark} t={t} />
-            {details && <EvaluationReports key={selection.benchmark} catalog={catalog} snapshots={snapshots} current={details} t={t} />}
+            {details && <EvaluationReports key={selection.benchmark} catalog={catalog} snapshots={snapshots} current={details} t={t} language={language} />}
             <MethodDetails provider={selectedProvider} benchmark={benchmark} t={t} onClose={() => setSelectedProvider(null)} />
           </>}
         </>)}

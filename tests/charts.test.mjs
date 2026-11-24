@@ -368,3 +368,11 @@ test("homepage copy actions copy the correct skill without displaying long promp
     if(prior[3])Object.defineProperty(globalThis,'navigator',prior[3]);else delete globalThis.navigator;
   }
 });
+
+test("report links select distinct published language editions and identify a missing translation", () => {
+  const {reportDestination}=require('../web/lib/overview.ts');
+  const urls={en:'https://reports.example.org/english',zh:'https://reports.example.org/chinese'};
+  assert.deepEqual(reportDestination({urls,originalLanguage:'zh'},urls.zh,'en'),{href:urls.en,language:'en'});
+  assert.deepEqual(reportDestination({urls,originalLanguage:'zh'},urls.zh,'zh'),{href:urls.zh,language:'zh'});
+  assert.deepEqual(reportDestination({urls:{zh:urls.zh},originalLanguage:'zh'},urls.zh,'en'),{href:urls.zh,language:'zh'});
+});

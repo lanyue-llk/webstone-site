@@ -1,4 +1,5 @@
 import reportMetadata from "../../reports/metadata.json";
+import type { Language } from "./i18n.ts";
 import type { BenchmarkInfo, Catalog, Snapshot } from "./results.ts";
 
 export const DATASETS_URL = "https://huggingface.co/datasets?author=Lexmount";
@@ -26,24 +27,32 @@ type ReportMetadata = {
   summary: string;
   benchmarkIds: string[];
   versionReport?: boolean;
+  urls?: Partial<Record<Language, string>>;
+  originalLanguage?: string;
 };
 const reports: Record<string, ReportMetadata> = reportMetadata.reports;
 
-export function evaluationReports(catalog: Catalog, snapshots: Snapshot[], current?: BenchmarkInfo) {
+export function reportDestination(metadata: Pick<ReportMetadata, "urls" | "originalLanguage">, fallback: string, language: Language) {
+  const available = metadata.urls?.[language];
+  return { href: available ?? fallback, language: available ? language : (["en", "zh"].includes(metadata.originalLanguage ?? "") ? metadata.originalLanguage : undefined) };
+}
+
+export function evaluationReports(catalog: Catalog, snapshots: Snapshot[], current?: BenchmarkInfo, language: Language = "en") {
   const benches = trackOverview(catalog).flatMap(track => track.benchmarks);
   const base = current?.searchGroup
     ? benches.find(bench => bench.trackId === current.trackId && bench.searchGroup === current.searchGroup)
     : current;
 
-  return Object.entries(reports).flatMap(([source, { publishedAt, title, summary, benchmarkIds, versionReport }]) => {
+  return Object.entries(reports).flatMap(([source, { publishedAt, title, summary, benchmarkIds, versionReport, urls, originalLanguage }]) => {
     if (current && (!base || !benchmarkIds.includes(base.id))) return [];
     const snapshot = snapshots.find(item => item.id === source);
     const benchmarks = benches.filter(bench => benchmarkIds.includes(bench.id));
     const date = publishedAt.slice(0, 10);
     const href = versionReport ? snapshot?.benchmarks[0]?.reportUrl : benchmarks[0]?.reportUrl;
     if (!snapshot || !date || !href || !benchmarks.length) return [];
+    const destination = reportDestination({ urls, originalLanguage }, href, language);
     const track = catalog.tracks.find(item => item.id === benchmarks[0].trackId);
     const trackLanding = track && benches.find(bench => bench.trackId === track.id);
-    return track && trackLanding ? [{ source, title, summary, date, publishedAt, href, benchmarks, track, trackLanding }] : [];
+    return track && trackLanding ? [{ source, title, summary, date, publishedAt, href: destination.href, language: destination.language, benchmarks, track, trackLanding }] : [];
   }).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 }
