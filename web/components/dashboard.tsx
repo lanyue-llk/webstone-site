@@ -6,6 +6,7 @@ import { canonicalVersion, benchmarkEntries, bestValue, formatMetric, formatPric
 import { providerColors } from "../lib/presentation";
 import InfoTooltip from "./info-tooltip";
 import Insights from "./insights";
+import MetricSelector from "./metric-selector";
 import MethodDetails from "./method-details";
 import ReleaseCheck from "./release-check";
 import { RELEASE, BUILT_AT } from "../lib/release.generated";
@@ -32,7 +33,7 @@ export default function Dashboard() {
   const [language, chooseLanguage] = useLanguage();
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [showCategories, setShowCategories] = useState(false);
-  const [moreMetrics, setMoreMetrics] = useState(false);
+  const [selectedMetrics, setSelectedMetrics] = useState<string[] | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -99,7 +100,9 @@ export default function Dashboard() {
   const providers = benchmark && metric ? sortProviders(benchmark.providers, metric.id, direction) : [];
   const categories = showCategories ? benchmark?.categories ?? [] : [];
   const primaryMetric = benchmark?.metrics.find(item => item.id === benchmark.primaryMetric);
-  const visibleMetrics = benchmark ? decisionMetrics(benchmark, moreMetrics, selection.metric) : [];
+  const defaultMetricIds = benchmark ? decisionMetrics(benchmark, false, selection.metric).map(item => item.id) : [];
+  const visibleMetrics = benchmark?.metrics.filter(item => item.id === benchmark.primaryMetric ||
+    (selectedMetrics ?? defaultMetricIds).includes(item.id)) ?? [];
   const leadingMetrics = benchmark && primaryMetric
     ? [primaryMetric, ...visibleMetrics.filter(item => item.id !== primaryMetric.id && isDecisionColumn(item))]
     : [];
@@ -119,17 +122,9 @@ export default function Dashboard() {
     return benchmark?.leadingMetricIds?.includes(item.id) || ["seconds", "ms", "mib", "usd"].includes(item.unit);
   }
 
-  const tableClass = benchmark?.id === "lexbench-webfetch"
-    ? "wide-table lexbench-table"
-    : benchmark?.id === "webarena-verified" ? "wide-table arena-table"
-    : benchmark?.id === "lexbench-headless-372" ? "wide-table headless-table"
-    : benchmark?.trackId === "websearch" ? "wide-table search-table"
-    : benchmark?.trackId === "webextract" ? "wide-table extract-table"
-    : "wide-table";
-
   function chooseBenchmark(id: string) {
     setShowCategories(false);
-    setMoreMetrics(false);
+    setSelectedMetrics(null);
     const latest = entries ? latestEntry(entries, id) : null;
     const version = latest ? canonicalVersion(latest.version) : "";
     const selectedResult = snapshots.find(record => record.id === latest?.id)?.benchmarks.find(item => item.id === id);
@@ -142,6 +137,8 @@ export default function Dashboard() {
   }
 
   function chooseVersion(version: string) {
+    setSelectedMetrics(null);
+    setShowCategories(false);
     setSelectedProvider(null);
     const selectedEntry = entries ? selectEntry(entries, version, selection.benchmark) : null;
     const selectedResult = snapshots.find(record => record.id === selectedEntry?.id)?.benchmarks.find(item => item.id === selection.benchmark);
@@ -246,7 +243,7 @@ export default function Dashboard() {
         {entries && catalog && (!selection.benchmark ? <Home catalog={catalog} snapshots={snapshots} t={t} /> : <>
           <div className="results-controls">
             {details?.searchGroup ? <div className="search-selectors">
-              <div className="layer-control" role="group" aria-label={t("Output layer")}>{(["L1", "L2", "L3"] as const).map((layer, index) => <button key={layer} aria-pressed={details.outputLayer === layer} onClick={() => {
+              <div className="column-views layer-control" role="group" aria-label={t("Output layer")}>{(["L1", "L2", "L3"] as const).map((layer, index) => <button key={layer} aria-pressed={details.outputLayer === layer} onClick={() => {
                 const target = catalog?.benchmarks.find(item => item.searchGroup === details.searchGroup && item.outputLayer === layer);
                 if (target) chooseBenchmark(target.id);
               }}>{t(["L1 · Search results", "L2 · Supplemental text", "L3 · Generated answers"][index])}</button>)}</div>
@@ -273,19 +270,26 @@ export default function Dashboard() {
           </div> : <>
             <section id="results" className="leaderboard" aria-label={`${t(benchmark.name)} ${t("Leaderboard")}`}>
               <h2 className="sr-only">{t("Leaderboard")}</h2>
-              <div className="table-toolbar"><span>{benchmark.providerCount} {t("methods")} · {benchmark.taskCount.toLocaleString()} {t("cases")}</span><div className="column-views" role="group" aria-label={t("Table columns")}>
+              <div className="table-toolbar"><span>{benchmark.providerCount} {t("methods")} · {benchmark.taskCount.toLocaleString()} {t("cases")}</span><div className="column-views table-controls" role="group" aria-label={t("Table columns")}>
                 {benchmark.categories.length > 0 && <button aria-pressed={showCategories} onClick={() => setShowCategories(current => !current)}>{t("Category breakdown")}</button>}
-                {benchmark.metrics.some(item => !decisionMetrics(benchmark, false, selection.metric).includes(item)) && <button aria-pressed={moreMetrics} onClick={() => setMoreMetrics(current => !current)}>{t("More metrics")}</button>}
+                <MetricSelector label="Table metrics" options={benchmark.metrics} selectedIds={visibleMetrics.map(item => item.id)}
+                  defaultIds={defaultMetricIds} requiredIds={[benchmark.primaryMetric]} t={t} onChange={ids => {
+                    setSelectedMetrics(ids);
+                    if (!ids.includes(selection.metric)) {
+                      setSelection(current => ({ ...current, metric: benchmark.primaryMetric }));
+                      setDirection(primaryMetric?.direction ?? "desc");
+                    }
+                  }} />
               </div></div>
               <p className="sample-scope">{benchmark.metrics.filter(item => result?.metricSamples?.[item.id]?.sampleCount !== null && result?.metricSamples?.[item.id]?.sampleCount !== undefined && result.metricSamples[item.id].sampleCount !== benchmark.taskCount).map(item => `${t(item.label)}: ${result!.metricSamples![item.id].sampleCount} ${t("samples")}`).join(" · ")}</p>
               {benchmark.trackId === "websearch" && snapshot?.source.kind === "report-page" && <p className="sample-scope">{t("Latency comes from separate runs with different concurrency.")}</p>}
               {!showPricing && !hasNumericCost && <p className="cost-disclosure">{t("Cost was not disclosed in this report.")}</p>}
               <div className="table-scroll" tabIndex={0} role="region" aria-label={t("Leaderboard")}>
-                <table className={tableClass} style={{ "--data-columns": categories.length + visibleMetrics.length + Number(showPassed) + Number(showPricing) } as React.CSSProperties}>
+                <table className="wide-table" style={{ "--data-columns": categories.length + visibleMetrics.length + Number(showPassed) + Number(showPricing) } as React.CSSProperties}>
                   <caption className="sr-only">{t(benchmark.name)} {t("Leaderboard")}</caption>
                   <thead><tr>
                     <th className="rank-cell" scope="col">#</th>
-                    <th className="provider-heading" scope="col">{t(benchmark.providerLabel ?? "Browser")}</th>
+                    <th className="provider-heading" scope="col">{t("Method")}</th>
                     {leadingMetrics.map(metricHeader)}
                     {showPricing && <th scope="col"><div className="metric-heading"><span>{t("Price / 1K")}</span><InfoTooltip label={t("Price / 1K")} description={t("Quoted prices and ranges are not realized total costs. Software-only prices exclude model usage.")} detailsLabel={t("details")} /></div></th>}
                     {categories.map(category => <th key={category.id} scope="col" className="category-head"><div className="metric-heading"><span>{t(category.name)}<span className="category-total">/{category.total}</span></span><InfoTooltip label={t(category.name)} description={`${category.total} ${t("cases")}. ${t("Pass criteria")}: ${t(category.criterion)}`} detailsLabel={t("details")} /></div></th>)}

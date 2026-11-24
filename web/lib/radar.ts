@@ -3,6 +3,7 @@ import { formatMetric, type Benchmark, type Metric, type Provider } from "./resu
 
 type Bounds = [number, number];
 type Axis = {
+  defaultSelected: boolean;
   id: string;
   label: string;
   value: (provider: Provider) => Bounds | null;
@@ -15,6 +16,7 @@ function point(value: number | null | undefined): Bounds | null {
 
 function metricAxis(metric: Metric): Axis {
   return {
+    defaultSelected: !/p50/i.test(metric.id),
     id: metric.id,
     label: metric.label,
     value: provider => point(provider.scores[metric.id]),
@@ -42,9 +44,11 @@ function resourceAxis(axis: Axis, providers: Provider[]): Axis | null {
   };
 }
 
-export function radarAxes(benchmark: Benchmark, categories = false): Axis[] {
-  if (categories) return benchmark.categories.map(category => ({
-    id: category.id,
+export function radarAxes(benchmark: Benchmark): Axis[] {
+  const categories: Axis[] = benchmark.categories.filter(category => category.total > 0 &&
+    benchmark.providers.some(provider => typeof provider.categoryPassed?.[category.id] === "number")).map(category => ({
+    defaultSelected: false,
+    id: `category:${category.id}`,
     label: category.name,
     value: provider => point(categoryRate(provider, category.id, category.total)),
     display: provider => {
@@ -57,17 +61,13 @@ export function radarAxes(benchmark: Benchmark, categories = false): Axis[] {
   const quality = qualityMetrics(benchmark).filter(hasValues)
     .sort((a, b) => Number(b.id === benchmark.primaryMetric) - Number(a.id === benchmark.primaryMetric));
   const timing = benchmark.metrics.filter(metric => ["ms", "seconds"].includes(metric.unit) && hasValues(metric));
-  const mean = timing.filter(metric => !/p50|p95/i.test(metric.id));
-  const tail = timing.find(metric => /p95/i.test(metric.id));
   const cost = benchmark.metrics.find(metric => metric.unit === "usd" && metric.id !== "pricePerThousand" && metric.highlightBest !== false && hasValues(metric));
   const resources: Axis[] = [
-    ...mean.map(metricAxis),
-    ...(tail ? [metricAxis(tail)] : []),
+    ...timing.map(metricAxis),
     ...benchmark.metrics.filter(metric => metric.unit === "mib" && hasValues(metric)).map(metricAxis),
   ];
 
   if (cost) resources.push(metricAxis(cost));
-
 
   return [
     ...quality.map(metric => {
@@ -78,5 +78,6 @@ export function radarAxes(benchmark: Benchmark, categories = false): Axis[] {
       } };
     }),
     ...resources.flatMap(axis => resourceAxis(axis, benchmark.providers) ?? []),
+    ...categories,
   ];
 }

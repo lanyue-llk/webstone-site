@@ -4,6 +4,10 @@ export type Language = "en" | "zh";
 export const LANGUAGE_KEY = "webstone-language";
 
 const chinese: Record<string, string> = {
+  "Table metrics": "表格指标",
+  "Reset metrics": "恢复默认指标",
+  "Select at least three metrics for a radar chart.": "请至少选择三项指标来绘制雷达图。",
+  "Quality and category axes show a share of the maximum. Lower latency, memory and measured cost plot farther out when reported.": "质量和分类指标按满分换算。耗时越短、内存占用越少、实测成本越低，越靠外。",
   "Run an evaluation": "运行评测",
   "Use Webstone to choose benchmarks, prepare environments, run tools and score results. The evaluation skill guides your agent through each step.": "在 Webstone 选择评测基准、准备环境、运行工具并评分。评测 Skill 会引导你的 Agent 完成这些步骤。",
   "Already have measured results? The webstone-site submission skill checks the format and prepares a result PR for the leaderboard.": "已有实测结果？用 webstone-site 的提交 Skill 检查格式，准备结果 PR，提交到排行榜。",
