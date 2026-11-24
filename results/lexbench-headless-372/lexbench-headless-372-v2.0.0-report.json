@@ -1,0 +1,211 @@
+{
+  "id": "lexbench-headless-372-v2.0.0",
+  "version": "v2.0.0",
+  "datasetDifference": "Functional success uses 372 tasks. Resource statistics use a separate 557-task experiment, restricted to 1,045 calls across 209 frozen common-pass tasks. CPU time is not wall-clock latency.",
+  "source": {
+    "kind": "report-page",
+    "url": "https://yours.lexmount.cn/artifact-site/s/gdwtSGOel0va",
+    "title": "Published benchmark report",
+    "importedAt": "2026-11-24T10:17:16.552Z",
+    "method": "Transcribed from the published report; numeric values and measurement populations checked against its tables and structured evidence.",
+    "scope": "data/model.json, combined_comparison.configurations and resource_population; mean CPU time and median per-call peak PSS on 1045 calls across 209 fixed tasks.",
+    "sha256": "c9ded943bf2e13b54f968a9fc6db012dcfa181a3aff508294c3e3de1c23e9675"
+  },
+  "benchmarks": [
+    {
+      "id": "lexbench-headless-372",
+      "definitionId": "cpu-resources",
+      "taskCount": 372,
+      "notes": [
+        "Functional success and resource use are measured on separate task populations.",
+        "Deltas compare each configuration with Moli 1.1.4 with layout off.",
+        "The Moli 1.1.4 baseline directly tested one task and inherited 371 common failures. Other configurations directly tested all 372 tasks. Each tested task used three attempts."
+      ],
+      "reportUrl": "https://yours.lexmount.cn/artifact-site/s/gdwtSGOel0va",
+      "providers": [
+        {
+          "id": "headless-1-1-4-off",
+          "name": "Moli 1.1.4 · layout off",
+          "description": "Moli 1.1.4 · layout off",
+          "mode": "Layout off",
+          "scores": {
+            "successRate": 0,
+            "successDelta": 0,
+            "pss": 77.22,
+            "pssDelta": 0,
+            "cpuTime": 21.41,
+            "cpuDelta": 0
+          },
+          "passed": 0,
+          "passedDerivation": "0 / 372; 1 task measured (3 samples), with 371 tasks inherited from shared failure relationships.",
+          "samples": {
+            "tasks": 1,
+            "runs": 3
+          }
+        },
+        {
+          "id": "headless-1-1-8-off",
+          "name": "Moli 1.1.8 · layout off",
+          "description": "Moli 1.1.8 · layout off",
+          "mode": "Layout off",
+          "scores": {
+            "successRate": 0.3,
+            "successDelta": 0.27,
+            "pss": 77.1,
+            "pssDelta": -0.15,
+            "cpuTime": 21.32,
+            "cpuDelta": -0.4
+          },
+          "passed": 1,
+          "passedDerivation": "1 / 372 (372 tasks measured, 1,116 samples)",
+          "samples": {
+            "tasks": 372,
+            "runs": 1116
+          }
+        },
+        {
+          "id": "headless-1-1-8-on",
+          "name": "Moli 1.1.8 · layout on",
+          "description": "Moli 1.1.8 · layout on",
+          "mode": "Layout on",
+          "scores": {
+            "successRate": 68.5,
+            "successDelta": 68.55,
+            "pss": 80.54,
+            "pssDelta": 4.3,
+            "cpuTime": 21.66,
+            "cpuDelta": 1.16
+          },
+          "passed": 255,
+          "passedDerivation": "255 / 372 (372 tasks measured, 1,116 samples)",
+          "samples": {
+            "tasks": 372,
+            "runs": 1116
+          }
+        },
+        {
+          "id": "headless-1-1-9-off",
+          "name": "Moli 1.1.9 · layout off",
+          "description": "Moli 1.1.9 · layout off",
+          "mode": "Layout off",
+          "scores": {
+            "successRate": 0.3,
+            "successDelta": 0.27,
+            "pss": 76.94,
+            "pssDelta": -0.36,
+            "cpuTime": 21.11,
+            "cpuDelta": -1.39
+          },
+          "passed": 1,
+          "passedDerivation": "1 / 372 (372 tasks measured, 1,116 samples)",
+          "samples": {
+            "tasks": 372,
+            "runs": 1116
+          }
+        },
+        {
+          "id": "headless-1-1-9-on",
+          "name": "Moli 1.1.9 · layout on",
+          "description": "Moli 1.1.9 · layout on",
+          "mode": "Layout on",
+          "scores": {
+            "successRate": 68.5,
+            "successDelta": 68.55,
+            "pss": 80.23,
+            "pssDelta": 3.9,
+            "cpuTime": 21.04,
+            "cpuDelta": -1.7
+          },
+          "passed": 255,
+          "passedDerivation": "255 / 372 (372 tasks measured, 1,116 samples)",
+          "samples": {
+            "tasks": 372,
+            "runs": 1116
+          }
+        },
+        {
+          "id": "headless-1-1-9-fixed-off",
+          "name": "Moli 1.1.9 patched · layout off",
+          "description": "Moli 1.1.9 patched · layout off",
+          "mode": "Layout off",
+          "scores": {
+            "successRate": 0.3,
+            "successDelta": 0.27,
+            "pss": 77.7,
+            "pssDelta": 0.63,
+            "cpuTime": 21,
+            "cpuDelta": -1.92
+          },
+          "passed": 1,
+          "passedDerivation": "1 / 372 (372 tasks measured, 1,116 samples)",
+          "samples": {
+            "tasks": 372,
+            "runs": 1116
+          }
+        },
+        {
+          "id": "headless-1-1-9-fixed-on",
+          "name": "Moli 1.1.9 patched · layout on",
+          "description": "Moli 1.1.9 patched · layout on",
+          "mode": "Layout on",
+          "scores": {
+            "successRate": 96.8,
+            "successDelta": 96.77,
+            "pss": 80.83,
+            "pssDelta": 4.68,
+            "cpuTime": 21.48,
+            "cpuDelta": 0.36
+          },
+          "passed": 360,
+          "passedDerivation": "360 / 372 (372 tasks measured, 1,116 samples)",
+          "samples": {
+            "tasks": 372,
+            "runs": 1116
+          }
+        }
+      ],
+      "metricSamples": {
+        "successRate": {
+          "sampleCount": 372,
+          "scope": "functional-tasks"
+        },
+        "pss": {
+          "sampleCount": 1045,
+          "scope": "frozen-common-pass-calls",
+          "note": "Median of per-call peak PSS across five calls on each of 209 fixed tasks, selected from a separate 557-task resource experiment."
+        },
+        "cpuTime": {
+          "sampleCount": 1045,
+          "scope": "frozen-common-pass-calls",
+          "note": "Mean CPU time across five calls on each of 209 fixed tasks; not per-task wall-clock latency."
+        }
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "id": "headless-372-table",
+      "section": "用户提供的 372 题子集汇总表",
+      "text": "七行的通过数、成功率、相对基线差值、PSS 与平均耗时均由用户逐格提供；未提供逐题证据链接，页面不展示“查看逐题证据”入口。"
+    }
+  ],
+  "translations": {
+    "zh": {
+      "Identify CPU time and median peak PSS correctly and separate their resource sample from functional tasks.": "更正 CPU 时间与峰值 PSS 中位数的含义，分开说明资源样本和功能测试样本。",
+      "Functional success and resource use are measured on separate task populations.": "功能成功率和资源占用使用不同的任务样本。",
+      "Deltas compare each configuration with Moli 1.1.4 with layout off.": "变化值均以 Moli 1.1.4 关闭布局为基线。",
+      "Median of per-call peak PSS across five calls on each of 209 fixed tasks, selected from a separate 557-task resource experiment.": "在独立的 557 题资源实验中，选取固定的 209 题，每题调用 5 次，统计各次调用峰值 PSS 的中位数。",
+      "Mean CPU time across five calls on each of 209 fixed tasks; not per-task wall-clock latency.": "固定的 209 题，每题调用 5 次，统计平均 CPU 时间；该值不是任务的实际经过时间。",
+      "Functional success uses 372 tasks. Resource statistics use a separate 557-task experiment, restricted to 1,045 calls across 209 frozen common-pass tasks. CPU time is not wall-clock latency.": "功能成功率覆盖 372 题。资源统计来自独立的 557 题实验，仅统计固定共同通过的 209 题，共 1,045 次调用。CPU 时间不是实际经过时间。",
+      "Layout off": "关闭布局",
+      "Layout on": "开启布局",
+      "The Moli 1.1.4 baseline directly tested one task and inherited 371 common failures. Other configurations directly tested all 372 tasks. Each tested task used three attempts.": "Moli 1.1.4 基线实测 1 题，其余 371 题沿用共同失败结果。其他配置均实测 372 题，每道实测题运行 3 次。"
+    }
+  },
+  "release": {
+    "date": "2026-11-24",
+    "kind": "protocol",
+    "previous": "v1.0.0",
+    "summary": "Identify CPU time and median peak PSS correctly and separate their resource sample from functional tasks."
+  }
+}

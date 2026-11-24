@@ -1,0 +1,198 @@
+{
+  "id": "webmainbench-v1.1.0",
+  "version": "v1.1.0",
+  "datasetDifference": "Uses the 545 frozen HTML pages in the linked report. The report does not identify a dataset commit.",
+  "source": {
+    "kind": "report-page",
+    "url": "https://yours.lexmount.cn/artifact-site/s/sBygxmqjB5wc",
+    "title": "Published benchmark report",
+    "importedAt": "2026-11-24T10:17:16.550Z",
+    "method": "Transcribed from the published report; numeric values and measurement populations checked against its tables and structured evidence.",
+    "scope": "Five browsers on 545 frozen HTML pages. Preserve the two decimal places printed in the report.",
+    "sha256": "c554c5b7d327e287daf94e5b7b256d5dc60e0c09d1b5b73df2abb33480f0face"
+  },
+  "benchmarks": [
+    {
+      "id": "webmainbench",
+      "definitionId": "standard",
+      "taskCount": 545,
+      "metricSamples": {
+        "fullText": {
+          "sampleCount": 545
+        },
+        "code": {
+          "sampleCount": 110
+        },
+        "formula": {
+          "sampleCount": 257
+        },
+        "tableContent": {
+          "sampleCount": 179
+        },
+        "tableStructure": {
+          "sampleCount": 179
+        }
+      },
+      "notes": [
+        "All five browsers process the same 545 frozen HTML pages.",
+        "Overall is the mean of the five reported dimension scores.",
+        "The frozen input does not measure live network access or anti-bot handling."
+      ],
+      "reportUrl": null,
+      "providers": [
+        {
+          "id": "moli",
+          "name": "Moli",
+          "description": "Moli",
+          "mode": "Frozen HTML",
+          "scores": {
+            "overall": 39.27,
+            "code": 91.06,
+            "fullText": 40.73,
+            "formula": 28.2,
+            "tableContent": 22.62,
+            "tableStructure": 13.75
+          },
+          "passed": null
+        },
+        {
+          "id": "chromium",
+          "name": "Chromium",
+          "description": "Chromium",
+          "mode": "Frozen HTML",
+          "scores": {
+            "overall": 27.02,
+            "code": 35.86,
+            "fullText": 39.4,
+            "formula": 21.12,
+            "tableContent": 25.01,
+            "tableStructure": 13.73
+          },
+          "passed": null
+        },
+        {
+          "id": "lightpanda",
+          "name": "Lightpanda",
+          "description": "Lightpanda",
+          "mode": "Frozen HTML",
+          "scores": {
+            "overall": 35,
+            "code": 84.71,
+            "fullText": 41.52,
+            "formula": 12.97,
+            "tableContent": 21.81,
+            "tableStructure": 14
+          },
+          "passed": null
+        },
+        {
+          "id": "obscura",
+          "name": "Obscura",
+          "description": "Obscura",
+          "mode": "Frozen HTML",
+          "scores": {
+            "overall": 31.03,
+            "code": 81.82,
+            "fullText": 41.88,
+            "formula": 31.39,
+            "tableContent": 0.03,
+            "tableStructure": 0
+          },
+          "passed": null
+        },
+        {
+          "id": "kitesurf",
+          "name": "Kitesurf",
+          "description": "Kitesurf",
+          "mode": "Frozen HTML",
+          "scores": {
+            "overall": 33.43,
+            "code": 80.7,
+            "fullText": 36.99,
+            "formula": 19.32,
+            "tableContent": 18.25,
+            "tableStructure": 11.87
+          },
+          "passed": null
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "lead",
+      "section": "结果总览",
+      "text": "Moli 在真实网站上的任务通过率是 89.8%，正文提取的综合分是 39.27，两项都排第一。"
+    },
+    {
+      "id": "runnerup",
+      "section": "首屏与第 5.1 节",
+      "text": "lexbench-webfetch 第二名 54.4%；WebMainBench 第二名 35.00。Chromium 的请求成功率为 96.7%，任务通过率为 54.4%。"
+    },
+    {
+      "id": "counts",
+      "section": "第 5.2、5.5 节",
+      "text": "Moli 比第二名 Chromium 多通过了 152 个用例。430 个用例里，Moli 有 44 个未通过，其中 16 个请求失败。"
+    },
+    {
+      "id": "categories",
+      "section": "第 5.2、5.5 节",
+      "text": "Moli 的风控、热门和动态网站分别通过 88、91、90 个；其他浏览器在这三类上的最高值分别为 37、58、58。未通过分类数为 12、10、9、9、3、1。"
+    },
+    {
+      "id": "quality",
+      "section": "第 4 节",
+      "text": "Moli 综合分 39.27，比 Lightpanda 高 4.27 分；Moli 代码得分 91.06，Chromium 代码得分 35.86。"
+    },
+    {
+      "id": "webmainbench-dimension-chart",
+      "section": "用户提供的 WebMainBench 图表",
+      "text": "全文、代码、公式、表格内容、表格结构五个维度，五款浏览器共 25 个数值。按原图一位小数显示；保留已有正文中的更高精度代码得分，不据此推算缺失综合分。"
+    },
+    {
+      "id": "category-pass-counts",
+      "section": "用户逐类提供的分类通过数",
+      "text": "五款浏览器的静态、动态、热门、风控、内嵌文档、媒体六类通过数由用户逐类提供，媒体 20 含 3 个直链用例。内嵌文档分母取 10：六类用例合计 430 与任务总数一致，且 Moli 各类未通过数 3、10、9、12、9、1 合计 44，与正文未通过数吻合。五款浏览器的分类合计与正文通过数、通过率一致。"
+    },
+    {
+      "id": "benchmark-ranking-chart",
+      "section": "用户提供的两套评测排名图",
+      "text": "补齐五款浏览器的任务成功率及 WebMainBench 综合分，按图中给出的数值记录，不通过其他分数或成功率反推。请求成功率按原文记录；图中未披露的通过数按六类分类通过数合计补齐。"
+    }
+  ],
+  "supplementalSources": [
+    {
+      "id": "webmainbench-dimension-chart",
+      "kind": "user-provided-image",
+      "title": "WebMainBench 各维度得分",
+      "receivedOn": "2026-11-10",
+      "sha256": "14417ce55f20d6d4f44101ea2a2836b5eeaa250e14ad8faa197aad54e318ae36",
+      "displayDecimals": 1
+    },
+    {
+      "id": "benchmark-ranking-chart",
+      "kind": "user-provided-image",
+      "title": "两套评测的排名",
+      "receivedOn": "2026-11-10",
+      "sha256": "e37bd9a52531af66c351ab496a1ecb05d21e79e471ff39c9ae8dae989fada544",
+      "taskRateDecimals": 1,
+      "overallScoreDecimals": 2
+    }
+  ],
+  "translations": {
+    "zh": {
+      "Retain the report’s two-decimal dimension scores, including nonzero table-content scores.": "保留报告中各维度的两位小数，包括原先被舍入为零的表格内容分数。",
+      "Uses the 545 frozen HTML pages in the linked report. The report does not identify a dataset commit.": "使用关联报告中的 545 份固定 HTML 页面，报告未标注数据集提交版本。",
+      "All five browsers process the same 545 frozen HTML pages.": "五种浏览器处理同一批 545 份固定 HTML 页面。",
+      "Overall is the mean of the five reported dimension scores.": "综合分为报告中五项维度分数的平均值。",
+      "The frozen input does not measure live network access or anti-bot handling.": "固定输入不涉及实时网络访问或反爬处理。",
+      "Frozen HTML": "固定 HTML"
+    }
+  },
+  "release": {
+    "date": "2026-11-24",
+    "kind": "results",
+    "previous": "v1.0.0",
+    "summary": "Retain the report’s two-decimal dimension scores, including nonzero table-content scores."
+  }
+}

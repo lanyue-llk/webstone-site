@@ -1,0 +1,177 @@
+{
+  "id": "lexbench-webfetch-v1.1.0",
+  "version": "v1.1.0",
+  "datasetDifference": "Uses the 430-task population in the linked report: 17 embedded-media cases and 3 direct-media cases are counted separately. The report does not supply an exact task list or pinned dataset revision.",
+  "source": {
+    "kind": "report-page",
+    "url": "https://yours.lexmount.cn/artifact-site/s/sBygxmqjB5wc",
+    "title": "Published benchmark report",
+    "importedAt": "2026-11-24T10:17:16.549Z",
+    "method": "Transcribed from the published report; numeric values and measurement populations checked against its tables and structured evidence.",
+    "scope": "Five browsers on 430 live-page tasks. Browser build versions and live-fetch latency are not stated in this report.",
+    "sha256": "c554c5b7d327e287daf94e5b7b256d5dc60e0c09d1b5b73df2abb33480f0face"
+  },
+  "benchmarks": [
+    {
+      "id": "lexbench-webfetch",
+      "definitionId": "split-media",
+      "taskCount": 430,
+      "categoryTotals": {
+        "static": 100,
+        "dynamic": 100,
+        "popular": 100,
+        "antibot": 100,
+        "document": 10,
+        "embeddedMedia": 17,
+        "directMedia": 3
+      },
+      "notes": [
+        "Browser build versions and live-fetch timings are not stated in the linked report. Resource measurements in its separate fixed-task experiment are not live-fetch latency."
+      ],
+      "reportUrl": "https://yours.lexmount.cn/artifact-site/s/sBygxmqjB5wc",
+      "providers": [
+        {
+          "id": "moli",
+          "name": "Moli",
+          "description": "Moli",
+          "mode": "Not specified",
+          "scores": {
+            "passRate": 89.8,
+            "requestRate": 96.3,
+            "totalMean": null,
+            "totalP50": null,
+            "totalP95": null
+          },
+          "passed": 386,
+          "passedDerivation": "Sum of the seven reported category pass counts: 97 + 90 + 91 + 88 + 1 + 16 + 3",
+          "categoryPassed": {
+            "static": 97,
+            "dynamic": 90,
+            "popular": 91,
+            "antibot": 88,
+            "document": 1,
+            "embeddedMedia": 16,
+            "directMedia": 3
+          }
+        },
+        {
+          "id": "chromium",
+          "name": "Chromium",
+          "description": "Chromium",
+          "mode": "Not specified",
+          "scores": {
+            "passRate": 54.4,
+            "requestRate": 96.7,
+            "totalMean": null,
+            "totalP50": null,
+            "totalP95": null
+          },
+          "passed": 234,
+          "passedDerivation": "Sum of the seven reported category pass counts: 99 + 58 + 58 + 5 + 1 + 12 + 1",
+          "categoryPassed": {
+            "static": 99,
+            "dynamic": 58,
+            "popular": 58,
+            "antibot": 5,
+            "document": 1,
+            "embeddedMedia": 12,
+            "directMedia": 1
+          }
+        },
+        {
+          "id": "lightpanda",
+          "name": "Lightpanda",
+          "description": "Lightpanda",
+          "mode": "Not specified",
+          "scores": {
+            "passRate": 53,
+            "requestRate": 87.4,
+            "totalMean": null,
+            "totalP50": null,
+            "totalP95": null
+          },
+          "passed": 228,
+          "passedDerivation": "Sum of the seven reported category pass counts: 92 + 44 + 38 + 37 + 1 + 13 + 3",
+          "categoryPassed": {
+            "static": 92,
+            "dynamic": 44,
+            "popular": 38,
+            "antibot": 37,
+            "document": 1,
+            "embeddedMedia": 13,
+            "directMedia": 3
+          }
+        },
+        {
+          "id": "obscura",
+          "name": "Obscura",
+          "description": "Obscura",
+          "mode": "Not specified",
+          "scores": {
+            "passRate": 51.9,
+            "requestRate": 89.3,
+            "totalMean": null,
+            "totalP50": null,
+            "totalP95": null
+          },
+          "passed": 223,
+          "passedDerivation": "Sum of the seven reported category pass counts: 94 + 43 + 53 + 16 + 1 + 13 + 3",
+          "categoryPassed": {
+            "static": 94,
+            "dynamic": 43,
+            "popular": 53,
+            "antibot": 16,
+            "document": 1,
+            "embeddedMedia": 13,
+            "directMedia": 3
+          }
+        },
+        {
+          "id": "kitesurf",
+          "name": "Kitesurf",
+          "description": "Kitesurf",
+          "mode": "Not specified",
+          "scores": {
+            "passRate": 44.7,
+            "requestRate": 84.2,
+            "totalMean": null,
+            "totalP50": null,
+            "totalP95": null
+          },
+          "passed": 192,
+          "passedDerivation": "Sum of the seven reported category pass counts: 90 + 41 + 40 + 10 + 1 + 10 + 0",
+          "categoryPassed": {
+            "static": 90,
+            "dynamic": 41,
+            "popular": 40,
+            "antibot": 10,
+            "document": 1,
+            "embeddedMedia": 10,
+            "directMedia": 0
+          }
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "user-provided-webfetch-table",
+      "section": "User-provided comparison table",
+      "text": "方法\t请求成功率\t综合任务通过率\t静态网站正文\t动态网站正文\t热门网站正文\t风控网页正文\t文档正文\t网页内嵌媒体\t直接媒体文件\t总耗时均值\t总耗时 P50\t总耗时 P95\nMoli 1.1.17\t96.3%\t89.5%\t97/100\t89/100\t90/100\t89/100\t1/10\t16/17\t3/3\t14,174 ms\t9,868 ms\t40,656 ms\nMoli 1.1.15\t97.4%\t85.3%\t96/100\t84/100\t84/100\t85/100\t1/10\t14/17\t3/3\t12,666 ms\t9,159 ms\t40,608 ms\nChromium Google Chrome for Testing 155.0.8059.39\t96.7%\t54.2%\t99/100\t57/100\t58/100\t5/100\t1/10\t12/17\t1/3\t8,211 ms\t4,367 ms\t25,054 ms\nLightpanda 1.0.0\t87.4%\t52.8%\t92/100\t44/100\t37/100\t37/100\t1/10\t13/17\t3/3\t6,477 ms\t6,722 ms\t8,131 ms\nObscura 0.2.4\t89.3%\t51.6%\t94/100\t42/100\t53/100\t16/100\t1/10\t13/17\t3/3\t13,873 ms\t9,599 ms\t36,418 ms\nKitesurf Beta · 托管后端版本未公开\t84.2%\t45.1%\t90/100\t44/100\t40/100\t10/100\t1/10\t9/17\t0/3\t13,408 ms\t6,004 ms\t77,304 ms"
+    }
+  ],
+  "translations": {
+    "zh": {
+      "Publish the five-browser comparison and category counts from the linked report.": "按关联报告公布五种浏览器的评分和分类通过数。",
+      "Browser build versions and live-fetch timings are not stated in the linked report. Resource measurements in its separate fixed-task experiment are not live-fetch latency.": "关联报告未公布浏览器构建版本和实时网页获取耗时。报告中另一组固定任务的资源实验不能作为网页获取延时。",
+      "Uses the 430-task population in the linked report: 17 embedded-media cases and 3 direct-media cases are counted separately. The report does not supply an exact task list or pinned dataset revision.": "使用关联报告中的 430 题；其中嵌入媒体 17 题、直链媒体 3 题分别统计。报告未提供完整任务清单或固定的数据集版本。",
+      "Not specified": "未提供"
+    }
+  },
+  "release": {
+    "date": "2026-11-24",
+    "kind": "results",
+    "previous": "v1.0.0",
+    "summary": "Publish the five-browser comparison and category counts from the linked report."
+  }
+}
