@@ -11,13 +11,13 @@ test("report checks include catalog articles and result-specific reports once", 
   assert.deepEqual(reportLinks({ benchmarks: [{ reportUrl: address }] }, [{ id: "published", benchmarks: [{ reportUrl: address }, { reportUrl: address + "-v2" }, { reportUrl: null }] }], { reports: { published: { versionReport: true } } }), [address, address + "-v2"]);
 });
 
-test("an anonymous reader can open HTML and PDF reports without cookies or credentials", async () => {
+test("an anonymous reader can open HTML reports without cookies or credentials", async () => {
   await check(async (_, options) => {
     assert.equal(options.credentials, "omit");
     assert.equal(options.headers, undefined);
     return html("<h1>Web Search evaluation</h1><p>Results and methodology.</p>");
   });
-  await check(async () => new Response("%PDF-1.7 content", { headers: { "content-type": "application/pdf" } }));
+  await assert.rejects(check(async () => new Response("%PDF-1.7 content", { headers: { "content-type": "application/pdf" } })), /PDF reports require/);
 });
 
 test("HTTP 200 sign-in pages, redirects, permission failures and empty reports fail", async () => {
@@ -290,4 +290,22 @@ test("HTML checks work when the checker is imported by an ESM command", async ()
   const {promisify}=await import('node:util');
   const script = `import {reportDocument} from ${JSON.stringify(new URL('../scripts/check-report-access.mjs',import.meta.url).href)};if(!(await reportDocument('<h1>Measured results</h1>')).readable)process.exit(1);`;
   await promisify(execFile)(process.execPath,['--input-type=module','-e',script]);
+});
+
+
+test("inline text cannot suppress a fetched iframe at the same string", async () => {
+  await assert.rejects(check(async url=>url===address ? html('<iframe srcdoc="https://reports.example.org/private"></iframe><iframe src="https://reports.example.org/private"></iframe>') : new Response('Forbidden',{status:403})), /403/);
+});
+
+test("visible aria-hidden messages, formatted Chinese gates and semantic alerts fail", async () => {
+  for(const body of ['<h1>Private report</h1><div aria-hidden="true"><h2>Access denied</h2></div>', '<h1>需要<strong>登录</strong></h1><p>Contact the owner.</p>', '<main><span role="alert">Access denied</span><p>Contact the owner.</p></main>']) await assert.rejects(check(async()=>html(body)), /access-denied/);
+  await check(async()=>html('<div aria-hidden="true">Measured results</div>'));
+});
+
+test("page chrome cannot turn a main loading shell into a readable report", async () => {
+  await assert.rejects(check(async()=>html('<header>Report Library</header><main><p>Loading…</p></main><footer>Copyright 2026</footer>')), /no readable content/);
+});
+
+test("PDFs are not approved without a dedicated password-free page validation", async () => {
+  for(const body of ['%PDF-1.7 truncated','%PDF-1.7 /Encrypt 1 0 R']) await assert.rejects(check(async()=>new Response(body,{headers:{'content-type':'application/pdf'}})), /PDF reports require/);
 });

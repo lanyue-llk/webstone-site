@@ -123,7 +123,7 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
         if (!/application\/json/i.test(type)) throw new Error("Expected a report delivery manifest");
         return JSON.parse(body);
       }
-      if (/application\/pdf/i.test(type) && body.startsWith("%PDF-")) return { url, body, pdf: true };
+      if (/application\/pdf/i.test(type)) throw new Error("PDF reports require a separate anonymous-readability check; publish a readable HTML report");
       if (!/text\/html/i.test(type)) throw new Error("Expected a readable HTML report or PDF");
       const document = await bounded(reportDocument(body));
       if (document.refresh) throw new Error("Report uses HTML refresh; provide its final public URL");
@@ -167,7 +167,7 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
     const base = page.baseHref === null ? page.url : new URL(page.baseHref, page.url);
     const destinations = new Set();
     for (const frame of sources) {
-      const destination = frame.srcdoc !== undefined ? frame.srcdoc : new URL(frame.src, base).href;
+      const destination = frame.srcdoc !== undefined ? "inline:" + frame.srcdoc : "url:" + new URL(frame.src, base).href;
       if (destinations.has(destination)) continue;
       destinations.add(destination);
       if (frame.srcdoc !== undefined) {
