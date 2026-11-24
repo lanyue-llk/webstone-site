@@ -254,7 +254,7 @@ test("optional sign-in text does not block the actual public report preview", as
   const publicEntry="https://cdn.example.org/public-report.html";
   await check(publication({[publicEntry]:()=>html(body)},'<header>Sign in</header><iframe data-report-preview src="'+publicEntry+'"></iframe><iframe src="about:blank"></iframe>'));
   const page=await reportDocument('<header>Sign in</header>'+loader);
-  assert.equal(page.authentication,true);assert.ok(page.deliveryConfig);
+  assert.equal(page.readable,false);assert.ok(page.deliveryConfig);
 });
 
 
@@ -280,4 +280,11 @@ test("checker deadlines cancel both stalled HTTPS stages", {timeout:6000}, async
       assert.equal(req?.destroyed,true);if(response)assert.equal(response.destroyed,true);
     } finally {clearTimeout(guard);}
   }
+});
+
+
+test("report regions exclude navigation and account headings from permission decisions", async () => {
+  for(const navigation of ['<header>Home</header>','<div role="navigation">Home</div>','<aside>Home</aside>']) await assert.rejects(check(publication({},navigation+'<main><p>Access denied</p></main>')), /authentication|denies access/);
+  for(const account of ['<aside><h1>Sign in</h1></aside>','<div><h1>Sign in</h1></div>']) await check(publication({},account+'<main><h2>Results</h2><p>Results and methodology.</p></main>'));
+  await assert.rejects(check(publication({},'<header>Home</header><article><p>Access denied</p></article>')), /authentication|denies access/);
 });
