@@ -39,8 +39,6 @@ Use the official Wrangler CLI. Interactive authorization is needed once per loca
 npx --yes wrangler@4.167.0 login --device --scopes account:read user:read pages:write
 npm ci --ignore-scripts
 npm test
-npx playwright install --with-deps chromium --only-shell
-npm run test:report-navigation
 npm run check:reports
 npm run build
 npx --yes wrangler@4.167.0 pages deploy web/out --force --branch main
