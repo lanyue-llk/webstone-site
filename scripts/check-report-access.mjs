@@ -188,9 +188,13 @@ async function main() {
   const metadata = JSON.parse(await readFile(new URL("reports/metadata.json", root), "utf8"));
   const links = reportLinks(catalog, files.map(item => item.report), metadata);
   const failures = [];
-  await Promise.all(links.map(async link => {
-    try { await checkReportAccess(link); console.log(`Anonymous report access OK: ${link}`); }
-    catch (error) { failures.push(`${link}: ${error.message}`); }
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(4, links.length) }, async () => {
+    while (next < links.length) {
+      const link = links[next++];
+      try { await checkReportAccess(link); console.log(`Anonymous report access OK: ${link}`); }
+      catch (error) { failures.push(`${link}: ${error.message}`); }
+    }
   }));
   if (failures.length) throw new Error(failures.join("\n"));
 }

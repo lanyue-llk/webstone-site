@@ -322,3 +322,21 @@ test("optional account navigation stays separate from report access", async () =
 test("visible iframes in page chrome still require anonymous access", async () => {
   await assert.rejects(check(async url=>url===address ? html('<h1>Report preview</h1><aside><iframe src="/private"></iframe></aside>') : new Response('Forbidden',{status:403})), /403/);
 });
+
+
+test("visible auth forms, whitespace and sentence punctuation cannot hide a gate", async () => {
+  for(const body of ['<main><h1>Private report</h1><aside><form><p>Access denied</p><input type="password"></form></aside></main>', '<h1>'+(' '.repeat(512))+'Access denied</h1><p>Contact the owner.</p>', '<h1>Access denied.</h1><p>Contact the owner.</p>']) await assert.rejects(check(async()=>html(body)), /access-denied/);
+});
+
+test("empty primary containers do not suppress public body content", async () => {
+  await check(async()=>html('<div><h1>Measured results</h1><p>Results and methodology.</p></div><article></article>'));
+});
+
+test("corrupt and truncated supported encodings reject through asynchronous decoder errors", async () => {
+  const {Readable}=await import('node:stream');const {EventEmitter}=await import('node:events');
+  const {gzipSync,brotliCompressSync,deflateSync}=await import('node:zlib');
+  for(const [encoding,compress] of [['gzip',gzipSync],['br',brotliCompressSync],['deflate',deflateSync]]) for(const body of [Buffer.from('invalid compressed bytes'),compress(Buffer.from('<h1>Measured results</h1>'.repeat(20))).subarray(0,4)]) {
+    const transport=(_url,_options,callback)=>{const req=new EventEmitter();req.destroy=()=>{};req.end=()=>queueMicrotask(()=>{const response=Readable.from([body]);response.statusCode=200;response.headers={'content-type':'text/html','content-encoding':encoding};callback(response);});return req;};
+    await assert.rejects(anonymousRequest(address,{},transport));
+  }
+});
