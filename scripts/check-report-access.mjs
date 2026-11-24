@@ -1,3 +1,4 @@
+import { parse } from "parse5";
 import { request as httpsRequest } from "node:https";
 import { lookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
@@ -42,6 +43,49 @@ export function anonymousRequest(address, options, transport = httpsRequest) {
   });
 }
 
+export function reportDocument(html) {
+  const document = parse(html);
+  const text = [];
+  const frames = [];
+  const blocks = [];
+  let deliveryConfig = null;
+  let password = false;
+  let deniedMeta = false;
+  const attributes = node => Object.fromEntries((node.attrs ?? []).map(({ name, value }) => [name, value]));
+  function hidden(node) {
+    const attrs = attributes(node);
+    return ["template", "style", "noscript"].includes(node.tagName) || Object.hasOwn(attrs, "hidden")
+      || attrs["aria-hidden"] === "true" || /(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(attrs.style ?? "")
+      || (node.tagName === "dialog" && !Object.hasOwn(attrs, "open"));
+  }
+  function content(node) {
+    if (hidden(node) || ["script", "head"].includes(node.tagName)) return "";
+    if (node.nodeName === "#text") return node.value;
+    return (node.childNodes ?? []).map(content).join(" ");
+  }
+  function visit(node, inHead = false) {
+    if (hidden(node)) return;
+    const attrs = attributes(node);
+    if (node.tagName === "meta" && /sign in to view this work/i.test(attrs.content ?? "")) deniedMeta = true;
+    if (node.tagName === "script") {
+      if (attrs.id === "artifact-delivery-config") deliveryConfig = JSON.parse((node.childNodes ?? []).map(node => node.value ?? "").join(""));
+      return;
+    }
+    if (node.tagName === "head") inHead = true;
+    if (!inHead) {
+      if (node.nodeName === "#text") text.push(node.value);
+      if (node.tagName === "iframe" && attrs.src) frames.push(attrs.src);
+      if (node.tagName === "input" && attrs.type?.toLowerCase() === "password") password = true;
+      if (["h1", "h2", "h3", "p"].includes(node.tagName)) blocks.push(content(node).replace(/\s+/g, " ").trim());
+    }
+    for (const child of node.childNodes ?? []) visit(child, inHead);
+  }
+  visit(document);
+  const visible = text.join(" ").replace(/\s+/g, " ").trim();
+  const gate = /^(?:access denied|forbidden|authentication required|you are not signed in[.!]?|sign in(?: to (?:view|continue|access)[^.]*)?[.!]?|sign in, then try opening[^.]*[.!]?|需要登录[。！]?|请先登录[。！]?|无权访问[。！]?|登录后.{0,8}(?:查看|访问)[。！]?)$/i;
+  return { readable: Boolean(visible), frames, deliveryConfig, denied: password || deniedMeta || blocks.some(block => gate.test(block)) || gate.test(visible) };
+}
+
 export async function checkReportAccess(address, { request = anonymousRequest, resolve = lookup } = {}) {
   async function retrieve(address, json = false) {
     let url = new URL(address);
@@ -71,13 +115,10 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       }
       if (/application\/pdf/i.test(type) && body.startsWith("%PDF-")) return { url, body, pdf: true };
       if (!/text\/html/i.test(type)) throw new Error("Expected a readable HTML report or PDF");
-      const accessBody = body.replace(/<dialog\b(?![^>]*\bopen(?:[\s=>]))[^>]*>[\s\S]*?<\/dialog>/gi, "");
-      const visible = accessBody.replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, "").replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-      const denied = visible.length < 4000 && /sign in to view this work|you are not signed in|sign in, then try opening|authentication required|需要登录|登录后.{0,8}(?:查看|访问)/i.test(visible);
-      if (!visible.trim() && !/id=["\']artifact-delivery-config["\']/.test(body) && !/<iframe\b/i.test(body)) throw new Error("Report has no readable content");
-      const denialHeading = /<(?:h[1-3]|title)\b[^>]*>\s*(?:Access denied|Forbidden|Authentication required|Sign in(?: to (?:view|continue|access)[^<]*)?|需要登录|请先登录|无权访问)\s*<\//i.test(accessBody);
-      if (denialHeading || denied || /<meta[^>]+Sign in to view this work/i.test(body) || /<input[^>]+type=["']password/i.test(accessBody)) throw new Error("Anonymous reader received a sign-in or access-denied page");
-      return { url, body, pdf: false, readable: Boolean(visible.trim()) };
+      const document = reportDocument(body);
+      if (document.denied) throw new Error("Anonymous reader received a sign-in or access-denied page");
+      if (!document.readable && !document.frames.length && !document.deliveryConfig) throw new Error("Report has no readable content");
+      return { url, body, pdf: false, ...document };
     }
     throw new Error("Too many redirects");
   }
@@ -85,9 +126,8 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
   async function validatePage(page, depth = 0) {
     if (page.pdf) return;
     if (depth > 5) throw new Error("Report contains too many nested previews");
-    const configText = page.body.match(/<script[^>]+id=["']artifact-delivery-config["'][^>]*>([\s\S]*?)<\/script>/i)?.[1];
-    if (configText) {
-      const config = JSON.parse(configText);
+    if (page.deliveryConfig) {
+      const config = page.deliveryConfig;
       const manifestUrl = new URL(config.manifestUrl);
       manifestUrl.searchParams.set("file", config.file);
       let entry;
@@ -101,7 +141,7 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       await validatePage(await retrieve(entry.url), depth + 1);
       return;
     }
-    const sources = [...page.body.matchAll(/<iframe\b[^>]*\bsrc=["']([^"']+)/gi)].map(match => match[1]);
+    const sources = page.frames;
     if (!sources.length && (/\/artifact-site\/(s|v)\//.test(page.url.pathname) || !page.readable)) throw new Error("Hosted report has no readable preview");
     for (const source of sources) await validatePage(await retrieve(new URL(source.replaceAll("&amp;", "&"), page.url).href), depth + 1);
   }

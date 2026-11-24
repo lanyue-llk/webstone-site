@@ -141,3 +141,13 @@ test("optional closed login dialogs do not prevent anonymous report reading", as
 test("readable preview wrappers still require accessible embedded reports", async () => {
   await assert.rejects(check(async target=>target===address?html('<h1>Report preview</h1><iframe src="/private"></iframe>'):new Response('Forbidden',{status:403})),/403/);
 });
+
+
+test("inert HTML, comments and hidden text do not expose readable reports or live previews", async () => {
+  for (const body of ['<template><h1>Results</h1></template><div id="app"></div>','<div hidden>Results</div>','<div style="display: none">Results</div>']) await assert.rejects(check(async()=>html(body)),/no readable content/);
+  await check(async()=>html('<h1>Measured results</h1><!-- <iframe src="/old-preview"></iframe> --><template><iframe src="/private"></iframe></template><iframe data-src="/unused"></iframe>'));
+});
+
+test("a non-heading login gate fails regardless of lengthy navigation", async () => {
+  await assert.rejects(check(async()=>html('<p>You are not signed in.</p><nav>'+('Navigation '.repeat(600))+'</nav>')),/access-denied/);
+});
