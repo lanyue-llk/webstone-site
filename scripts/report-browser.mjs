@@ -58,14 +58,40 @@ export async function verifyReportNavigation(
   let context;
   const deadline = Date.now() + timeoutMs;
   const observed = new Set();
-  const aliases = new Map();
   const frameDocuments = new Map();
+  const renderedFrames = new Set();
   try {
     context = await browser.newContext({
       serviceWorkers: "block",
       acceptDownloads: false,
       proxy: { server: proxy.server },
     });
+    await context.exposeBinding("__webstoneReportDelivered", ({ frame }) =>
+      renderedFrames.add(frame),
+    );
+    await context.addInitScript(() => {
+      const close = Document.prototype.close;
+      Document.prototype.close = function (...args) {
+        const result = Reflect.apply(close, this, args);
+        if (this === document)
+          window.__webstoneReportDelivered().catch(() => {});
+        return result;
+      };
+    });
+    context.on("request", (request) => {
+      if (request.isNavigationRequest()) {
+        frameDocuments.delete(request.frame());
+        renderedFrames.delete(request.frame());
+      }
+    });
+    context.on("page", (page) =>
+      page.on("framenavigated", (frame) => {
+        if (!frame.url().startsWith("https://")) {
+          frameDocuments.delete(frame);
+          renderedFrames.delete(frame);
+        }
+      }),
+    );
     context.on("requestfinished", async (request) => {
       try {
         const response = await request.response();
@@ -73,7 +99,16 @@ export async function verifyReportNavigation(
         const chain = [];
         for (let current = request; current; current = current.redirectedFrom())
           chain.push(reportDestination(current.url()));
-        aliases.set(reportDestination(request.url()), chain);
+        if (
+          chain.some(
+            (value) =>
+              !publicEvidenceUrl(value) ||
+              /\/(?:login|signin|sign-in|auth)(?:\/|$)/i.test(
+                decodeURIComponent(new URL(value).pathname),
+              ),
+          )
+        )
+          return;
         if (request.isNavigationRequest())
           frameDocuments.set(request.frame(), chain);
         for (const url of chain) observed.add(url);
@@ -112,39 +147,28 @@ export async function verifyReportNavigation(
     while (Date.now() < deadline) {
       if (proxy.failure) throw proxy.failure;
       const loadedFrames = new Set(
-        page.frames().flatMap((frame) => {
-          try {
-            const url = reportDestination(frame.url());
-            return [
-              url,
-              ...(aliases.get(url) ?? []),
-              ...(frameDocuments.get(frame) ?? []),
-            ];
-          } catch {
-            return [];
-          }
-        }),
+        page.frames().flatMap((frame) => frameDocuments.get(frame) ?? []),
       );
       if (
         required.every((url) => observed.has(url)) &&
         frames.every((url) => loadedFrames.has(url))
       ) {
         if (proxy.failure) throw proxy.failure;
-        const pending = await Promise.all(
-          page
-            .frames()
-            .map((frame) =>
-              frame
-                .evaluate(
-                  () =>
-                    Boolean(
-                      document.getElementById("artifact-delivery-config"),
-                    ) || Boolean(document.getElementById("artifact-loading")),
-                )
-                .catch(() => true),
-            ),
+        const previews = frames.filter((url) =>
+          /\/api\/preview\//.test(new URL(url).pathname),
         );
-        if (!pending.some(Boolean)) return;
+        if (
+          previews.every((url) =>
+            page
+              .frames()
+              .some(
+                (frame) =>
+                  renderedFrames.has(frame) &&
+                  frameDocuments.get(frame)?.includes(url),
+              ),
+          )
+        )
+          return;
       }
       await new Promise((resolve) => setTimeout(resolve, 25));
     }
@@ -154,6 +178,9 @@ export async function verifyReportNavigation(
   } catch {
     throw new Error(
       "Anonymous browser could not open the report preview and delivery",
+      {
+        cause: { code: proxy.failure?.code ?? "E_REPORT_NAVIGATION" },
+      },
     );
   } finally {
     await context?.close();

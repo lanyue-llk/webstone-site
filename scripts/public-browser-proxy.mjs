@@ -99,7 +99,12 @@ export async function createPublicBrowserProxy({
       upstream.on("data", (chunk) => {
         bytes += chunk.length;
         if (bytes > maxBytes)
-          fail(new Error("Report navigation exceeds its download budget"));
+          fail(
+            Object.assign(
+              new Error("Report navigation exceeds its download budget"),
+              { code: "E_REPORT_DOWNLOAD_LIMIT" },
+            ),
+          );
       });
       upstream.once("connect", () => {
         if (closed || controller.signal.aborted || client.destroyed) {
@@ -119,7 +124,12 @@ export async function createPublicBrowserProxy({
     server.listen(0, "127.0.0.1", resolve);
   });
   const timer = setTimeout(
-    () => fail(new Error("Report navigation exceeds its time budget")),
+    () =>
+      fail(
+        Object.assign(new Error("Report navigation exceeds its time budget"), {
+          code: "E_REPORT_DEADLINE",
+        }),
+      ),
     timeoutMs,
   );
   return {
