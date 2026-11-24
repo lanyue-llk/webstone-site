@@ -88,7 +88,7 @@ test("connections use the validated addresses instead of a second DNS lookup", a
 
 
 test("empty application roots and script-only redirects do not count as reports", async () => {
-  for (const body of ['<html><body><div id="app"></div></body></html>', "<script>location.href='/login'</script>"]) await assert.rejects(check(async () => html(body)), /no readable content/);
+  for (const body of ['<html><head><title>Report</title></head><body><div id="app"></div></body></html>', "<script>location.href='/login'</script>"]) await assert.rejects(check(async () => html(body)), /no readable content/);
 });
 
 test("anonymous transport handles empty HTTP responses without uncaught exceptions", async () => {
@@ -107,4 +107,28 @@ test("anonymous transport handles empty HTTP responses without uncaught exceptio
     assert.equal(response.status, status);
     assert.equal(await response.text(), "");
   }
+});
+
+
+test("iframe-only reports outside the hosted wrapper validate their embedded document", async () => {
+  await assert.rejects(check(async target => target === address ? html('<iframe src="/private"></iframe>') : new Response('Forbidden', {status:403})), /403/);
+});
+
+test("every secondary destination receives DNS validation before any network request", async () => {
+  const resolve = async hostname => [{address: hostname === 'private.example.org' ? '10.0.0.1' : '93.184.216.34'}];
+  for (const response of [new Response(null,{status:302,headers:{location:'https://private.example.org/report'}}), html('<iframe src="https://private.example.org/report"></iframe>'), html('<script id="artifact-delivery-config">{"manifestUrl":"https://private.example.org/manifest","file":"index.html"}</script>')]) {
+    const visited=[];
+    await assert.rejects(checkReportAccess(address,{resolve,request:async target=>{visited.push(target);return response}}),/private or reserved/);
+    assert.deepEqual(visited,[address]);
+  }
+});
+
+test("the HTTPS transport receives the validated lookup callback", async () => {
+  const {EventEmitter}=await import('node:events');
+  const lookup=(_host,_options,callback)=>callback(null,'93.184.216.34',4);
+  await anonymousRequest(address,{lookup},(_address,options,callback)=>{
+    assert.equal(options.lookup,lookup);
+    options.lookup('reports.example.org',{},(error,address,family)=>{assert.equal(error,null);assert.equal(address,'93.184.216.34');assert.equal(family,4)});
+    const req=new EventEmitter();req.end=()=>{const response=new EventEmitter();response.statusCode=200;response.headers={};callback(response);response.emit('data',Buffer.from('report'));response.emit('end')};return req;
+  });
 });

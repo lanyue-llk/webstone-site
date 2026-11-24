@@ -71,40 +71,43 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       }
       if (/application\/pdf/i.test(type) && body.startsWith("%PDF-")) return { url, body, pdf: true };
       if (!/text\/html/i.test(type)) throw new Error("Expected a readable HTML report or PDF");
-      const visible = body.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+      const visible = body.replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, "").replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
       const denied = visible.length < 4000 && /sign in to view this work|you are not signed in|sign in, then try opening|authentication required|需要登录|登录后.{0,8}(?:查看|访问)/i.test(visible);
       if (!visible.trim() && !/id=["\']artifact-delivery-config["\']/.test(body) && !/<iframe\b/i.test(body)) throw new Error("Report has no readable content");
       const denialHeading = /<(?:h[1-3]|title)\b[^>]*>\s*(?:Access denied|Forbidden|Authentication required|Sign in(?: to (?:view|continue|access)[^<]*)?|需要登录|请先登录|无权访问)\s*<\//i.test(body);
       if (denialHeading || denied || /<meta[^>]+Sign in to view this work/i.test(body) || /<input[^>]+type=["']password/i.test(body)) throw new Error("Anonymous reader received a sign-in or access-denied page");
-      return { url, body, pdf: false };
+      return { url, body, pdf: false, readable: Boolean(visible.trim()) };
     }
     throw new Error("Too many redirects");
   }
 
-  let page = await retrieve(address);
-  if (!page.pdf && /\/artifact-site\/(s|v)\//.test(page.url.pathname)) {
-    const source = page.body.match(/<iframe\b[^>]*\bsrc=["']([^"']+)/i)?.[1];
-    if (!source) throw new Error("Hosted report has no readable preview");
-    page = await retrieve(new URL(source.replaceAll("&amp;", "&"), page.url).href);
-  }
-  if (!page.pdf) {
+  async function validatePage(page, depth = 0) {
+    if (page.pdf) return;
+    if (depth > 5) throw new Error("Report contains too many nested previews");
     const configText = page.body.match(/<script[^>]+id=["']artifact-delivery-config["'][^>]*>([\s\S]*?)<\/script>/i)?.[1];
     if (configText) {
       const config = JSON.parse(configText);
       const manifestUrl = new URL(config.manifestUrl);
       manifestUrl.searchParams.set("file", config.file);
       let entry;
-      for (let page = 0; page < 20; page++) {
+      for (let index = 0; index < 20; index++) {
         const manifest = await retrieve(manifestUrl.href, true);
         entry = manifest.files?.find(file => file.path === config.file);
         if (entry || manifest.nextCursor === null || manifest.nextCursor === undefined) break;
         manifestUrl.searchParams.set("cursor", String(manifest.nextCursor));
       }
       if (!entry?.url) throw new Error("Report entry is missing from the anonymous delivery manifest");
-      const content = await retrieve(entry.url);
-      if (/id=["']artifact-delivery-config["']/.test(content.body)) throw new Error("Report returned only a loading shell");
+      await validatePage(await retrieve(entry.url), depth + 1);
+      return;
+    }
+    const hosted = /\/artifact-site\/(s|v)\//.test(page.url.pathname);
+    if (hosted || !page.readable) {
+      const source = page.body.match(/<iframe\b[^>]*\bsrc=["']([^"']+)/i)?.[1];
+      if (!source) throw new Error("Hosted report has no readable preview");
+      await validatePage(await retrieve(new URL(source.replaceAll("&amp;", "&"), page.url).href), depth + 1);
     }
   }
+  await validatePage(await retrieve(address));
 }
 
 async function main() {
