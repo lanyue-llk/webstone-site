@@ -552,5 +552,6 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
 .chart-empty { padding: 60px 20px; }
 @media (max-width: 760px) {
   .table-controls { justify-content: flex-start; }
+  .metric-selector-panel { position: fixed; left: 18px; right: 18px; top: auto; bottom: 18px; width: auto; }
   .wide-table { --rank-width: 28px; }
 }
