@@ -61,7 +61,7 @@ export default function Home({ catalog, snapshots, t }: Props) {
     <section className="overview-hero">
       <div>
         <h1>Webstone</h1>
-        <p>{t("Benchmarks for the tools agents use on the web.")}</p>
+        <p>{t("The touchstone for your agent's web tools.")}</p>
         <div className="overview-actions">
           {firstBenchmark && <a href={benchmarkHref(firstBenchmark.id)} className="overview-primary">{t("Explore leaderboards")} <ArrowRight size={17} aria-hidden="true" /></a>}
           <a href="#submit-results">{t("Submit results")}</a>

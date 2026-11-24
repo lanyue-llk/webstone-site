@@ -44,7 +44,7 @@ const chinese: Record<string, string> = {
   "Browser task success and timing across 812 recorded trajectories.": "在 812 条操作轨迹上测量浏览器的任务成功率和耗时。",
   "Structured extraction from web pages": "从网页提取结构化字段",
   "Compare extraction methods on SWDE pages and Zyte product pages.": "在 SWDE 网页和 Zyte 商品页上比较字段提取方案。",
-  "Benchmarks for the tools agents use on the web.": "评测智能体使用的网页工具。",
+  "The touchstone for your agent's web tools.": "检验 Agent Web 工具的试金石。",
   "Explore leaderboards": "查看排行榜",
   "Local tracks": "站内评测方向",
   "Result editions": "结果版本",
