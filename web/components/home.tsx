@@ -23,8 +23,7 @@ export function EvaluationReports({ catalog, snapshots, t, current, language = "
         <div className="article-topic"><Icon size={18} aria-hidden="true" /><span>{t(article.track.name)}</span></div>
         <h3><a href={article.href} hrefLang={article.language} target="_blank" rel="noreferrer">{t(article.title)} <ArrowUpRight size={15} aria-hidden="true" /><span className="sr-only"> ({t("opens in a new tab")})</span></a></h3>
         <p>{t(article.summary)}</p>
-        {article.language && article.language !== language && <span className="article-language">{t(article.language === "zh" ? "Chinese original" : "English original")}</span>}
-        <div className="article-date">{t("Published")} <time dateTime={article.publishedAt}>{article.date}</time></div>
+        <div className="article-date">{t("Published")} <time dateTime={article.publishedAt}>{article.date}</time>{article.language && article.language !== language && <span className="article-language">{t(article.language === "zh" ? "Chinese original" : "English original")}</span>}</div>
         <div className="article-related"><span>{t("Track")}</span><a href={benchmarkHref(article.trackLanding.id)}>{t(article.track.name)} <ArrowRight size={12} aria-hidden="true" /></a></div>
         <div className="article-tags">
           <span className="article-related-label">{t("Benchmarks")}</span>
