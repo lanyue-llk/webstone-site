@@ -193,3 +193,31 @@ test("hosted wrappers can deliver readable inline reports", async () => {
 test("deeply nested HTML is rejected within a bounded traversal", async () => {
   await assert.rejects(check(async () => html('<div>'.repeat(300) + 'Measured results'.repeat(5000) + '</div>'.repeat(300))), /complexity limit/);
 });
+
+
+test("formatted denial headings and explicit sign-in buttons require authentication", async () => {
+  for (const body of ['<h1>Access <em>denied</em></h1><p>Contact the owner.</p>', '<h1>Private report</h1><button>Sign in to view this work</button>']) await assert.rejects(check(async () => html(body)), /access-denied/);
+});
+
+test("public redirects reach the final report and sign-in redirects fail before fetching", async () => {
+  const visited = [];
+  await check(async url => { visited.push(url); return url === address ? new Response(null, {status:302,headers:{location:'/final'}}) : html('<h1>Measured results</h1>'); });
+  assert.deepEqual(visited, [address, 'https://reports.example.org/final']);
+  await assert.rejects(check(async () => new Response(null,{status:302,headers:{location:'/login'}})), /sign-in/);
+});
+
+test("manifest entries and mixed DNS answers cannot reach private networks", async () => {
+  const visited=[];
+  await assert.rejects(checkReportAccess(address,{resolve:async host => host==='private.example.org' ? [{address:'93.184.216.34'},{address:'10.0.0.1'}] : resolve(), request:async url => {
+    visited.push(url);
+    return url===address ? html('<script id="artifact-delivery-config">{"manifestUrl":"https://reports.example.org/manifest","file":"index.html"}</script>') : Response.json({files:[{path:'index.html',url:'https://private.example.org/report'}],nextCursor:null});
+  }}), /private or reserved/);
+  assert.deepEqual(visited,[address,'https://reports.example.org/manifest?file=index.html']);
+});
+
+test("repeated previews are deduplicated and distinct requests have a finite budget", async () => {
+  let requests=0;
+  await check(async url => { requests++;return html(url===address ? '<iframe src="/child"></iframe>'.repeat(1000) : '<h1>Measured results</h1>'); });
+  assert.equal(requests,2);
+  await assert.rejects(check(async url => html(url===address ? Array.from({length:100},(_,i)=>'<iframe src="/child'+i+'"></iframe>').join('') : '<h1>Measured results</h1>')), /budget/);
+});

@@ -60,10 +60,24 @@ export function reportDocument(html) {
       || attrs["aria-hidden"] === "true" || /(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(attrs.style ?? "")
       || (node.tagName === "dialog" && !Object.hasOwn(attrs, "open"));
   }
+  const summaries = new Map();
   const stack = [{ node: document, depth: 0, inHead: false, inNavigation: false }];
   let nodes = 0;
   while (stack.length) {
-    const { node, depth, inHead: parentHead, inNavigation: parentNavigation } = stack.pop();
+    const { node, depth, inHead: parentHead, inNavigation: parentNavigation, exit = false } = stack.pop();
+    if (exit) {
+      const parts = (node.childNodes ?? []).map(child => summaries.get(child) ?? { plain: "", all: "" });
+      const normalize = value => value.replace(/\s+/g, " ").trim().slice(0, 512);
+      const all = normalize(parts.map(part => part.all).join(" "));
+      const plain = normalize(parts.map(part => part.plain).join(" "));
+      summaries.set(node, { all, plain: parentNavigation ? "" : plain });
+      if (!parentHead && node.tagName) {
+        if (!parentNavigation && plain) blocks.push(plain);
+        if (parentNavigation && /^(?:sign in|log in|login).*(?:to (?:view|access|continue)|required)/i.test(all)) blocks.push(all);
+      }
+      for (const child of node.childNodes ?? []) summaries.delete(child);
+      continue;
+    }
     if (++nodes > 100000 || depth > 256) throw new Error("Report document exceeds the HTML complexity limit");
     if (hidden(node)) continue;
     const attrs = attributes(node);
@@ -85,6 +99,8 @@ export function reportDocument(html) {
       if (node.tagName === "iframe" && (attrs.src || attrs.srcdoc !== undefined)) frames.push({ src: attrs.src, srcdoc: attrs.srcdoc });
       if (node.tagName === "input" && attrs.type?.toLowerCase() === "password") password = true;
     }
+    if (node.nodeName === "#text") summaries.set(node, { all: node.value.slice(0, 512), plain: inNavigation || inHead ? "" : node.value.slice(0, 512) });
+    else stack.push({ node, depth, inHead, inNavigation, exit: true });
     const children = node.childNodes ?? [];
     for (let index = children.length - 1; index >= 0; index--) stack.push({ node: children[index], depth: depth + 1, inHead, inNavigation });
   }
@@ -94,14 +110,18 @@ export function reportDocument(html) {
 }
 
 export async function checkReportAccess(address, { request = anonymousRequest, resolve = lookup } = {}) {
+  const deadline = Date.now() + 60000;
+  let requests = 0;
+  const validated = new Set();
   async function retrieve(address, json = false) {
     let url = new URL(address);
     for (let redirects = 0; redirects <= 5; redirects++) {
       if (!publicEvidenceUrl(url.href)) throw new Error("Expected a public HTTPS URL without credentials");
+      if (++requests > 40 || Date.now() >= deadline) throw new Error("Report exceeds the request or time budget");
       const records = await resolve(url.hostname, { all: true });
       if (!records.length || records.some(({ address }) => privateNetworks.check(address, isIP(address) === 6 ? "ipv6" : "ipv4"))) throw new Error("URL resolves to a private or reserved network");
       if (/\/(?:login|signin|sign-in|auth)(?:\/|$)/i.test(url.pathname)) throw new Error("Report redirects to sign-in");
-      const response = await request(url.href, { redirect: "manual", credentials: "omit", signal: AbortSignal.timeout(20000), lookup: (_hostname, options, callback) => {
+      const response = await request(url.href, { redirect: "manual", credentials: "omit", signal: AbortSignal.timeout(Math.max(1, Math.min(20000, deadline - Date.now()))), lookup: (_hostname, options, callback) => {
         const pinned = records.map(record => ({ address: record.address, family: isIP(record.address) }));
         if (options.all) callback(null, pinned);
         else callback(null, pinned[0].address, pinned[0].family);
@@ -132,6 +152,10 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
   }
 
   async function validatePage(page, depth = 0) {
+    if (Date.now() >= deadline) throw new Error("Report exceeds the time budget");
+    const identity = page.inline ? page.body : page.url.href;
+    if (validated.has(identity)) return;
+    validated.add(identity);
     if (page.pdf) return;
     if (depth > 5) throw new Error("Report contains too many nested previews");
     if (page.deliveryConfig) {
@@ -152,7 +176,11 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
     const sources = page.frames;
     if (!sources.length && (!page.inline && /\/artifact-site\/(s|v)\//.test(page.url.pathname) || !page.readable)) throw new Error("Hosted report has no readable preview");
     const base = page.baseHref === null ? page.url : new URL(page.baseHref, page.url);
+    const destinations = new Set();
     for (const frame of sources) {
+      const destination = frame.srcdoc !== undefined ? frame.srcdoc : new URL(frame.src, base).href;
+      if (destinations.has(destination)) continue;
+      destinations.add(destination);
       if (frame.srcdoc !== undefined) {
         const inline = reportDocument(frame.srcdoc);
         if (inline.refresh || inline.denied) throw new Error("Inline report requires sign-in or redirects");
