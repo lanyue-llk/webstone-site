@@ -176,3 +176,20 @@ test("inline iframe documents take precedence over their fallback URLs", async (
 test("public report navigation can offer optional sign-in", async () => {
   await check(async()=>html('<nav><a href="/login"><span>Sign in</span></a></nav><h1>Measured results</h1>'));
 });
+
+
+test("optional sign-in navigation in a header does not block public results", async () => {
+  await check(async () => html('<header><a href="/login">Sign in</a></header><main><h1>Measured results</h1></main>'));
+});
+
+test("loading-only redirect shells cannot pass as public reports", async () => {
+  await assert.rejects(check(async () => html("<p>Loading…</p><script>location.href='/login'</script>")), /no readable content/);
+});
+
+test("hosted wrappers can deliver readable inline reports", async () => {
+  await check(async () => html('<iframe srcdoc="&lt;h1&gt;Measured results&lt;/h1&gt;"></iframe>'), 'https://reports.example.org/artifact-site/s/inline');
+});
+
+test("deeply nested HTML is rejected within a bounded traversal", async () => {
+  await assert.rejects(check(async () => html('<div>'.repeat(300) + 'Measured results'.repeat(5000) + '</div>'.repeat(300))), /complexity limit/);
+});

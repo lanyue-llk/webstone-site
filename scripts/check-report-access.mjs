@@ -60,35 +60,37 @@ export function reportDocument(html) {
       || attrs["aria-hidden"] === "true" || /(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(attrs.style ?? "")
       || (node.tagName === "dialog" && !Object.hasOwn(attrs, "open"));
   }
-  function content(node) {
-    if (hidden(node) || ["script", "head"].includes(node.tagName)) return "";
-    if (node.nodeName === "#text") return node.value;
-    return (node.childNodes ?? []).map(content).join(" ");
-  }
-  function visit(node, inHead = false, inNavigation = false) {
-    if (hidden(node)) return;
+  const stack = [{ node: document, depth: 0, inHead: false, inNavigation: false }];
+  let nodes = 0;
+  while (stack.length) {
+    const { node, depth, inHead: parentHead, inNavigation: parentNavigation } = stack.pop();
+    if (++nodes > 100000 || depth > 256) throw new Error("Report document exceeds the HTML complexity limit");
+    if (hidden(node)) continue;
     const attrs = attributes(node);
     if (node.tagName === "meta" && attrs["http-equiv"]?.toLowerCase() === "refresh") refresh = true;
     if (node.tagName === "base" && baseHref === null && attrs.href !== undefined) baseHref = attrs.href;
     if (node.tagName === "meta" && /sign in to view this work/i.test(attrs.content ?? "")) deniedMeta = true;
     if (node.tagName === "script") {
       if (attrs.id === "artifact-delivery-config") deliveryConfig = JSON.parse((node.childNodes ?? []).map(node => node.value ?? "").join(""));
-      return;
+      continue;
     }
-    if (node.tagName === "head") inHead = true;
-    inNavigation ||= ["nav", "a", "button", "summary"].includes(node.tagName);
+    const inHead = parentHead || node.tagName === "head";
+    const inNavigation = parentNavigation || ["nav", "a", "button", "summary"].includes(node.tagName);
     if (!inHead && !inNavigation) {
-      if (node.nodeName === "#text") text.push(node.value);
+      if (node.nodeName === "#text") {
+        const value = node.value.replace(/\s+/g, " ").trim();
+        text.push(value);
+        if (value) blocks.push(value);
+      }
       if (node.tagName === "iframe" && (attrs.src || attrs.srcdoc !== undefined)) frames.push({ src: attrs.src, srcdoc: attrs.srcdoc });
       if (node.tagName === "input" && attrs.type?.toLowerCase() === "password") password = true;
-      if (node.tagName) blocks.push(content(node).replace(/\s+/g, " ").trim());
     }
-    for (const child of node.childNodes ?? []) visit(child, inHead, inNavigation);
+    const children = node.childNodes ?? [];
+    for (let index = children.length - 1; index >= 0; index--) stack.push({ node: children[index], depth: depth + 1, inHead, inNavigation });
   }
-  visit(document);
   const visible = text.join(" ").replace(/\s+/g, " ").trim();
   const gate = /^(?:access denied|forbidden|authentication required|you are not signed in[.!]?|sign in(?: to (?:view|continue|access)[^.]*)?[.!]?|sign in, then try opening[^.]*[.!]?|需要登录[。！]?|请先登录[。！]?|无权访问[。！]?|登录后.{0,8}(?:查看|访问)[。！]?)$/i;
-  return { readable: Boolean(visible), frames, deliveryConfig, baseHref, refresh, denied: password || deniedMeta || blocks.some(block => gate.test(block)) || gate.test(visible) };
+  return { readable: Boolean(visible) && !/^(?:loading[. …]*|please wait[. …]*|redirecting[. …]*|正在加载[. …]*)$/i.test(visible), frames, deliveryConfig, baseHref, refresh, denied: password || deniedMeta || blocks.some(block => gate.test(block)) || gate.test(visible) };
 }
 
 export async function checkReportAccess(address, { request = anonymousRequest, resolve = lookup } = {}) {
@@ -148,14 +150,14 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
       return;
     }
     const sources = page.frames;
-    if (!sources.length && (/\/artifact-site\/(s|v)\//.test(page.url.pathname) || !page.readable)) throw new Error("Hosted report has no readable preview");
+    if (!sources.length && (!page.inline && /\/artifact-site\/(s|v)\//.test(page.url.pathname) || !page.readable)) throw new Error("Hosted report has no readable preview");
     const base = page.baseHref === null ? page.url : new URL(page.baseHref, page.url);
     for (const frame of sources) {
       if (frame.srcdoc !== undefined) {
         const inline = reportDocument(frame.srcdoc);
         if (inline.refresh || inline.denied) throw new Error("Inline report requires sign-in or redirects");
         if (!inline.readable && !inline.frames.length && !inline.deliveryConfig) throw new Error("Inline report has no readable content");
-        await validatePage({ url: base, body: frame.srcdoc, pdf: false, ...inline }, depth + 1);
+        await validatePage({ url: base, body: frame.srcdoc, pdf: false, ...inline, inline: true }, depth + 1);
       } else await validatePage(await retrieve(new URL(frame.src, base).href), depth + 1);
     }
   }
