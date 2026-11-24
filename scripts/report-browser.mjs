@@ -31,6 +31,7 @@ export function reportDestination(value) {
   ]);
   const s3Keys = new Set([
     "x-amz-algorithm",
+    "x-amz-content-sha256",
     "x-amz-credential",
     "x-amz-date",
     "x-amz-expires",
@@ -41,7 +42,7 @@ export function reportDestination(value) {
   for (const key of [...url.searchParams.keys()])
     if (
       (cos && cosKeys.has(key.toLowerCase())) ||
-      (s3 && s3Keys.has(key.toLowerCase()))
+      ((s3 || cos) && s3Keys.has(key.toLowerCase()))
     )
       url.searchParams.delete(key);
   return url.href;
