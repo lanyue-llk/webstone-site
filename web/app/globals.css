@@ -591,3 +591,5 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
   .article-card { display: grid; grid-row: span 6; grid-template-rows: subgrid; align-items: start; }
 }
 .article-tags { align-content: start; }
+
+.brand > img { display: block; width: 100%; max-width: 195px; height: auto; border-radius: 7px; }

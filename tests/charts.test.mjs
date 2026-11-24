@@ -479,3 +479,20 @@ test("Chinese navigation preserves technical names and translates supporting cop
   assert.equal(t('Coming soon'),'开发中');
   assert.equal(t('Replay tasks across browsers'),'在不同浏览器上回放任务');
 });
+
+test("homepage counts reports instead of historical result editions and uses the shared brand asset", async () => {
+  const {discoverResults}=await import('../scripts/prepare-data.mjs');
+  const {fileURLToPath}=await import('node:url');
+  const files=await discoverResults(fileURLToPath(new URL('../results',import.meta.url)),catalog);
+  const snapshots=files.map(item=>item.report);
+  const Home=require('../web/components/home.tsx').default;
+  const win=new Window();
+  try {
+    win.document.body.innerHTML=renderToStaticMarkup(React.createElement(Home,{catalog,snapshots,t:translator('zh',catalog)}));
+    const stats=[...win.document.querySelectorAll('.overview-stats > div')].map(item=>[item.querySelector('dt').textContent,Number(item.querySelector('dd').textContent)]);
+    assert.deepEqual(stats,[['评测方向',4],['评测基准',8],['评测报告',6]]);
+    const logo=readFileSync(new URL('../web/public/brand/webstone.png',import.meta.url));
+    assert.equal(createHash('sha256').update(logo).digest('hex'),'96934e5581d6fbcc621d40ff53de04d7c9b662bacca549f9ab517d0b0164a27e');
+    assert.match(readFileSync(new URL('../README.md',import.meta.url),'utf8'),/web\/public\/brand\/webstone\.png/);
+  } finally {await win.happyDOM.close();}
+});

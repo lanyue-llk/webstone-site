@@ -179,7 +179,7 @@ export default function Dashboard() {
     <a className="skip-link" href="#main">{t("Skip to results")}</a>
     {menuOpen && <button className="sidebar-scrim" aria-label={t("Close navigation")} onClick={() => setMenuOpen(false)} />}
     <aside className={`sidebar ${menuOpen ? "is-open" : ""}`}>
-      <a href="/" className="brand" aria-label={t("Webstone home")}><span className="brand-heading"><Layers3 size={24} strokeWidth={1.8} /><span>Webstone</span></span></a>
+      <a href="/" className="brand" aria-label={t("Webstone home")}><img src="/brand/webstone.png" alt="Webstone" width={1536} height={820} /></a>
       <nav className="grouped-navigation" aria-label={t("Benchmark navigation")}>{groups.map(group => <section key={group.id} className="nav-group" aria-labelledby={`navigation-${group.id}`}><h2 id={`navigation-${group.id}`}>{t(group.name)}</h2>{group.tracks.map(item => {
         const Icon = TRACK_ICONS[item.id] ?? Layers3;
         if (item.url) return <a key={item.id} className="nav-item" href={item.url} target="_blank" rel="noopener noreferrer" aria-label={`${t(item.name)} (${t("opens in a new tab")})`}>
