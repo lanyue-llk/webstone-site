@@ -22,13 +22,12 @@ export function EvaluationReports({ catalog, snapshots, t, current }: Props & { 
         <div className="article-topic"><Icon size={18} aria-hidden="true" /><span>{t(article.track.name)}</span></div>
         <h3><a href={article.href} target="_blank" rel="noreferrer">{t(article.title)} <ArrowUpRight size={15} aria-hidden="true" /><span className="sr-only"> ({t("opens in a new tab")})</span></a></h3>
         <p>{t(article.summary)}</p>
-        <div className="article-date">{t("Published")} <time dateTime={article.publishedAt}>{article.date}</time><span className="report-date-source">{t("First uploaded to Yours · UTC")}</span></div>
+        <div className="article-date">{t("Published")} <time dateTime={article.publishedAt}>{article.date}</time></div>
         <div className="article-related"><span>{t("Track")}</span><a href={benchmarkHref(article.trackLanding.id)}>{t(article.track.name)} <ArrowRight size={12} aria-hidden="true" /></a></div>
         <div className="article-tags">
           <span className="article-related-label">{t("Benchmarks")}</span>
           {article.benchmarks.map(benchmark => <a key={benchmark.id} href={benchmarkHref(benchmark.id)}>{t(benchmark.name)} <ArrowRight size={12} aria-hidden="true" /></a>)}
         </div>
-        <a className="article-read" href={article.href} target="_blank" rel="noreferrer">{t("Read report")} <ArrowUpRight size={15} aria-hidden="true" /></a>
       </article>;
     })}</div>
     {pageCount > 1 && <nav className="report-pagination" aria-label={t("Report pages")}>
