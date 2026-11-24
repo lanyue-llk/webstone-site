@@ -167,21 +167,25 @@ export async function checkReportAccess(address, { request = anonymousRequest, r
   function embeddingAllowed(headers, url, ancestors) {
     if (!ancestors.length) return;
     const directives = (headers.get("content-security-policy") ?? "").split(",").map(policy => policy.split(";").map(value => value.trim().split(/\s+/)).find(parts => parts[0]?.toLowerCase() === "frame-ancestors")).filter(Boolean);
+    const schemeMatches = (source, target) => source === target || source === "http:" && target === "https:" || source === "ws:" && ["wss:", "http:", "https:"].includes(target) || source === "wss:" && target === "https:";
     function matches(source, ancestor) {
-      if (source === "'self'") return ancestor === url.origin;
+      if (source.toLowerCase() === "'self'") return ancestor === url.origin;
       if (source === "*") return true;
       if (source === "'none'" || source.includes("'")) return false;
       const parent = new URL(ancestor);
-      if (/^[a-z][a-z\d+.-]*:$/i.test(source)) return source === parent.protocol || source === "http:" && parent.protocol === "https:";
+      if (/^[a-z][a-z\d+.-]*:$/i.test(source)) return schemeMatches(source.toLowerCase(), parent.protocol);
       try {
         const wildcardHost = /^(?:[a-z][a-z\d+.-]*:\/\/)?\*\./i.test(source);
         const wildcardPort = /:\*(?:\/|$)/.test(source);
+        const port = /:(\d+)(?:\/|$)/.exec(source)?.[1];
         const candidate = source.replace(/(^|\/\/)\*\./, "$1").replace(/:\*(?=\/|$)/, "");
         const target = new URL(candidate.includes("://") ? candidate : url.protocol + "//" + candidate);
         if (target.username || target.password || target.search || target.hash) return false;
-        if (target.protocol !== parent.protocol && !(target.protocol === "http:" && parent.protocol === "https:")) return false;
-        if (wildcardHost ? !parent.hostname.endsWith("." + target.hostname) : parent.hostname !== target.hostname) return false;
-        if (!wildcardPort && target.port !== parent.port) return false;
+        if (!schemeMatches(target.protocol, parent.protocol)) return false;
+        if (isIP(target.hostname.replace(/^\[|\]$/g, ""))) return false;
+        if (target.hostname !== "*" && (wildcardHost ? !parent.hostname.endsWith("." + target.hostname) : parent.hostname !== target.hostname)) return false;
+        const parentPort = parent.port || "443";
+        if (!wildcardPort && (port ? Number(port) !== Number(parentPort) : parent.port !== "")) return false;
         return target.pathname === "/";
       } catch { return false; }
     }

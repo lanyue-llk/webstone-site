@@ -376,7 +376,7 @@ test("preview embedding policies authorize every containing origin", async () =>
     if(policy.includes("'self'")) headers['content-security-policy']="frame-ancestors https://unrelated.example; frame-ancestors *";
     await assert.rejects(check(sample.request({[sample.preview]:()=>new Response(sample.loader,{headers})})),/blocks embedding/);
   }
-  for(const policy of ["frame-ancestors 'self'", "frame-ancestors https://reports.example.org", "frame-ancestors https://*.example.org", "frame-ancestors https:","frame-ancestors *"]) {
+  for(const policy of ["frame-ancestors 'SELF'", "frame-ancestors https://reports.example.org:443", "frame-ancestors HTTPS:", "frame-ancestors https://*:443", "frame-ancestors https://reports.example.org", "frame-ancestors https://*.example.org", "frame-ancestors https:","frame-ancestors *"]) {
     await check(sample.request({[sample.preview]:()=>new Response(sample.loader,{headers:{'content-type':'text/html','content-security-policy':policy,'x-frame-options':'DENY'}})}));
   }
   const redirected='https://other.example.org/preview';
