@@ -14,7 +14,7 @@ test("English is the default and explicit Chinese selection translates reusable 
   assert.equal(initialLanguage("zh"), "zh");
   assert.equal(translator("en", catalog)("Download Report"), "Download Report");
   assert.equal(translator("zh", catalog)("Download Report"), "下载报告");
-  assert.equal(translator("zh", catalog)("Web Fetch"), "网页获取");
+  assert.equal(translator("zh", catalog)("Web Fetch"), "Web Fetch");
   assert.equal(translator("zh", catalog)("Page-hit macro F1"), "页面命中宏平均 F1");
   assert.equal(translator("zh", catalog)("LexBench SWDE"), "LexBench SWDE");
   assert.equal(translator("zh")("Unable to load results. Please try again."), "加载结果失败，请重试。");

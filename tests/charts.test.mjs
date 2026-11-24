@@ -472,8 +472,17 @@ test("the homepage offers the evaluation repository star and translates the deve
     assert.equal(new URL(star.href).pathname,'/lexmount/webstone');assert.equal(new URL(star.href).hash,'');
     assert.match(star.textContent,/Star/);
     assert.match(win.document.querySelector('.overview-star-note').textContent,/觉得 Webstone 有用/);
-    assert.match(win.document.querySelector('.upcoming-overview').textContent,/浏览器自动化/);
+    assert.match(win.document.querySelector('.upcoming-overview').textContent,/Browser Automation/);
     assert.match(win.document.querySelector('.upcoming-overview').textContent,/开发中/);
     assert.equal(win.document.querySelectorAll('.track-card').length,4);
   } finally {await win.happyDOM.close();}
+});
+
+
+test("Chinese navigation preserves technical names and translates supporting copy", () => {
+  const {translator}=require('../web/lib/i18n.ts');
+  const t=translator('zh',catalog);
+  for (const name of ['Web Tools','Browsers','Browser Automation','Web Search','Web Extract','Web Fetch','Web Fetch API','Browser Task Replay','Browser Use']) assert.equal(t(name),name);
+  assert.equal(t('Coming soon'),'开发中');
+  assert.equal(t('Replay tasks across browsers'),'在不同浏览器上回放任务');
 });
