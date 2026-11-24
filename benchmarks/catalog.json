@@ -98,7 +98,7 @@
     {
       "id": "trajectory-replay",
       "name": "Trajectory Replay",
-      "description": "Replay recorded actions",
+      "description": "Execute fixed action sequences",
       "groupId": "browsers"
     },
     {
@@ -1549,7 +1549,7 @@
       "Compare browsers on page retrieval and recorded tasks.": "比较浏览器的网页获取与任务回放能力。",
       "Browser Automation": "Browser Automation",
       "Browser agents and end-to-end testing.": "浏览器智能体与端到端测试。",
-      "Replay recorded actions": "回放预先记录的操作",
+      "Execute fixed action sequences": "让浏览器执行固定操作序列",
       "Web Fetch API": "Web Fetch API",
       "Content retrieval services": "网页内容获取服务",
       "Browser Use": "Browser Use",
@@ -1576,7 +1576,7 @@
       "Evaluate the usefulness and citation support of generated answers.": "Score generated answers for usefulness and citation support.",
       "Evaluate generated-answer correctness with official SimpleQA grading rules.": "Score generated answers using the official SimpleQA rules.",
       "Compare Moli builds with layout on and off on a 372-task subset of the LexBench Headless Browser protocol, measuring success, memory and latency.": "Compare Moli builds with layout on and off. The 372-task suite measures success, memory and latency.",
-      "Compare browser execution on fixed action trajectories for 812 WebArena-Verified tasks.": "Replay recorded actions for 812 WebArena-Verified tasks.",
+      "Compare browser execution on fixed action trajectories for 812 WebArena-Verified tasks.": "Execute fixed action sequences for 812 WebArena-Verified tasks.",
       "Compare structured field extraction on 800 archived SWDE pages across eight domains.": "Extract fields from 800 archived SWDE pages in eight domains.",
       "Compare price, SKU and stock extraction from 140 archived product pages.": "Extract price, SKU and stock information from 140 archived product pages.",
       "Share of requests that returned a response. A response does not guarantee that the content meets the task requirements. Higher is better.": "Share of requests that received a response, regardless of content quality.",

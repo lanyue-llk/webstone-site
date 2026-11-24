@@ -237,20 +237,21 @@ export async function discoverResults(inputRoot, catalog) {
   return files;
 }
 
-async function releaseFingerprint(files) {
+export async function releaseFingerprint(files, sourceRoot = root) {
   const hash = createHash("sha256");
   async function add(relative) {
-    hash.update(relative).update("\0").update(await readFile(path.join(root, relative))).update("\0");
+    hash.update(relative).update("\0").update(await readFile(path.join(sourceRoot, relative))).update("\0");
   }
   async function visit(relative) {
-    for (const name of (await readdir(path.join(root, relative))).sort()) {
+    for (const name of (await readdir(path.join(sourceRoot, relative))).sort()) {
       if (name === "release.generated.ts" || /\.test\./.test(name)) continue;
+      if (relative === "web/public" && ["benchmarks", "results", "release.json"].includes(name)) continue;
       const child = path.join(relative, name);
-      if ((await lstat(path.join(root, child))).isDirectory()) await visit(child);
+      if ((await lstat(path.join(sourceRoot, child))).isDirectory()) await visit(child);
       else await add(child);
     }
   }
-  for (const folder of ["web/app", "web/components", "web/lib"]) await visit(folder);
+  for (const folder of ["web/app", "web/components", "web/lib", "web/public"]) await visit(folder);
   for (const file of ["benchmarks/catalog.json", "reports/metadata.json", "web/next.config.ts", "web/package.json", "package-lock.json"]) await add(file);
   for (const file of files) await add(`results/${file.file}`);
   return hash.digest("hex");
