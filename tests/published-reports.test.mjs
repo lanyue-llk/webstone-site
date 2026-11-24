@@ -19,3 +19,17 @@ for (const evidence of observations.entries) {
     for (const [metric, count] of Object.entries(evidence.samples ?? {})) assert.equal(benchmark.metricSamples[metric].sampleCount, count);
   });
 }
+
+test("every published report has distinct public Chinese and English destinations", async () => {
+  const metadata = JSON.parse(await readFile(new URL("../reports/metadata.json", import.meta.url), "utf8"));
+  for (const [id, report] of Object.entries(metadata.reports)) {
+    assert.ok(report.urls?.en, `${id}: complete English report`);
+    assert.ok(report.urls?.zh, `${id}: complete Chinese report`);
+    assert.notEqual(report.urls.en, report.urls.zh, `${id}: language destinations must differ`);
+    for (const url of Object.values(report.urls)) {
+      const target = new URL(url);
+      assert.equal(target.protocol, "https:");
+      assert.match(target.pathname, /\/s\/[A-Za-z0-9_-]+$/);
+    }
+  }
+});
