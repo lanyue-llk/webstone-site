@@ -1,0 +1,18 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+/
+  Cache-Control: no-store, max-age=0
+/benchmarks/*
+  Cache-Control: no-store, max-age=0
+/results/*
+  Cache-Control: no-store, max-age=0
+/release.json
+  Cache-Control: no-store, max-age=0
+/versioning*
+  Cache-Control: no-store, max-age=0
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+/cache-reset
+  Cache-Control: no-store, max-age=0
+  Clear-Site-Data: "cache"

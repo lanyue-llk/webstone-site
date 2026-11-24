@@ -76,7 +76,7 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 - English is the first-visit default. Support a complete explicit English/Chinese switch, persist the preference locally and update the document language. The catalog owns translations of reusable definitions; reports own translations of new version-specific text. Historical edits live in `web/lib/result-copy.ts`. Official project, model and Dataset names retain their original spelling.
 - Default result display text remains English. Preserve original source quotations and provenance; supply display translations separately rather than rewriting original evidence.
 - The download link must show `Download Report` in English and its Chinese translation in Chinese, including on mobile, and use the same accessible name as its visible label. It downloads the file for the selected version. Do not add a hover tooltip or rely on one to explain the action.
-- All local Tracks and Benchmarks share the same table geometry, typography, controls and capability-profile layout. Use the shared metric selector for table columns and radar axes. Data availability may change the available options; do not introduce Track-specific styling or alternate controls. Keep the ranking column visible, offer a reset, and require at least three axes to draw a radar chart.
+- All local Tracks and Benchmarks share the same table geometry, typography, controls and capability-profile layout. Use the shared metric selector for radar axes; tables use the common More metrics and Category breakdown buttons. Data availability may change the available options; do not introduce Track-specific styling or alternate controls. Keep the ranking column visible. Radar controls offer a reset and require at least three axes to draw a chart.
 - Keep the dependency surface small; prefer plain CSS in `globals.css` over new UI packages.
 
 ## Security
@@ -101,3 +101,8 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 - For every change to reader-facing text, read `.agents/skills/humanizer/SKILL.md` and `.agents/skills/humanizer-chinese/SKILL.md`. Review the English and Chinese together in the rendered page, including labels, accessibility text, empty states, and text drawn from the catalog or a report. Remove repeated explanations. Keep the facts needed to interpret the results.
 - Preserve published result files and source quotations. Put editorial changes to old results in the display copy. Keep metric names, units, sample counts and billing basis accurate in both languages.
 - Mark the bilingual copy check in the PR after review. The website check requires that attestation for changes to copy-bearing source files. Reviewers check the rendered text against the underlying data.
+
+## Public delivery
+
+- Reports and blog links must open for an anonymous reader, including embedded previews. Run `npm run check:reports` before publishing. CI checks them on PRs, main updates and daily; HTTP 200 alone does not prove access. Never broaden access without the owner’s authorization.
+- Cloudflare Pages publishes `web/out` through the tag-triggered `pages-release.yml` workflow. Tags must be on main history. See `docs/deploying-pages.md` for the established release and verification commands. Keep its `_headers` and `_redirects` behavior consistent with the optional Nginx deployment. Verify the public domain, data, downloads, report access and release identity before shutting down a previous host.

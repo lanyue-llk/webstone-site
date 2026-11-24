@@ -81,6 +81,8 @@ const chinese: Record<string, string> = {
   "Download Report": "下载报告",
   "View website source on GitHub": "在 GitHub 查看网站源码",
   "Dataset": "数据集",
+  "Datasets": "数据集",
+  "Web Search APIs: retrieval quality, latency and cost": "Web Search APIs：检索质量、耗时与成本对比",
   "Evaluation report": "评测报告",
   "Evaluation notes": "评测说明",
   "Version report": "版本评测报告",

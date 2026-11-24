@@ -1,0 +1,6 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lexmount-webstone",
+  "pages_build_output_dir": "./web/out",
+  "compatibility_date": "2026-11-24"
+}

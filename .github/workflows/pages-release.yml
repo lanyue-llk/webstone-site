@@ -1,0 +1,50 @@
+name: Publish Pages release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-production
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish tagged site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: cloudflare-production
+      url: ${{ vars.CLOUDFLARE_PAGES_URL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require a release tag on main history
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run check:reports
+      - run: npm run build
+      - name: Publish the static export
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: npx --yes wrangler@4.167.0 pages deploy web/out --force --branch main --commit-hash "$GITHUB_SHA" --commit-message "$RELEASE_TAG"
+      - name: Verify the published release
+        env:
+          SITE_ORIGIN: ${{ vars.CLOUDFLARE_PAGES_URL }}
+        run: node scripts/verify-public-site.mjs

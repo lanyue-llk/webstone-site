@@ -34,7 +34,7 @@ test("report directories are discovered and their declared provenance is validat
 });
 
 test("external tracks use safe HTTPS links and cannot own local benchmark tables", () => {
-  assert.equal(catalog.tracks.find(track => track.id === "browserarena").url, "https://browserarena.dev.lexmount.net/");
+  assert.equal(catalog.tracks.find(track => track.id === "browserarena").url, "https://browserarena.ai/");
   for (const url of ["javascript:alert(1)", "http://example.com", "https://user:password@example.com", ""]) {
     const invalid = structuredClone(catalog);
     invalid.tracks.find(track => track.id === "browserarena").url = url;

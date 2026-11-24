@@ -49,10 +49,16 @@ test("legacy HTTP cache is cleared once without removing stored preferences", as
   assert.equal(values.get("webstone-language"), "zh");
 });
 
+test("static hosting can clear legacy cache with a successful response and the cache-only header", async () => {
+  const values = new Map<string, string>();
+  assert.equal(await clearLegacyCache(() => ({ getItem: key => values.get(key) ?? null, setItem: (key, value) => { values.set(key, value); } }),
+    async () => ({ status: 200, headers: { get: () => '"cache"' } })), true);
+});
+
 test("failed or unsupported cache resets remain retryable and do not break release checks", async () => {
   const values = new Map<string, string>();
   const storage = () => ({ getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); } });
-  for (const response of [{ status: 404, header: null }, { status: 200, header: '"cache"' }, { status: 204, header: null }]) {
+  for (const response of [{ status: 404, header: null }, { status: 200, header: null }, { status: 204, header: null }]) {
     assert.equal(await clearLegacyCache(storage, async () => ({ status: response.status, headers: { get: () => response.header } })), false);
     assert.equal(values.has(LEGACY_CACHE_RESET_KEY), false);
   }

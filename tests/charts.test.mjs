@@ -156,7 +156,7 @@ test("published historical editions have Chinese and English evaluation notes", 
 
 test("report pagination keeps a growing archive to six cards and exposes every report", async (t) => {
   const overview = require("../web/lib/overview.ts");
-  const { snapshot } = load("lexbench-websearch", "v2");
+  const { snapshot } = load("lexbench-swde");
   const template = overview.evaluationReports(catalog, [snapshot])[0];
   const reports = Array.from({ length: 15 }, (_, index) => ({ ...template, source: `report-${index}`, title: `Report ${index + 1}` }));
   t.mock.method(overview, "evaluationReports", () => reports);
@@ -234,7 +234,7 @@ test("the dashboard exposes two repository guides and preserves each pricing val
   try {
     await React.act(async () => root.render(React.createElement(Dashboard)));
     const links = [...container.querySelectorAll(".sidebar-guides a")];
-    assert.deepEqual(links.map(link => link.getAttribute("href")), [EVALUATION_URL, SUBMISSION_URL]);
+    assert.deepEqual(links.map(link => link.getAttribute("href")), [EVALUATION_URL, SUBMISSION_URL, "https://huggingface.co/datasets?author=Lexmount"]);
     assert.ok(links.every(link => link.querySelector("svg") && link.textContent.trim()));
     assert.equal(container.querySelectorAll(".sidebar-footer a").length, 0);
     const rows = [...container.querySelectorAll("tbody tr")];
@@ -283,22 +283,20 @@ test("every published benchmark edition shares table and radar controls in both 
         await React.act(async () => root.render(React.createElement(Dashboard)));
         const table = container.querySelector("table");
         assert.equal(table.className, "wide-table", report.id);
-        assert.equal(container.querySelectorAll(".metric-selector").length, 2, report.id);
+        assert.equal(container.querySelectorAll(".metric-selector").length, 1, report.id);
         assert.equal(table.querySelectorAll("th")[1].textContent, "Method", report.id);
         assert.ok(container.querySelector("#reports"), report.id);
         for (const row of table.querySelectorAll("tbody tr")) assert.equal(row.children.length, table.querySelectorAll("th").length, report.id);
 
-        const tableMenu = container.querySelector(".table-controls .metric-selector");
-        const initialColumns = table.querySelectorAll("th").length;
-        const inputs = [...tableMenu.querySelectorAll("input")];
-        const option = inputs.find(input => !input.disabled && !input.checked) ?? inputs.find(input => !input.disabled);
-        assert.ok(option, report.id);
-        const wasChecked = option.checked;
-        await React.act(async () => option.click());
-        assert.equal(table.querySelectorAll("th").length, initialColumns + (wasChecked ? -1 : 1), report.id);
-        await React.act(async () => tableMenu.querySelector("button").click());
-        assert.equal(table.querySelectorAll("th").length, initialColumns, report.id);
-
+        const more = [...container.querySelectorAll(".table-controls button")].find(button => button.textContent === "More metrics");
+        if (more) {
+          const initialColumns = table.querySelectorAll("th").length;
+          await React.act(async () => more.click());
+          assert.ok(table.querySelectorAll("th").length > initialColumns, report.id);
+          await React.act(async () => more.click());
+          assert.equal(table.querySelectorAll("th").length, initialColumns, report.id);
+        }
+        assert.equal(container.querySelector('a[href="https://huggingface.co/datasets?author=Lexmount"]')?.textContent, "Datasets", report.id);
         const chartMenu = container.querySelector(".radar-heading .metric-selector");
         const initialAxes = container.querySelectorAll(".radar-axis").length;
         assert.ok(initialAxes >= 3, report.id);
@@ -310,18 +308,18 @@ test("every published benchmark edition shares table and radar controls in both 
         await React.act(async () => chartMenu.querySelector("button").click());
         assert.equal(container.querySelectorAll(".radar-axis").length, initialAxes, report.id);
 
-        const summary = tableMenu.querySelector("summary");
-        tableMenu.open = true;
+        const summary = chartMenu.querySelector("summary");
+        chartMenu.open = true;
         await React.act(async () => container.dispatchEvent(new win.PointerEvent("pointerdown", { bubbles: true })));
-        assert.ok(!tableMenu.open, report.id);
-        tableMenu.open = true;
+        assert.ok(!chartMenu.open, report.id);
+        chartMenu.open = true;
         await React.act(async () => summary.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
-        assert.ok(!tableMenu.open, report.id);
+        assert.ok(!chartMenu.open, report.id);
 
         await React.act(async () => [...container.querySelectorAll(".language-control button")].find(button => button.textContent === "中文").click());
         assert.equal(table.querySelectorAll("th")[1].textContent, "方案", report.id);
         assert.match(chartMenu.querySelector("summary").textContent, /图表指标/, report.id);
-        assert.match(tableMenu.querySelector("summary").textContent, /表格指标/, report.id);
+        assert.equal(container.querySelectorAll(".table-controls .metric-selector").length, 0, report.id);
       } finally {
         await React.act(async () => root.unmount());
         await win.happyDOM.close();

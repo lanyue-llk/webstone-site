@@ -1,16 +1,6 @@
 {
   "publicationDateSource": "Yours site.createdAt (first upload), UTC",
   "reports": {
-    "lexbench-websearch-v2": {
-      "publishedAt": "2026-10-22T06:18:04.612Z",
-      "title": "Web Search: result lists, source excerpts and generated answers",
-      "summary": "Compare ranked results, supplemental text and generated answers on two query sets.",
-      "benchmarkIds": [
-        "lexbench-websearch",
-        "simpleqa-verified"
-      ],
-      "versionReport": true
-    },
     "webmainbench-v1": {
       "publishedAt": "2026-10-16T14:13:21.880Z",
       "title": "Moli leads Web Fetch with an 89.8% pass rate",
@@ -53,6 +43,16 @@
         "lexbench-swde",
         "lexbench-zyte-product-extraction"
       ]
+    },
+    "lexbench-websearch-v2": {
+      "publishedAt": "2026-10-22T06:18:04.612Z",
+      "title": "Web Search APIs: retrieval quality, latency and cost",
+      "summary": "Compare ranked results, supplemental text and generated answers on two query sets.",
+      "benchmarkIds": [
+        "lexbench-websearch",
+        "simpleqa-verified"
+      ],
+      "versionReport": true
     }
   }
 }

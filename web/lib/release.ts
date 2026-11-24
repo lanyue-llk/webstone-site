@@ -12,7 +12,7 @@ export async function clearLegacyCache(
     const saved = storage();
     if (saved.getItem(LEGACY_CACHE_RESET_KEY) === "done") return true;
     const response = await request();
-    if (response.status !== 204 || response.headers.get("clear-site-data") !== '"cache"') return false;
+    if (![200, 204].includes(response.status) || response.headers.get("clear-site-data") !== '"cache"') return false;
     saved.setItem(LEGACY_CACHE_RESET_KEY, "done");
     return true;
   } catch {

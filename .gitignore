@@ -41,3 +41,6 @@ Thumbs.db
 # Generated deployment identity
 web/public/release.json
 web/lib/release.generated.ts
+
+# Local Cloudflare runtime and authentication state
+.wrangler/

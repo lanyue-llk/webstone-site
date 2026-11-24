@@ -6,7 +6,6 @@ import { canonicalVersion, benchmarkEntries, bestValue, formatMetric, formatPric
 import { providerColors } from "../lib/presentation";
 import InfoTooltip from "./info-tooltip";
 import Insights from "./insights";
-import MetricSelector from "./metric-selector";
 import MethodDetails from "./method-details";
 import ReleaseCheck from "./release-check";
 import { RELEASE, BUILT_AT } from "../lib/release.generated";
@@ -33,7 +32,7 @@ export default function Dashboard() {
   const [language, chooseLanguage] = useLanguage();
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [showCategories, setShowCategories] = useState(false);
-  const [selectedMetrics, setSelectedMetrics] = useState<string[] | null>(null);
+  const [moreMetrics, setMoreMetrics] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -100,9 +99,7 @@ export default function Dashboard() {
   const providers = benchmark && metric ? sortProviders(benchmark.providers, metric.id, direction) : [];
   const categories = showCategories ? benchmark?.categories ?? [] : [];
   const primaryMetric = benchmark?.metrics.find(item => item.id === benchmark.primaryMetric);
-  const defaultMetricIds = benchmark ? decisionMetrics(benchmark, false, selection.metric).map(item => item.id) : [];
-  const visibleMetrics = benchmark?.metrics.filter(item => item.id === benchmark.primaryMetric ||
-    (selectedMetrics ?? defaultMetricIds).includes(item.id)) ?? [];
+  const visibleMetrics = benchmark ? decisionMetrics(benchmark, moreMetrics, selection.metric) : [];
   const leadingMetrics = benchmark && primaryMetric
     ? [primaryMetric, ...visibleMetrics.filter(item => item.id !== primaryMetric.id && isDecisionColumn(item))]
     : [];
@@ -124,7 +121,7 @@ export default function Dashboard() {
 
   function chooseBenchmark(id: string) {
     setShowCategories(false);
-    setSelectedMetrics(null);
+    setMoreMetrics(false);
     const latest = entries ? latestEntry(entries, id) : null;
     const version = latest ? canonicalVersion(latest.version) : "";
     const selectedResult = snapshots.find(record => record.id === latest?.id)?.benchmarks.find(item => item.id === id);
@@ -137,7 +134,7 @@ export default function Dashboard() {
   }
 
   function chooseVersion(version: string) {
-    setSelectedMetrics(null);
+    setMoreMetrics(false);
     setShowCategories(false);
     setSelectedProvider(null);
     const selectedEntry = entries ? selectEntry(entries, version, selection.benchmark) : null;
@@ -202,6 +199,9 @@ export default function Dashboard() {
         </a>
         <a href={SUBMISSION_URL} target="_blank" rel="noreferrer" aria-label={`${t("Submit results")} · lexmount/webstone-site`}>
           <Github /><span>{t("Submit results")}<small>webstone-site</small></span><ArrowUpRight size={13} aria-hidden="true" />
+        </a>
+        <a href="https://huggingface.co/datasets?author=Lexmount" target="_blank" rel="noreferrer" aria-label={t("Datasets")}>
+          <img src="/huggingface.svg" width="20" height="20" alt="" aria-hidden="true" /><span>{t("Datasets")}</span><ArrowUpRight size={13} aria-hidden="true" />
         </a>
       </div>
       <div className="sidebar-footer">
@@ -272,14 +272,7 @@ export default function Dashboard() {
               <h2 className="sr-only">{t("Leaderboard")}</h2>
               <div className="table-toolbar"><span>{benchmark.providerCount} {t("methods")} · {benchmark.taskCount.toLocaleString()} {t("cases")}</span><div className="column-views table-controls" role="group" aria-label={t("Table columns")}>
                 {benchmark.categories.length > 0 && <button aria-pressed={showCategories} onClick={() => setShowCategories(current => !current)}>{t("Category breakdown")}</button>}
-                <MetricSelector label="Table metrics" options={benchmark.metrics} selectedIds={visibleMetrics.map(item => item.id)}
-                  defaultIds={defaultMetricIds} requiredIds={[benchmark.primaryMetric]} t={t} onChange={ids => {
-                    setSelectedMetrics(ids);
-                    if (!ids.includes(selection.metric)) {
-                      setSelection(current => ({ ...current, metric: benchmark.primaryMetric }));
-                      setDirection(primaryMetric?.direction ?? "desc");
-                    }
-                  }} />
+                {benchmark.metrics.some(item => !decisionMetrics(benchmark, false, selection.metric).includes(item)) && <button aria-pressed={moreMetrics} onClick={() => setMoreMetrics(current => !current)}>{t("More metrics")}</button>}
               </div></div>
               <p className="sample-scope">{benchmark.metrics.filter(item => result?.metricSamples?.[item.id]?.sampleCount !== null && result?.metricSamples?.[item.id]?.sampleCount !== undefined && result.metricSamples[item.id].sampleCount !== benchmark.taskCount).map(item => `${t(item.label)}: ${result!.metricSamples![item.id].sampleCount} ${t("samples")}`).join(" · ")}</p>
               {benchmark.trackId === "websearch" && snapshot?.source.kind === "report-page" && <p className="sample-scope">{t("Latency comes from separate runs with different concurrency.")}</p>}
