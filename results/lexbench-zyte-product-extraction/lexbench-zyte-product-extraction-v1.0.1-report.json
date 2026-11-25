@@ -1,0 +1,611 @@
+{
+  "id": "lexbench-zyte-product-extraction-v1.0.1",
+  "version": "v1.0.1",
+  "datasetDifference": "Uses the frozen report input manifest SHA-256 ce7895b6f29b754c22d1d51013b89c2b0a8a054a1ef4c6f1580426f916fe7478. The retained result values are the published source-qualified reference view; original-reference statistics are separate.",
+  "source": {
+    "kind": "report-page",
+    "url": "https://yours.lexmount.cn/artifact-site/s/-eNSiFI3n7XX",
+    "title": "Web Extract: quality, timing and billing evidence",
+    "importedAt": "2026-11-25T10:09:15.607Z",
+    "method": "Checked against pinned original report snapshots and their structured measurements; the public report reproduces the aggregate evidence.",
+    "scope": "Frozen input manifest ce7895b6f29b754c22d1d51013b89c2b0a8a054a1ef4c6f1580426f916fe7478; source-qualified scoring and official billing references. No new participant calls.",
+    "sha256": "fee5badda743e7c6419036194a8c6f7b15c683f9a3bbc9c77aa2f47c3ca72cc1"
+  },
+  "benchmarks": [
+    {
+      "id": "lexbench-zyte-product-extraction",
+      "definitionId": "standard",
+      "taskCount": 140,
+      "metricSamples": {
+        "executedPages": {
+          "sampleCount": 140
+        },
+        "pageExact": {
+          "sampleCount": 140
+        },
+        "nullAccuracy": {
+          "sampleCount": 6,
+          "note": "Null handling uses 6 empty reference fields across 6 pages. Case IDs: 0094967f37c647407d92b624202736e3272231cf61f8ccaeca0b19aeb631ab28, 14dc707ee18496c1bcdefc1c99bd76284af686cbb7069ff7c68210ca3094a9f4, 2c036dd02ff3aaeb39dd8b5df19a3c30fbaad448ab8884fb2f8d08b7f2a74066, 4ff590718c188a4d194cc213b07c47b08089c876647ddad17e29b40bfcb635f8, c9f80eb2d0f97dc954bc265169737c1c156b5ec027fbe62994f2018c1e0f67ed, ed28f179058b61273b01adedda587c1446628752bb35c518dc99df225296528c."
+        },
+        "priceF1": {
+          "sampleCount": 140,
+          "note": "Original-reference distribution: 134 nonempty / 6 empty."
+        },
+        "skuF1": {
+          "sampleCount": 140,
+          "note": "Original-reference distribution: 135 nonempty / 5 empty."
+        },
+        "stockF1": {
+          "sampleCount": 140,
+          "note": "Original-reference distribution: 131 in stock / 9 out of stock."
+        },
+        "outOfStockF1": {
+          "sampleCount": 140,
+          "note": "Original-reference distribution: 9 out of stock / 131 other."
+        },
+        "meanTime": {
+          "sampleCount": 140
+        },
+        "p50Time": {
+          "sampleCount": 140
+        },
+        "p95Time": {
+          "sampleCount": 140
+        }
+      },
+      "notes": [
+        "Every method tested 140 of 140 pages, with 140 timing records and no missing timings.",
+        "Original-reference populations: price 134 nonempty / 6 empty; SKU 135 nonempty / 5 empty; stock 131 in stock / 9 out of stock; out-of-stock detection 9 out of stock / 131 other.",
+        "Price ranges and billing conditions are preserved as supplied. Model usage costs for open-source methods were not disclosed; software-only $0 is not a zero total cost.",
+        "The public summary keeps quoted pricing ranges and software-only charges separate from total spend. Missing native model-usage receipts do not mean zero model cost.",
+        "Dataset and scorer artifacts are identified by hashes in the public report. Source-qualified annotations and original reference labels must not be mixed within one comparison.",
+        "Null handling uses 6 empty reference fields across 6 pages.",
+        "Full-page exact match uses all 140 pages."
+      ],
+      "reportUrl": null,
+      "providers": [
+        {
+          "id": "cloudflare-json",
+          "name": "Cloudflare JSON",
+          "description": "Cloudflare JSON",
+          "mode": "Hosted API",
+          "scores": {
+            "pageExact": 48.57,
+            "executedPages": 140,
+            "returnedObjects": 138,
+            "priceF1": 0.843,
+            "skuF1": 0.631,
+            "stockF1": 0.904,
+            "outOfStockF1": 0.64,
+            "nullAccuracy": 100,
+            "timedPages": 140,
+            "untimedPages": 0,
+            "meanTime": 11.401,
+            "p50Time": 9.485,
+            "p95Time": 25.605
+          },
+          "counts": {
+            "executedPages": {
+              "count": 140,
+              "total": 140
+            },
+            "pageExact": {
+              "count": 68,
+              "total": 140
+            },
+            "nullAccuracy": {
+              "count": 6,
+              "total": 6
+            }
+          },
+          "passed": null,
+          "pricing": {
+            "min": 1.405,
+            "max": 7.205,
+            "approximate": true,
+            "description": "Estimated for the pages in this evaluation: browser usage plus inference with the default model."
+          }
+        },
+        {
+          "id": "firecrawl-json",
+          "name": "Firecrawl JSON",
+          "description": "Firecrawl JSON",
+          "mode": "Hosted API",
+          "scores": {
+            "pageExact": 71.43,
+            "executedPages": 140,
+            "returnedObjects": 140,
+            "priceF1": 0.798,
+            "skuF1": 0.84,
+            "stockF1": 0.917,
+            "outOfStockF1": 0.545,
+            "nullAccuracy": 100,
+            "timedPages": 140,
+            "untimedPages": 0,
+            "meanTime": 9.882,
+            "p50Time": 8.221,
+            "p95Time": 19.004
+          },
+          "counts": {
+            "executedPages": {
+              "count": 140,
+              "total": 140
+            },
+            "pageExact": {
+              "count": 100,
+              "total": 140
+            },
+            "nullAccuracy": {
+              "count": 6,
+              "total": 6
+            }
+          },
+          "passed": null,
+          "pricing": {
+            "min": 3.745,
+            "max": 19,
+            "approximate": false,
+            "description": "JSON extraction uses 5 credits per call. The range assumes full use of monthly or annual plan allowances."
+          }
+        },
+        {
+          "id": "scrapegraph-extract",
+          "name": "ScrapeGraph Extract",
+          "description": "ScrapeGraph Extract",
+          "mode": "Hosted API",
+          "scores": {
+            "pageExact": 69.29,
+            "executedPages": 140,
+            "returnedObjects": 140,
+            "priceF1": 0.88,
+            "skuF1": 0.838,
+            "stockF1": 0.896,
+            "outOfStockF1": 0.667,
+            "nullAccuracy": 100,
+            "timedPages": 140,
+            "untimedPages": 0,
+            "meanTime": 17.646,
+            "p50Time": 11.976,
+            "p95Time": 48.551
+          },
+          "counts": {
+            "executedPages": {
+              "count": 140,
+              "total": 140
+            },
+            "pageExact": {
+              "count": 97,
+              "total": 140
+            },
+            "nullAccuracy": {
+              "count": 6,
+              "total": 6
+            }
+          },
+          "passed": null,
+          "pricing": {
+            "min": 3.333,
+            "max": 10,
+            "approximate": false,
+            "description": "5 credits per call, assuming full use of the plan allowance. Add-on packages are priced separately."
+          }
+        },
+        {
+          "id": "scrapfly-product",
+          "name": "Scrapfly Product",
+          "description": "Scrapfly Product",
+          "mode": "Hosted API",
+          "scores": {
+            "pageExact": 56.43,
+            "executedPages": 140,
+            "returnedObjects": 140,
+            "priceF1": 0.812,
+            "skuF1": 0.684,
+            "stockF1": 0.869,
+            "outOfStockF1": 0.143,
+            "nullAccuracy": 16.67,
+            "timedPages": 140,
+            "untimedPages": 0,
+            "meanTime": 10.151,
+            "p50Time": 8.355,
+            "p95Time": 21.191
+          },
+          "counts": {
+            "executedPages": {
+              "count": 140,
+              "total": 140
+            },
+            "pageExact": {
+              "count": 79,
+              "total": 140
+            },
+            "nullAccuracy": {
+              "count": 1,
+              "total": 6
+            }
+          },
+          "passed": null,
+          "pricing": {
+            "min": 0.807,
+            "max": 1.211,
+            "approximate": false,
+            "description": "Converted from the credits consumed by the pages in this evaluation and the published plan allowances."
+          }
+        },
+        {
+          "id": "oxylabs-json",
+          "name": "Oxylabs JSON",
+          "description": "Oxylabs JSON",
+          "mode": "Hosted API",
+          "scores": {
+            "pageExact": 45.71,
+            "executedPages": 140,
+            "returnedObjects": 140,
+            "priceF1": 0.886,
+            "skuF1": 0.87,
+            "stockF1": 0.661,
+            "outOfStockF1": 0.516,
+            "nullAccuracy": 100,
+            "timedPages": 140,
+            "untimedPages": 0,
+            "meanTime": 7.114,
+            "p50Time": 6.179,
+            "p95Time": 13.052
+          },
+          "counts": {
+            "executedPages": {
+              "count": 140,
+              "total": 140
+            },
+            "pageExact": {
+              "count": 64,
+              "total": 140
+            },
+            "nullAccuracy": {
+              "count": 6,
+              "total": 6
+            }
+          },
+          "passed": null,
+          "pricing": {
+            "min": 3.75,
+            "max": 4,
+            "approximate": false,
+            "description": "JavaScript was disabled in this evaluation. Includes the page request and AI field parsing."
+          }
+        },
+        {
+          "id": "zyte-product",
+          "name": "Zyte Product",
+          "description": "Zyte Product",
+          "mode": "Hosted API",
+          "scores": {
+            "pageExact": 54.29,
+            "executedPages": 140,
+            "returnedObjects": 140,
+            "priceF1": 0.824,
+            "skuF1": 0.853,
+            "stockF1": 0.75,
+            "outOfStockF1": 0.667,
+            "nullAccuracy": 100,
+            "timedPages": 140,
+            "untimedPages": 0,
+            "meanTime": 3.572,
+            "p50Time": 3.03,
+            "p95Time": 6.548
+          },
+          "counts": {
+            "executedPages": {
+              "count": 140,
+              "total": 140
+            },
+            "pageExact": {
+              "count": 76,
+              "total": 140
+            },
+            "nullAccuracy": {
+              "count": 6,
+              "total": 6
+            }
+          },
+          "passed": null,
+          "pricing": {
+            "min": 0.27,
+            "max": 1.07,
+            "approximate": false,
+            "description": "Product field extraction fee. Free trials are not treated as ongoing discounts."
+          }
+        },
+        {
+          "id": "diffbot-product",
+          "name": "Diffbot Product",
+          "description": "Diffbot Product",
+          "mode": "Hosted API",
+          "scores": {
+            "pageExact": 61.43,
+            "executedPages": 140,
+            "returnedObjects": 140,
+            "priceF1": 0.878,
+            "skuF1": 0.714,
+            "stockF1": 0.943,
+            "outOfStockF1": 0.636,
+            "nullAccuracy": 66.67,
+            "timedPages": 140,
+            "untimedPages": 0,
+            "meanTime": 10.697,
+            "p50Time": 7.983,
+            "p95Time": 24.471
+          },
+          "counts": {
+            "executedPages": {
+              "count": 140,
+              "total": 140
+            },
+            "pageExact": {
+              "count": 86,
+              "total": 140
+            },
+            "nullAccuracy": {
+              "count": 4,
+              "total": 6
+            }
+          },
+          "passed": null,
+          "pricing": {
+            "min": 0.899,
+            "max": 1.196,
+            "approximate": false,
+            "description": "Converted from published plan allowances and per-call overage prices."
+          }
+        },
+        {
+          "id": "browserbase-json",
+          "name": "Browserbase JSON",
+          "description": "Browserbase JSON",
+          "mode": "Hosted API",
+          "scores": {
+            "pageExact": 76.43,
+            "executedPages": 140,
+            "returnedObjects": 140,
+            "priceF1": 0.878,
+            "skuF1": 0.881,
+            "stockF1": 0.904,
+            "outOfStockF1": 0.64,
+            "nullAccuracy": 100,
+            "timedPages": 140,
+            "untimedPages": 0,
+            "meanTime": 2.77,
+            "p50Time": 2.334,
+            "p95Time": 4.622
+          },
+          "counts": {
+            "executedPages": {
+              "count": 140,
+              "total": 140
+            },
+            "pageExact": {
+              "count": 107,
+              "total": 140
+            },
+            "nullAccuracy": {
+              "count": 6,
+              "total": 6
+            }
+          },
+          "passed": null,
+          "pricing": {
+            "min": 4,
+            "max": 4,
+            "approximate": false,
+            "description": "The proxy was disabled in this evaluation. Billed per JSON field extraction."
+          }
+        },
+        {
+          "id": "firecrawl-deepseek",
+          "name": "Firecrawl · Open source / DeepSeek",
+          "description": "Firecrawl · Open source / DeepSeek",
+          "mode": "Open source / DeepSeek",
+          "scores": {
+            "pageExact": 77.86,
+            "executedPages": 140,
+            "returnedObjects": 140,
+            "priceF1": 0.899,
+            "skuF1": 0.916,
+            "stockF1": 0.859,
+            "outOfStockF1": 0.533,
+            "nullAccuracy": 100,
+            "timedPages": 140,
+            "untimedPages": 0,
+            "meanTime": 5.79,
+            "p50Time": 5.298,
+            "p95Time": 9.28
+          },
+          "counts": {
+            "executedPages": {
+              "count": 140,
+              "total": 140
+            },
+            "pageExact": {
+              "count": 109,
+              "total": 140
+            },
+            "nullAccuracy": {
+              "count": 6,
+              "total": 6
+            }
+          },
+          "passed": null,
+          "pricing": {
+            "min": null,
+            "max": null,
+            "approximate": false,
+            "softwareCost": 0,
+            "description": "Software costs $0; DeepSeek model usage is billed by tokens. Model usage and total cost were not supplied."
+          }
+        },
+        {
+          "id": "crawl4ai-deepseek",
+          "name": "Crawl4AI · Open source / DeepSeek",
+          "description": "Crawl4AI · Open source / DeepSeek",
+          "mode": "Open source / DeepSeek",
+          "scores": {
+            "pageExact": 75.71,
+            "executedPages": 140,
+            "returnedObjects": 140,
+            "priceF1": 0.914,
+            "skuF1": 0.916,
+            "stockF1": 0.848,
+            "outOfStockF1": 0.571,
+            "nullAccuracy": 100,
+            "timedPages": 140,
+            "untimedPages": 0,
+            "meanTime": 17.905,
+            "p50Time": 16.929,
+            "p95Time": 23.628
+          },
+          "counts": {
+            "executedPages": {
+              "count": 140,
+              "total": 140
+            },
+            "pageExact": {
+              "count": 106,
+              "total": 140
+            },
+            "nullAccuracy": {
+              "count": 6,
+              "total": 6
+            }
+          },
+          "passed": null,
+          "pricing": {
+            "min": null,
+            "max": null,
+            "approximate": false,
+            "softwareCost": 0,
+            "description": "Software costs $0; DeepSeek model usage is billed by tokens. Model usage and total cost were not supplied."
+          }
+        },
+        {
+          "id": "stagehand-deepseek",
+          "name": "Stagehand · Open source / DeepSeek",
+          "description": "Stagehand · Open source / DeepSeek",
+          "mode": "Open source / DeepSeek",
+          "scores": {
+            "pageExact": 56.43,
+            "executedPages": 140,
+            "returnedObjects": 140,
+            "priceF1": 0.879,
+            "skuF1": 0.827,
+            "stockF1": 0.792,
+            "outOfStockF1": 0.762,
+            "nullAccuracy": 100,
+            "timedPages": 140,
+            "untimedPages": 0,
+            "meanTime": 8.534,
+            "p50Time": 8.243,
+            "p95Time": 10.958
+          },
+          "counts": {
+            "executedPages": {
+              "count": 140,
+              "total": 140
+            },
+            "pageExact": {
+              "count": 79,
+              "total": 140
+            },
+            "nullAccuracy": {
+              "count": 6,
+              "total": 6
+            }
+          },
+          "passed": null,
+          "pricing": {
+            "min": null,
+            "max": null,
+            "approximate": false,
+            "softwareCost": 0,
+            "description": "Software costs $0; DeepSeek model usage is billed by tokens. Model usage and total cost were not supplied."
+          }
+        },
+        {
+          "id": "scrapegraphai-deepseek",
+          "name": "ScrapeGraphAI · Open source / DeepSeek",
+          "description": "ScrapeGraphAI · Open source / DeepSeek",
+          "mode": "Open source / DeepSeek",
+          "scores": {
+            "pageExact": 75,
+            "executedPages": 140,
+            "returnedObjects": 140,
+            "priceF1": 0.906,
+            "skuF1": 0.912,
+            "stockF1": 0.852,
+            "outOfStockF1": 0.593,
+            "nullAccuracy": 100,
+            "timedPages": 140,
+            "untimedPages": 0,
+            "meanTime": 14.021,
+            "p50Time": 13.179,
+            "p95Time": 19.245
+          },
+          "counts": {
+            "executedPages": {
+              "count": 140,
+              "total": 140
+            },
+            "pageExact": {
+              "count": 105,
+              "total": 140
+            },
+            "nullAccuracy": {
+              "count": 6,
+              "total": 6
+            }
+          },
+          "passed": null,
+          "pricing": {
+            "min": null,
+            "max": null,
+            "approximate": false,
+            "softwareCost": 0,
+            "description": "Software costs $0; DeepSeek model usage is billed by tokens. Model usage and total cost were not supplied."
+          }
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "zyte-product-user-tables",
+      "section": "Product quality and timing/cost tables supplied by the user",
+      "text": "The two user-supplied tables provide all measurements. In the supplied method order, full-page exact counts are 68, 100, 97, 79, 64, 76, 86, 107, 109, 106, 79 and 105 out of 140; null-handling counts are 6, 6, 6, 1, 6, 6, 4, 6, 6, 6, 6 and 6 out of 6. Each method has 140 timed pages and zero untimed pages."
+    }
+  ],
+  "translations": {
+    "zh": {
+      "Attach checked dataset fingerprints, reference-view details and billing-source context without changing published measurements.": "补充已核对的数据指纹、参考口径和计费来源说明，保留已发布测量值。",
+      "Uses the frozen report input manifest SHA-256 ce7895b6f29b754c22d1d51013b89c2b0a8a054a1ef4c6f1580426f916fe7478. The retained result values are the published source-qualified reference view; original-reference statistics are separate.": "采用报告冻结输入清单 SHA-256 ce7895b6f29b754c22d1d51013b89c2b0a8a054a1ef4c6f1580426f916fe7478。保留的结果值采用已发布的来源核验参考口径，原始参考统计单独保留。",
+      "The public summary keeps quoted pricing ranges and software-only charges separate from total spend. Missing native model-usage receipts do not mean zero model cost.": "公开摘要分别保留报价范围和软件费用，不把它们当作实际总支出。缺少原生模型用量回执不等于模型费用为零。",
+      "Dataset and scorer artifacts are identified by hashes in the public report. Source-qualified annotations and original reference labels must not be mixed within one comparison.": "公开报告用哈希标识数据与评分产物，同一组比较不混用来源核验标注和原始参考。",
+      "Null handling uses 6 empty reference fields across 6 pages.": "空值处理使用 6 页中的 6 个空参考字段。",
+      "Null handling uses 6 empty reference fields across 6 pages. Case IDs: 0094967f37c647407d92b624202736e3272231cf61f8ccaeca0b19aeb631ab28, 14dc707ee18496c1bcdefc1c99bd76284af686cbb7069ff7c68210ca3094a9f4, 2c036dd02ff3aaeb39dd8b5df19a3c30fbaad448ab8884fb2f8d08b7f2a74066, 4ff590718c188a4d194cc213b07c47b08089c876647ddad17e29b40bfcb635f8, c9f80eb2d0f97dc954bc265169737c1c156b5ec027fbe62994f2018c1e0f67ed, ed28f179058b61273b01adedda587c1446628752bb35c518dc99df225296528c.": "空值处理使用 6 页中的 6 个空参考字段。 页面 ID：0094967f37c647407d92b624202736e3272231cf61f8ccaeca0b19aeb631ab28, 14dc707ee18496c1bcdefc1c99bd76284af686cbb7069ff7c68210ca3094a9f4, 2c036dd02ff3aaeb39dd8b5df19a3c30fbaad448ab8884fb2f8d08b7f2a74066, 4ff590718c188a4d194cc213b07c47b08089c876647ddad17e29b40bfcb635f8, c9f80eb2d0f97dc954bc265169737c1c156b5ec027fbe62994f2018c1e0f67ed, ed28f179058b61273b01adedda587c1446628752bb35c518dc99df225296528c。",
+      "All ten methods executed 800 of 800 planned pages and have 800 timing records, with none missing.": "十种方法均完成计划的 800 页调用，各保留 800 条计时记录，无缺失。",
+      "Full-page exact match excludes 60 pages with incomplete reference coverage for every method; its denominator is 740, not 800.": "所有方法的整页完全匹配均排除参考覆盖不完整的 60 页，分母为 740 页。",
+      "Every method tested 140 of 140 pages, with 140 timing records and no missing timings.": "每种方法均测试全部 140 页，保留 140 条计时记录，无缺失。",
+      "Original-reference populations: price 134 nonempty / 6 empty; SKU 135 nonempty / 5 empty; stock 131 in stock / 9 out of stock; out-of-stock detection 9 out of stock / 131 other.": "原始参考分布：价格 134 个非空、6 个空值；SKU 135 个非空、5 个空值；库存 131 个有货、9 个缺货；缺货检测 9 个缺货、131 个其他。",
+      "Price ranges and billing conditions are preserved as supplied. Model usage costs for open-source methods were not disclosed; software-only $0 is not a zero total cost.": "保留来源给出的报价区间和计费条件。开源方法未披露模型用量费用，软件费用 $0 不代表总费用为零。",
+      "Full-page exact match uses all 140 pages.": "整页完全匹配使用全部 140 页。",
+      "Original-reference distribution: 134 nonempty / 6 empty.": "原始参考分布：134 个非空、6 个空值。",
+      "Original-reference distribution: 135 nonempty / 5 empty.": "原始参考分布：135 个非空、5 个空值。",
+      "Original-reference distribution: 131 in stock / 9 out of stock.": "原始参考分布：131 个有货、9 个缺货。",
+      "Original-reference distribution: 9 out of stock / 131 other.": "原始参考分布：9 个缺货、131 个其他。"
+    }
+  },
+  "release": {
+    "date": "2026-11-25",
+    "kind": "metadata",
+    "previous": "v1",
+    "summary": "Attach checked dataset fingerprints, reference-view details and billing-source context without changing published measurements."
+  }
+}
