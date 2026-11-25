@@ -1,6 +1,6 @@
 # Submit public benchmark results
 
-Results are pull requests in [lexmount/webstone-site](https://github.com/lexmount/webstone-site). Internal and external contributors use the same reviewed JSON contract. A GitHub account, Git and Node.js 22.13+ are sufficient; installing Webstone or Python is optional. There is no website account or upload database. Results from other evaluation tools are welcome when they follow an existing benchmark definition and include enough evidence to reproduce the measurements. Using Webstone is neither an admission requirement nor proof that a result is trustworthy.
+Results are pull requests in [lexmount/webstone-site](https://github.com/lexmount/webstone-site). Internal and external contributors use the same reviewed JSON contract. A GitHub account, Git and Node.js 22.13+ are sufficient; installing Webstone or Python is optional. There is no website account or upload database.
 
 ## Ask your agent
 
@@ -27,14 +27,6 @@ Replace placeholders and stage only paths actually changed. Use `gh repo fork le
 Read [Result versioning](result-versioning.md) and the current catalog before preparing a report. Add the next semantic result version, with matching filename, `id`, `version`, `release.previous`, UTC `release.date`, `release.kind` and English `release.summary`. First release: v1.0.0; new measurements under the same protocol: MINOR; metadata-only: PATCH; changed population/scoring: MAJOR. A new definition requires a separate definition PR first. Do not copy old scores into a new edition as placeholders.
 
 Every new submission needs a public HTTPS `source.url`. Each file contains exactly one benchmark, an existing `definitionId`, actual `taskCount`, method configurations, scores and applicable sample/category counts. Missing metrics are `null`; genuine zeros stay zero. Keep units and independent denominators intact. `datasetDifference` explains the difference from the linked dataset in English. A result-specific `reportUrl` must describe that particular result. Preserve original evidence and quotations separately from display translations.
-
-## Evidence requirements
-
-A result PR proposes a measurement; it does not publish it automatically. Include the exact dataset revision or task manifest, scorer version and rules, participant builds and configuration, execution conditions, aggregate values and the underlying per-task evidence. Explain exclusions, retries, timing populations and cost assumptions. Public evidence must support the numbers being submitted, rather than merely link to a project or dataset homepage.
-
-Maintainers may inspect a sample, recompute scores or request a reproducible rerun. Results without sufficient evidence stay out of the published comparison until the gap is resolved. An official rerun is useful when evidence cannot be independently checked; it is not mandatory for every external contribution. New adapters, datasets and scoring definitions belong in Webstone or a separate definition PR before results use them.
-
-Optional source notes may point to restricted originals for the uploader and maintainers. They are not public evidence, are not rendered in the report, and are excluded from anonymous-link checks. Keep private content and credentials out of the repository.
 
 ## Review and publication
 

@@ -4,7 +4,7 @@
 
 The official [Webstone leaderboard](https://webstone.lexmount.io): published benchmark results, method comparisons and evaluation reports.
 
-[Run evaluations with Webstone](https://github.com/lexmount/webstone). Submit measured results through this repository. Any evaluation runner is supported; publication requires comparable methods, reproducible evidence and maintainer review.
+[Run evaluations with Webstone](https://github.com/lexmount/webstone). Submit measured results through this repository.
 
 Twelve local benchmark views across four Tracks are published on this site. A fifth Track, BrowserArena, opens the independently deployed benchmark site in a new tab. The evaluation harness is [lexmount/webstone](https://github.com/lexmount/webstone).
 
