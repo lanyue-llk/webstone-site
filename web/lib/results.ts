@@ -29,6 +29,7 @@ export type Catalog = {
   schemaVersion: number;
   translations?: { zh: Record<string, string>; en?: Record<string, string> };
   providerUrls: Record<string, string>;
+  pricingSources?: Record<string, { label: string; url: string }[]>;
   navigationGroups?: { id: string; name: string; description: string; upcoming?: { id: string; name: string; description: string }[] }[];
   tracks: { id: string; name: string; description: string; url?: string; groupId?: string }[];
   benchmarks: BenchmarkInfo[];
@@ -130,14 +131,18 @@ export function sumCategoryPasses(provider: Provider, categories: Category[]) {
   return total;
 }
 
-export function formatMetric(value: number | null | undefined, unit: string, decimals = unit === "percent" ? 1 : 2, signed = false, counts?: { count: number; total: number }) {
-  if (value == null) return "—";
+export function formatMetric(value: number | null | undefined, unit: string, decimals = unit === "percent" ? 1 : 2, signed = false, counts?: { count: number; total: number }, presentation: "compact" | "source" = "compact") {
+  if (value === null || value === undefined) return "—";
   const sign = signed && value > 0 ? "+" : "";
-  const suffix = unit === "percent" ? "%" : unit === "seconds" ? " s" : unit === "ms" ? " ms" : unit === "mib" ? " MiB" : unit === "points" ? " pp" : "";
-  const formatted = `${sign}${unit === "usd" ? "$" : ""}${value.toFixed(decimals)}${suffix}`;
-  if (!counts) return formatted;
-  const fraction = `${counts.count} / ${counts.total}`;
-  return unit === "count" ? fraction : `${fraction} (${formatted})`;
+  if (unit === "count" && counts) return `${counts.count} / ${counts.total}`;
+  if (presentation === "compact" && unit === "ratio") return `${sign}${(value * 100).toFixed(Math.max(0, decimals - 2))}%`;
+  if (presentation === "compact" && (unit === "ms" || unit === "seconds")) {
+    const seconds = unit === "ms" ? value / 1000 : value;
+    const precision = unit === "ms" ? Math.min(6, decimals + 3) : Math.max(3, decimals);
+    return `${sign}${seconds.toFixed(precision)} s`;
+  }
+  const suffix = ({ percent: "%", mib: " MiB", points: " pp", ms: " ms", seconds: " s" } as Record<string, string>)[unit] ?? "";
+  return `${sign}${unit === "usd" ? "$" : ""}${value.toFixed(decimals)}${suffix}`;
 }
 
 export function formatPricing(pricing: Pricing) {

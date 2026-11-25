@@ -174,16 +174,16 @@ test("report pagination keeps a growing archive to six cards and exposes every r
     const titles = () => [...container.querySelectorAll("h3")].map(el => el.textContent);
     assert.equal(titles().length, 6);
     assert.ok(buttons()[0].disabled);
-    assert.match(titles()[0], /Report 1 /);
+    assert.match(titles()[0], /Report 1\s/);
     await React.act(async () => buttons()[1].click());
     assert.equal(titles().length, 6);
-    assert.match(titles()[0], /Report 7 /);
+    assert.match(titles()[0], /Report 7\s/);
     await React.act(async () => buttons()[1].click());
     assert.equal(titles().length, 3);
-    assert.match(titles()[2], /Report 15 /);
+    assert.match(titles()[2], /Report 15\s/);
     assert.ok(buttons()[1].disabled);
     await React.act(async () => buttons()[0].click());
-    assert.match(titles()[0], /Report 7 /);
+    assert.match(titles()[0], /Report 7\s/);
   } finally {
     await React.act(async () => root.unmount());
     await win.happyDOM.close();
@@ -495,9 +495,10 @@ test("the homepage offers the evaluation repository star and translates the deve
     assert.equal(star.href,'https://github.com/lexmount/webstone');
     assert.match(star.textContent,/Star/);
     assert.match(win.document.querySelector('.overview-star-note').textContent,/觉得 Webstone 有用/);
-    assert.match([...win.document.querySelectorAll('.upcoming-overview')].map(item=>item.textContent).join(' '),/Browser Automation/);
-    assert.match(win.document.querySelector('.upcoming-overview').textContent,/开发中/);
-    assert.equal(win.document.querySelectorAll('.track-card').length,4);
+    assert.match([...win.document.querySelectorAll('.upcoming-track')].map(item=>item.textContent).join(' '),/Browser Automation/);
+    assert.match(win.document.querySelector('.upcoming-track').textContent,/开发中/);
+    assert.equal(win.document.querySelectorAll('.track-card[data-track]').length,4);
+    assert.equal(win.document.querySelectorAll('.track-overview-grid > .track-card.upcoming-track').length,2);
   } finally {await win.happyDOM.close();}
 });
 
@@ -599,4 +600,75 @@ test("diagnostic comparisons never imply a rank or best value in either language
     await React.act(async()=>root.unmount());await win.happyDOM.close();
     [globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT]=prior;
   }
+});
+
+test("pricing details keep official links usable by keyboard and close with Escape", async () => {
+  const Tooltip=require('../web/components/info-tooltip.tsx').default;
+  const win=new Window();
+  const previous=[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT];
+  [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+  const container=win.document.createElement('div');win.document.body.append(container);
+  const root=require('react-dom/client').createRoot(container);
+  try {
+    await React.act(async()=>root.render(React.createElement(Tooltip,{label:'Cloudflare · Billing basis',description:'Browser usage and model inference.',sources:[{label:'Browser Run',url:'https://developers.cloudflare.com/browser-run/pricing/'},{label:'Workers AI',url:'https://developers.cloudflare.com/workers-ai/platform/pricing/'}]})));
+    const trigger=container.querySelector('button');
+    const next=win.document.createElement('button');next.textContent='Next control';container.after(next);
+    trigger.getClientRects=()=>[new win.DOMRect(0,0,20,20)];next.getClientRects=()=>[new win.DOMRect(0,0,20,20)];
+    await React.act(async()=>trigger.focus());
+    await React.act(async()=>trigger.dispatchEvent(new win.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true})));
+    const panel=win.document.querySelector('[role="dialog"]');assert.ok(panel);
+    const links=[...panel.querySelectorAll('a')];assert.equal(links.length,2);
+    assert.equal(win.document.activeElement?.getAttribute('href'),links[0].getAttribute('href'));
+    assert.equal(links[0].href,'https://developers.cloudflare.com/browser-run/pricing/');
+    assert.equal(links[1].href,'https://developers.cloudflare.com/workers-ai/platform/pricing/');
+    assert.ok(links.every(link=>link.target==='_blank'&&link.rel.includes('noopener')));
+    await React.act(async()=>{panel.dispatchEvent(new win.MouseEvent('mouseout',{bubbles:true,relatedTarget:win.document.body}));await new Promise(resolve=>setTimeout(resolve,150));});
+    assert.ok(win.document.querySelector('[role="dialog"]'));
+    await React.act(async()=>links[0].dispatchEvent(new win.KeyboardEvent('keydown',{key:'Tab',shiftKey:true,bubbles:true,cancelable:true})));
+    assert.ok(win.document.activeElement===trigger);
+    await React.act(async()=>trigger.dispatchEvent(new win.KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true})));
+    assert.equal(win.document.activeElement?.getAttribute('href'),links[0].getAttribute('href'));
+    await React.act(async()=>{links[1].focus();links[1].dispatchEvent(new win.KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true}));});
+    assert.ok(win.document.activeElement===next);
+    assert.equal(win.document.querySelector('[role="dialog"]'),null);
+    await React.act(async()=>trigger.focus());
+    await React.act(async()=>trigger.dispatchEvent(new win.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true})));
+    assert.ok(win.document.querySelector('[role="dialog"]'));
+    assert.equal(win.document.activeElement?.getAttribute('href'),links[0].getAttribute('href'));
+    await React.act(async()=>win.document.dispatchEvent(new win.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));
+    assert.equal(win.document.querySelector('[role="dialog"]'),null);
+    assert.ok(win.document.activeElement===trigger);
+    await React.act(async()=>{next.focus();trigger.dispatchEvent(new win.MouseEvent('mouseover',{bubbles:true,relatedTarget:next}));});
+    assert.ok(win.document.querySelector('[role="dialog"]'));
+    await React.act(async()=>win.document.dispatchEvent(new win.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));
+    assert.equal(win.document.querySelector('[role="dialog"]'),null);
+    assert.ok(win.document.activeElement===next);
+    for(const eventType of ['scroll','resize']) {
+      await React.act(async()=>{trigger.focus();trigger.dispatchEvent(new win.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));});
+      assert.ok(win.document.querySelector('[role="dialog"]').contains(win.document.activeElement));
+      await React.act(async()=>win.dispatchEvent(new win.Event(eventType)));
+      assert.equal(win.document.querySelector('[role="dialog"]'),null);
+      assert.ok(win.document.activeElement===trigger);
+    }
+  } finally {await React.act(async()=>root.unmount());[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;await win.happyDOM.close();}
+});
+
+test("method details retain raw numerators and denominators alongside compact rates", async () => {
+  const Details=require('../web/components/method-details.tsx').default;
+  const win=new Window();
+  try {
+    for(const id of ['lexbench-swde','lexbench-zyte-product-extraction']) {
+      const {benchmark}=load(id,'v1.0.1');
+      for(const provider of benchmark.providers) {
+        win.document.body.innerHTML=renderToStaticMarkup(React.createElement(Details,{benchmark,provider,t:text=>text,onClose:()=>{}}));
+        const details=win.document.querySelector('.method-metrics').textContent;
+        for(const metric of benchmark.metrics.filter(item=>item.unit==='ratio')) {
+          if(provider.scores[metric.id] !== null && provider.scores[metric.id] !== undefined)assert.ok(details.includes(`Source value: ${provider.scores[metric.id].toFixed(metric.decimals)} (0–1)`));
+        }
+        for(const [metric,counts]of Object.entries(provider.counts??{})) {
+          if(provider.scores[metric] !== null && provider.scores[metric] !== undefined)assert.ok(details.includes(`${counts.count} / ${counts.total}`),`${id} ${provider.id} ${metric}`);
+        }
+      }
+    }
+  } finally {await win.happyDOM.close();}
 });
