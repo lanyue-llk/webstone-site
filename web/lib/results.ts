@@ -16,7 +16,7 @@ export type Provider = {
 };
 export type Pricing = { min: number | null; max: number | null; approximate?: boolean; softwareCost?: number; description: string };
 export type Definition = {
-  id: string; primaryMetric: string; metrics: Metric[];
+  id: string; primaryMetric: string; metrics: Metric[]; rankable?: boolean;
   categories?: CategoryDefinition[]; leadingMetricIds?: string[];
 };
 export type BenchmarkInfo = {

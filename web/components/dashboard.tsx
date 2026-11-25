@@ -107,9 +107,9 @@ export default function Dashboard() {
   const trailingMetrics = benchmark
     ? visibleMetrics.filter(item => item.id !== primaryMetric?.id && !isDecisionColumn(item))
     : [];
-  const metricBest = new Map((benchmark?.metrics ?? []).map(item => [item.id, item.highlightBest === false ? null : bestValue((benchmark?.providers ?? []).map(provider => provider.scores[item.id]), item.direction)]));
-  const categoryBest = new Map(categories.map(category => [category.id, bestValue((benchmark?.providers ?? []).map(provider => provider.categoryPassed?.[category.id] ?? null), "desc")]));
-  const passedBest = bestValue((benchmark?.providers ?? []).map(provider => provider.passed), "desc");
+  const metricBest = new Map((benchmark?.metrics ?? []).map(item => [item.id, benchmark?.rankable === false || item.highlightBest === false ? null : bestValue((benchmark?.providers ?? []).map(provider => provider.scores[item.id]), item.direction)]));
+  const categoryBest = new Map(categories.map(category => [category.id, benchmark?.rankable === false ? null : bestValue((benchmark?.providers ?? []).map(provider => provider.categoryPassed?.[category.id] ?? null), "desc")]));
+  const passedBest = benchmark?.rankable === false ? null : bestValue((benchmark?.providers ?? []).map(provider => provider.passed), "desc");
   const showPassed = showCategories && (benchmark?.providers.some(provider => provider.passed !== null && provider.passed !== undefined) ?? false);
   const showPricing = benchmark?.providers.some(hasPricingInformation) ?? false;
   const hasNumericCost = benchmark?.metrics.some(item => item.unit === "usd" && benchmark.providers.some(provider => {
@@ -204,7 +204,7 @@ export default function Dashboard() {
           <Github /><span>{t("Submit results")}<small>webstone-site</small></span><ArrowUpRight size={13} aria-hidden="true" />
         </a>
         <a href={DATASETS_URL} target="_blank" rel="noreferrer" aria-label={t("Datasets")}>
-          <img src="/huggingface.svg" width="20" height="20" alt="" aria-hidden="true" /><span>{t("Datasets")}</span><ArrowUpRight size={13} aria-hidden="true" />
+          <img src="/huggingface.svg" width="16" height="16" alt="" aria-hidden="true" /><span>{t("Datasets")}</span><ArrowUpRight size={13} aria-hidden="true" />
         </a>
       </div>
       <div className="sidebar-footer">
@@ -274,6 +274,7 @@ export default function Dashboard() {
           </div> : <>
             <section id="results" className="leaderboard" aria-label={`${t(benchmark.name)} ${t("Leaderboard")}`}>
               <h2 className="sr-only">{t("Leaderboard")}</h2>
+              {benchmark.rankable === false && <p className="sample-scope">{t("Diagnostic results; no ranking or best-value claims.")}</p>}
               <div className="table-toolbar"><span>{benchmark.providerCount} {t("methods")} · {benchmark.taskCount.toLocaleString()} {t("cases")}</span><div className="column-views table-controls" role="group" aria-label={t("Table columns")}>
                 {benchmark.categories.length > 0 && <button aria-pressed={showCategories} onClick={() => setShowCategories(current => !current)}>{t("Category breakdown")}</button>}
                 {decisionMetrics(benchmark, true, benchmark.primaryMetric).some(item => !decisionMetrics(benchmark, false, benchmark.primaryMetric).includes(item)) && <button aria-pressed={moreMetrics} onClick={() => {
@@ -300,7 +301,7 @@ export default function Dashboard() {
                     {showPassed && <th className="count-cell" scope="col"><div className="metric-heading"><span>{t("Passed / Total")}</span><InfoTooltip label={t("Passed / Total")} description={`${t("Passed / Total")}: ${benchmark.taskCount}. ${t("Not disclosed in the source")}: —.`} detailsLabel={t("details")} /></div></th>}
                   </tr></thead>
                   <tbody>{providers.map((provider, i) => <tr key={provider.id}>
-                    <td className="rank-cell">{provider.scores[metric.id] == null ? "—" : i + 1}</td>
+                    <td className="rank-cell">{benchmark.rankable === false || provider.scores[metric.id] == null ? "—" : i + 1}</td>
                     <td><div className="provider-cell"><a className="provider-name provider-link" href={catalog?.providerUrls[provider.id]} target="_blank" rel="noopener noreferrer" aria-label={`${provider.name} ${t("project")} (${t("opens in a new tab")})`}><span className={`provider-mark ${provider.id}`} style={{ "--provider-color": providerColors[provider.id] ?? "#64748b" } as React.CSSProperties} aria-hidden="true">{provider.name[0]}</span><span className="provider-label" title={provider.name}><strong>{provider.name.split(" · ")[0]}</strong>{provider.name.includes(" · ") && <small>{t(provider.name.split(" · ").slice(1).join(" · "))}</small>}</span><ArrowUpRight className="provider-external" size={12} aria-hidden="true" /></a><button className="method-open" aria-label={`${provider.name} · ${t("Method details")}`} aria-haspopup="dialog" onClick={() => setSelectedProvider(provider)}>···</button></div></td>
                     {leadingMetrics.map(item => metricCell(provider, item))}
                     {showPricing && <td className="numeric pricing-cell"><div className="metric-heading">{provider.pricing && hasPricingInformation(provider) ? <><span className="pricing-value">{t(formatPricing(provider.pricing))}</span><InfoTooltip label={`${provider.name} · ${t("Billing basis")}`} description={t(provider.pricing.description)} detailsLabel={t("details")} /></> : "—"}</div></td>}
@@ -326,5 +327,5 @@ export default function Dashboard() {
 }
 
 function Github() {
-  return <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .75a11.25 11.25 0 0 0-3.56 21.92c.56.1.77-.24.77-.54v-2.1c-3.13.68-3.79-1.33-3.79-1.33-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.13.08 1.72 1.16 1.72 1.16 1 1.72 2.63 1.22 3.27.93.1-.73.39-1.22.71-1.5-2.5-.28-5.13-1.25-5.13-5.56 0-1.23.44-2.23 1.16-3.02-.12-.29-.5-1.43.11-2.98 0 0 .95-.3 3.1 1.15a10.8 10.8 0 0 1 5.63 0c2.15-1.46 3.1-1.15 3.1-1.15.61 1.55.23 2.7.11 2.98.72.79 1.16 1.8 1.16 3.02 0 4.32-2.64 5.28-5.15 5.56.4.35.76 1.03.76 2.08v3.1c0 .3.2.65.78.54A11.25 11.25 0 0 0 12 .75Z" /></svg>;
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .75a11.25 11.25 0 0 0-3.56 21.92c.56.1.77-.24.77-.54v-2.1c-3.13.68-3.79-1.33-3.79-1.33-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.13.08 1.72 1.16 1.72 1.16 1 1.72 2.63 1.22 3.27.93.1-.73.39-1.22.71-1.5-2.5-.28-5.13-1.25-5.13-5.56 0-1.23.44-2.23 1.16-3.02-.12-.29-.5-1.43.11-2.98 0 0 .95-.3 3.1 1.15a10.8 10.8 0 0 1 5.63 0c2.15-1.46 3.1-1.15 3.1-1.15.61 1.55.23 2.7.11 2.98.72.79 1.16 1.8 1.16 3.02 0 4.32-2.64 5.28-5.15 5.56.4.35.76 1.03.76 2.08v3.1c0 .3.2.65.78.54A11.25 11.25 0 0 0 12 .75Z" /></svg>;
 }

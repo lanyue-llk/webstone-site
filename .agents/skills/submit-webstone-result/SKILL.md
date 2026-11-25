@@ -5,7 +5,7 @@ description: Submit measured benchmark results to the Webstone leaderboard throu
 
 # Submit a Webstone result
 
-Use GitHub PRs in **lexmount/webstone-site**. Git, GitHub CLI and Node.js 22.13+ are sufficient. Do not require Python or Webstone. Never fabricate measurements or silently convert billing ranges into point costs.
+Use GitHub PRs in **lexmount/webstone-site**. Git, GitHub CLI and Node.js 22.13+ are sufficient. Do not require Python or Webstone. Accept third-party runners only with the same benchmark contract and independently reviewable evidence. A result PR is a proposal, not automatic publication; maintainers can request score recomputation or a rerun. Optional restricted source notes are uploader remarks, not public evidence or links to check anonymously. Never fabricate measurements or silently convert billing ranges into point costs.
 
 1. Inspect the supplied evidence, benchmark, dataset/scorer identities, actual populations, participant versions/configurations, latency and cost definitions. Missing measurements stay null. If no real evidence is provided, stop before creating a result; ask for it.
 2. Reuse a clean site checkout or clone `https://github.com/lexmount/webstone-site.git` into an isolated directory. Preserve existing user modifications. Verify `gh api user --jq .login`, fetch upstream main, and branch from that exact revision. An authentication error is different from a network/DNS error.

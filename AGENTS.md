@@ -106,3 +106,6 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 
 - Reports and blog links must open for an anonymous reader, including embedded previews. Run `npm run check:reports` before publishing. CI checks them on PRs, main updates and daily; HTTP 200 alone does not prove access. Never broaden access without the owner’s authorization.
 - Cloudflare Pages publishes `web/out` through the tag-triggered `pages-release.yml` workflow. Tags must be on main history. See `docs/deploying-pages.md` for the established release and verification commands. Keep its `_headers` and `_redirects` behavior consistent with the optional Nginx deployment. Verify the public domain, data, downloads, report access and release identity before shutting down a previous host.
+
+- A definition with `rankable: false` is diagnostic: show values and allow inspection, but render no ranks or best-value highlights, including category and passed-count cells.
+- Optional `reports/source-notes.json` is repository-only uploader reference information. Do not bundle it, display its restricted links, treat it as public evidence, or check its link accessibility.

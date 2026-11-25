@@ -4,6 +4,7 @@ export type Language = "en" | "zh";
 export const LANGUAGE_KEY = "webstone-language";
 
 const chinese: Record<string, string> = {
+  "Diagnostic results; no ranking or best-value claims.": "诊断结果，不提供名次或最优值标记。",
   "Benchmark navigation": "评测导航",
   "Coming soon": "开发中",
   "Star Webstone": "给 Webstone 点个 Star",

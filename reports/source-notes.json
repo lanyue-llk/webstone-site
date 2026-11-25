@@ -1,0 +1,43 @@
+{
+  "reports": {
+    "webmainbench-v1": {
+      "references": [
+        {
+          "url": "https://yours.lexmount.cn/artifact-site/s/U2chfRS3ZFlJ",
+          "version": "ver_ab8ed3878d5148e8910d9df65557cae9",
+          "note": "Reviewed 430-task diagnostic snapshot; reused calls, corrected scoring."
+        },
+        {
+          "url": "https://yours.lexmount.cn/artifact-site/s/jGXOOJwkdBK_",
+          "version": "ver_0a7984e6221945b6b803801c204b8faa",
+          "note": "Original six-configuration 430-task comparison."
+        },
+        {
+          "url": "https://yours.lexmount.cn/artifact-site/s/zrqPjO672dgg",
+          "version": "ver_cdd1a9316d6c4d49a5dc4fee4646fba1",
+          "note": "Seven-method frozen HTML measurements and official scoring aggregates."
+        }
+      ]
+    },
+    "lexbench-websearch-v2": {
+      "references": [
+        {
+          "url": "https://yours.lexmount.cn/artifact-site/s/W3MxzlJuPRl6",
+          "note": "Internal search collection, assessment and execution records."
+        }
+      ]
+    },
+    "lexbench-swde-v1": {
+      "references": [
+        {
+          "url": "https://yours.lexmount.cn/artifact-site/s/AuAOPYUyRBYx",
+          "note": "SWDE raw report, original and source-qualified scoring, timing and billing sources."
+        },
+        {
+          "url": "https://yours.lexmount.cn/artifact-site/s/qlQbpXWMlmyA",
+          "note": "Zyte product original and source-qualified scoring, timing and billing sources."
+        }
+      ]
+    }
+  }
+}

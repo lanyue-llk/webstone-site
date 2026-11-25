@@ -556,3 +556,31 @@ test("expanded table metrics omit wholly undisclosed columns and preserve real z
   assert.deepEqual(decisionMetrics(benchmark,true,'quality').map(item=>item.id),['quality','zero','partial']);
   assert.deepEqual(decisionMetrics(benchmark,true,'time').map(item=>item.id),['quality','zero','partial']);
 });
+
+test("diagnostic comparisons never imply a rank or best value in either language", async () => {
+  const { prepareData } = await import("../scripts/prepare-data.mjs");
+  await prepareData();
+  const Dashboard = require("../web/components/dashboard.tsx").default;
+  const { RELEASE } = require("../web/lib/release.generated.ts");
+  const {snapshot} = load('lexbench-webfetch');
+  const diagnostic=structuredClone(snapshot);
+  diagnostic.benchmarks[0].definitionId='reviewed-diagnostic';
+  const win=new Window({url:'https://webstone.test/?benchmark=lexbench-webfetch'});
+  const prior=[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT];
+  [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+  globalThis.fetch=async input=>new Response(JSON.stringify(String(input).includes('/benchmarks/')?catalog:String(input).includes('/results/')?[{file:'diagnostic.json',report:diagnostic}]:{release:RELEASE}));
+  const root=require('react-dom/client').createRoot(win.document.body);
+  try {
+    await React.act(async()=>root.render(React.createElement(Dashboard)));
+    for(const language of ['EN','中文']) {
+      await React.act(async()=>[...win.document.querySelectorAll('.language-control button')].find(b=>b.textContent===language).click());
+      assert.equal(win.document.querySelectorAll('td.best-value').length,0);
+      assert.ok([...win.document.querySelectorAll('tbody .rank-cell')].every(cell=>cell.textContent==='—'));
+      assert.match(win.document.querySelector('.leaderboard').textContent,language==='EN'?/Diagnostic results/:/诊断结果/);
+      assert.equal(win.document.querySelectorAll('tbody tr').length,diagnostic.benchmarks[0].providers.length);
+    }
+  } finally {
+    await React.act(async()=>root.unmount());await win.happyDOM.close();
+    [globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT]=prior;
+  }
+});
