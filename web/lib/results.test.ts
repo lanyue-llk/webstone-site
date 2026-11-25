@@ -101,7 +101,7 @@ test("compact tables keep the ranking metric and charts preserve natural scales 
       const disclosed = benchmark.providers.some(provider => typeof provider.scores[metric.id] === "number");
       assert.equal(visible.includes(metric), disclosed || metric.id === benchmark.primaryMetric);
     }
-    assert.deepEqual(decisionMetrics(benchmark, true, benchmark.primaryMetric), benchmark.metrics);
+    assert.deepEqual(decisionMetrics(benchmark, true, benchmark.primaryMetric), benchmark.metrics.filter(metric => metric.id === benchmark.primaryMetric || benchmark.providers.some(provider => typeof provider.scores[metric.id] === "number")));
   }
   const usefulness = catalog.benchmarks.flatMap(info => info.definitions.flatMap(definition => definition.metrics)).find(metric => metric.id === "usefulness")!;
   assert.equal(qualityScale(usefulness), 3);

@@ -305,13 +305,19 @@ test("every published benchmark edition shares table and radar controls in both 
         const more = [...container.querySelectorAll(".table-controls button")].find(button => button.textContent === "More metrics");
         const definition = resolveBenchmark(catalog, report.benchmarks[0]);
         const { decisionMetrics } = require("../web/lib/comparisons.ts");
-        const extras = definition.metrics.length > decisionMetrics(definition, false, definition.primaryMetric).length;
+        const disclosed = decisionMetrics(definition, true, definition.primaryMetric);
+        const extras = disclosed.length > decisionMetrics(definition, false, definition.primaryMetric).length;
+        if (definition.categories.length) {
+          const categoryButton = [...container.querySelectorAll(".table-controls button")].find(button => button.textContent === "Category breakdown");
+          assert.equal(categoryButton.getAttribute("aria-pressed"), "true", report.id);
+          assert.equal(table.querySelectorAll(".category-head").length, definition.categories.length, report.id);
+        }
         assert.equal(Boolean(more), extras, report.id + " extra metric control");
         if (extras) {
           const initialColumns = table.querySelectorAll("th").length;
           await React.act(async () => more.click());
           assert.ok(table.querySelectorAll("th").length > initialColumns, report.id);
-          const extra = definition.metrics.find(item => !decisionMetrics(definition, false, definition.primaryMetric).some(metric => metric.id === item.id));
+          const extra = disclosed.find(item => !decisionMetrics(definition, false, definition.primaryMetric).some(metric => metric.id === item.id));
           const extraHeader = [...table.querySelectorAll("th")].find(header => header.querySelector(".sort-button")?.textContent === extra.label);
           await React.act(async () => extraHeader.querySelector(".sort-button").click());
           const collapse = [...container.querySelectorAll(".table-controls button")].find(button => button.textContent === "More metrics");
@@ -343,6 +349,19 @@ test("every published benchmark edition shares table and radar controls in both 
         assert.equal(table.querySelectorAll("th")[1].textContent, "方案", report.id);
         assert.match(chartMenu.querySelector("summary").textContent, /图表指标/, report.id);
         assert.equal(container.querySelectorAll(".table-controls .metric-selector").length, 0, report.id);
+        let scrollTop = 900;
+        win.scrollTo = options => { scrollTop = options.top; };
+        const nextTab = [...container.querySelectorAll('.benchmark-navigation button')].find(button => button.getAttribute('aria-current') !== 'page');
+        if (nextTab) {
+          await React.act(async () => nextTab.click());
+          assert.equal(scrollTop, 0, report.id + ' switching benchmark resets scrolling');
+        }
+        scrollTop = 900;
+        await React.act(async () => container.querySelector('.nav-item.active').click());
+        assert.equal(scrollTop, 0, report.id + ' reopening the active track resets scrolling');
+        const categories = container.querySelectorAll('.category-head');
+        const toggle = [...container.querySelectorAll('.table-controls button')].find(button => /Category breakdown|分类明细/.test(button.textContent));
+        if (toggle) assert.ok(categories.length > 0, report.id + ' categories start expanded after navigation');
       } finally {
         await React.act(async () => root.unmount());
         await win.happyDOM.close();
@@ -403,11 +422,11 @@ test("compact columns preserve ranking and disclosed resources without inventing
   const metric=(id,unit)=>({id,unit});
   const benchmark={primaryMetric:"quality",leadingMetricIds:["leading"],metrics:[metric("quality","ratio"),metric("time","ms"),metric("other","ratio"),metric("leading","ratio")],providers:[{scores:{quality:1,time:null,other:0.5,leading:null}}]};
   const ids=(expanded=false,selected="quality")=>decisionMetrics(benchmark,expanded,selected).map(item=>item.id);
-  assert.deepEqual(ids(),["quality","leading"]);
-  benchmark.providers[0].scores.time=0;assert.deepEqual(ids(),["quality","time","leading"]);
-  benchmark.providers[0].scores.time=10;assert.deepEqual(ids(),["quality","time","leading"]);
-  benchmark.providers[0].scores.time=null;assert.deepEqual(ids(false,"other"),["quality","other","leading"]);
-  assert.deepEqual(ids(true),["quality","time","other","leading"]);
+  assert.deepEqual(ids(),["quality"]);
+  benchmark.providers[0].scores.time=0;assert.deepEqual(ids(),["quality","time"]);
+  benchmark.providers[0].scores.time=10;assert.deepEqual(ids(),["quality","time"]);
+  benchmark.providers[0].scores.time=null;assert.deepEqual(ids(false,"other"),["quality","other"]);
+  assert.deepEqual(ids(true),["quality","other"]);
 });
 
 test("repeated denied clipboard attempts focus and select the manual prompt each time", async () => {
@@ -528,4 +547,12 @@ test("report cards open each language edition without translation or source-lang
     } finally { win.happyDOM.close(); }
   }
   assert.notEqual(links[0], links[1]);
+});
+
+
+test("expanded table metrics omit wholly undisclosed columns and preserve real zero and partial coverage", () => {
+  const {decisionMetrics}=require('../web/lib/comparisons.ts');
+  const benchmark={primaryMetric:'quality',metrics:[{id:'quality',unit:'ratio'},{id:'time',unit:'ms'},{id:'zero',unit:'ratio'},{id:'partial',unit:'ratio'}],providers:[{scores:{quality:1,time:null,zero:0,partial:null}},{scores:{quality:0.5,time:null,zero:0,partial:0.2}}]};
+  assert.deepEqual(decisionMetrics(benchmark,true,'quality').map(item=>item.id),['quality','zero','partial']);
+  assert.deepEqual(decisionMetrics(benchmark,true,'time').map(item=>item.id),['quality','zero','partial']);
 });

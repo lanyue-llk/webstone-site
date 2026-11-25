@@ -31,7 +31,7 @@ export default function Dashboard() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [language, chooseLanguage] = useLanguage();
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
-  const [showCategories, setShowCategories] = useState(false);
+  const [showCategories, setShowCategories] = useState(true);
   const [moreMetrics, setMoreMetrics] = useState(false);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function Dashboard() {
         const version = selectedEntry ? canonicalVersion(selectedEntry.version) : requestedVersion ?? "";
         const selectedResult = records.find(record => record.id === selectedEntry?.id)?.benchmarks.find(item => item.id === benchmark);
         const selectedBenchmark = selectedResult ? resolveBenchmark(benchmarkCatalog, selectedResult) : null;
-        const selectedMetric = selectedBenchmark?.metrics.find(item => item.id === params.get("metric")) ?? selectedBenchmark?.metrics.find(item => item.id === selectedBenchmark.primaryMetric);
+        const selectedMetric = (selectedBenchmark ? decisionMetrics(selectedBenchmark, true, selectedBenchmark.primaryMetric) : []).find(item => item.id === params.get("metric")) ?? selectedBenchmark?.metrics.find(item => item.id === selectedBenchmark.primaryMetric);
         setSelection({
           benchmark,
           version,
@@ -121,7 +121,8 @@ export default function Dashboard() {
   }
 
   function chooseBenchmark(id: string) {
-    setShowCategories(false);
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    setShowCategories(true);
     setMoreMetrics(false);
     const latest = entries ? latestEntry(entries, id) : null;
     const version = latest ? canonicalVersion(latest.version) : "";
@@ -136,12 +137,12 @@ export default function Dashboard() {
 
   function chooseVersion(version: string) {
     setMoreMetrics(false);
-    setShowCategories(false);
+    setShowCategories(true);
     setSelectedProvider(null);
     const selectedEntry = entries ? selectEntry(entries, version, selection.benchmark) : null;
     const selectedResult = snapshots.find(record => record.id === selectedEntry?.id)?.benchmarks.find(item => item.id === selection.benchmark);
     const selected = catalog && selectedResult ? resolveBenchmark(catalog, selectedResult) : null;
-    const selectedMetric = selected?.metrics.find(item => item.id === selection.metric) ?? selected?.metrics.find(item => item.id === selected.primaryMetric);
+    const selectedMetric = (selected ? decisionMetrics(selected, true, selected.primaryMetric) : []).find(item => item.id === selection.metric) ?? selected?.metrics.find(item => item.id === selected.primaryMetric);
     setSelection(current => ({ ...current, version, metric: selectedMetric?.id ?? current.metric }));
     if (selectedMetric && selectedMetric.id !== selection.metric) setDirection(selectedMetric.direction);
   }
@@ -188,7 +189,7 @@ export default function Dashboard() {
         return <div key={item.id} className="nav-track"><button
           className={`nav-item ${track?.id === item.id ? "active" : ""}`}
           aria-current={track?.id === item.id ? "page" : undefined}
-          onClick={() => { if (track?.id === item.id) setMenuOpen(false); else if (!selection.benchmark) window.location.assign(benchmarkHref(item.benchmarks[0].id)); else chooseBenchmark(item.benchmarks[0].id); }}
+          onClick={() => { if (track?.id === item.id) { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); setMenuOpen(false); } else if (!selection.benchmark) window.location.assign(benchmarkHref(item.benchmarks[0].id)); else chooseBenchmark(item.benchmarks[0].id); }}
         ><Icon size={17} /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span></button>
 
         </div>;
@@ -275,7 +276,7 @@ export default function Dashboard() {
               <h2 className="sr-only">{t("Leaderboard")}</h2>
               <div className="table-toolbar"><span>{benchmark.providerCount} {t("methods")} · {benchmark.taskCount.toLocaleString()} {t("cases")}</span><div className="column-views table-controls" role="group" aria-label={t("Table columns")}>
                 {benchmark.categories.length > 0 && <button aria-pressed={showCategories} onClick={() => setShowCategories(current => !current)}>{t("Category breakdown")}</button>}
-                {benchmark.metrics.some(item => !decisionMetrics(benchmark, false, benchmark.primaryMetric).includes(item)) && <button aria-pressed={moreMetrics} onClick={() => {
+                {decisionMetrics(benchmark, true, benchmark.primaryMetric).some(item => !decisionMetrics(benchmark, false, benchmark.primaryMetric).includes(item)) && <button aria-pressed={moreMetrics} onClick={() => {
                   if (moreMetrics && !decisionMetrics(benchmark, false, benchmark.primaryMetric).some(item => item.id === selection.metric)) {
                     setSelection(current => ({ ...current, metric: benchmark.primaryMetric }));
                     setDirection(primaryMetric?.direction ?? "desc");
@@ -286,7 +287,7 @@ export default function Dashboard() {
               <p className="sample-scope">{benchmark.metrics.filter(item => result?.metricSamples?.[item.id]?.sampleCount !== null && result?.metricSamples?.[item.id]?.sampleCount !== undefined && result.metricSamples[item.id].sampleCount !== benchmark.taskCount).map(item => `${t(item.label)}: ${result!.metricSamples![item.id].sampleCount} ${t("samples")}`).join(" · ")}</p>
               {benchmark.trackId === "websearch" && snapshot?.source.kind === "report-page" && <p className="sample-scope">{t("Latency comes from separate runs with different concurrency.")}</p>}
               {!showPricing && !hasNumericCost && <p className="cost-disclosure">{t("Cost was not disclosed in this report.")}</p>}
-              <div className="table-scroll" tabIndex={0} role="region" aria-label={t("Leaderboard")}>
+              <div key={`${selection.benchmark}:${selection.version}`} className="table-scroll" tabIndex={0} role="region" aria-label={t("Leaderboard")}>
                 <table className="wide-table" style={{ "--data-columns": categories.length + visibleMetrics.length + Number(showPassed) + Number(showPricing) } as React.CSSProperties}>
                   <caption className="sr-only">{t(benchmark.name)} {t("Leaderboard")}</caption>
                   <thead><tr>

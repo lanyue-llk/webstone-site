@@ -1,8 +1,10 @@
 import type { Benchmark, Metric, Provider } from "./results.ts";
 
 export function decisionMetrics(benchmark: Benchmark, expanded: boolean, selected: string): Metric[] {
-  if (expanded) return benchmark.metrics;
-  return benchmark.metrics.filter(metric => metric.id === benchmark.primaryMetric || metric.id === selected
+  const disclosed = benchmark.metrics.filter(metric => metric.id === benchmark.primaryMetric
+    || benchmark.providers.some(provider => typeof provider.scores[metric.id] === "number"));
+  if (expanded) return disclosed;
+  return disclosed.filter(metric => metric.id === benchmark.primaryMetric || metric.id === selected
     || benchmark.leadingMetricIds?.includes(metric.id)
     || (["seconds", "ms", "mib", "usd"].includes(metric.unit) && benchmark.providers.some(provider => typeof provider.scores[metric.id] === "number")));
 }
