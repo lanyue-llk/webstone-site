@@ -81,6 +81,7 @@ export function validateCatalog(catalog) {
     if (new URL(benchmark.datasetUrl).pathname.split("/").filter(Boolean).at(-1) !== benchmark.datasetName) throw new Error("Dataset name must match its URL");
     uniqueIds(benchmark.definitions, "definition");
     for (const definition of benchmark.definitions) {
+      if (definition.rankable !== undefined && typeof definition.rankable !== "boolean") throw new Error("Invalid ranking presentation");
       uniqueIds(definition.metrics, "metric");
       if (!definition.metrics.some(metric => metric.id === definition.primaryMetric)) throw new Error("Unknown primary metric");
       if (definition.leadingMetricIds && (new Set(definition.leadingMetricIds).size !== definition.leadingMetricIds.length || definition.leadingMetricIds.some(id => !definition.metrics.some(metric => metric.id === id)))) throw new Error("Unknown or duplicate leading metric");

@@ -43,7 +43,9 @@
     "yuanbao-lite": "https://cloud.tencent.com/product/wsa",
     "deepseek-content": "https://api-docs.deepseek.com/guides/search/",
     "bocha-ai": "https://github.com/Bocha-Labs/bocha-skills",
-    "bocha-summary": "https://github.com/Bocha-Labs/bocha-skills"
+    "bocha-summary": "https://github.com/Bocha-Labs/bocha-skills",
+    "moli-pr785-fixed": "https://github.com/lexmount/moli",
+    "moli-content-fixed": "https://github.com/lexmount/moli"
   },
   "navigationGroups": [
     {
@@ -260,6 +262,93 @@
               "criterion": "Valid image or video links are returned. Includes 3 direct-media cases whose files must match the originals."
             }
           ]
+        },
+        {
+          "id": "reviewed-diagnostic",
+          "primaryMetric": "passRate",
+          "metrics": [
+            {
+              "id": "passRate",
+              "label": "Task success",
+              "unit": "percent",
+              "direction": "desc",
+              "decimals": 1,
+              "description": "Share of evaluated cases that meet their task-specific pass criteria. The published percentages are retained as supplied. Higher is better."
+            },
+            {
+              "id": "requestRate",
+              "label": "Request success",
+              "unit": "percent",
+              "direction": "desc",
+              "decimals": 1,
+              "description": "Share of requests that returned a response. A response does not guarantee that the content meets the task requirements. Higher is better."
+            },
+            {
+              "id": "totalMean",
+              "label": "Mean latency",
+              "unit": "ms",
+              "direction": "asc",
+              "decimals": 0,
+              "description": "Mean total elapsed time reported in the supplied table, in milliseconds. Lower is better."
+            },
+            {
+              "id": "totalP50",
+              "label": "P50 latency",
+              "unit": "ms",
+              "direction": "asc",
+              "decimals": 0,
+              "description": "Median total elapsed time (50th percentile), in milliseconds. Lower is better."
+            },
+            {
+              "id": "totalP95",
+              "label": "P95 latency",
+              "unit": "ms",
+              "direction": "asc",
+              "decimals": 0,
+              "description": "95th percentile of total elapsed time, in milliseconds. Lower is better."
+            }
+          ],
+          "leadingMetricIds": [
+            "requestRate"
+          ],
+          "categories": [
+            {
+              "id": "static",
+              "name": "Static",
+              "criterion": "Complete main content is returned."
+            },
+            {
+              "id": "dynamic",
+              "name": "Dynamic",
+              "criterion": "The target JavaScript-rendered content is present."
+            },
+            {
+              "id": "popular",
+              "name": "Popular",
+              "criterion": "Main content, item counts and link counts meet the thresholds."
+            },
+            {
+              "id": "antibot",
+              "name": "Anti-bot",
+              "criterion": "The target page is returned instead of a challenge page."
+            },
+            {
+              "id": "document",
+              "name": "Documents",
+              "criterion": "PDF and DOCX titles and body text are recovered."
+            },
+            {
+              "id": "embeddedMedia",
+              "name": "Embedded media",
+              "criterion": "Valid image or video links embedded in a web page are returned."
+            },
+            {
+              "id": "directMedia",
+              "name": "Direct media",
+              "criterion": "The downloaded media file matches the original."
+            }
+          ],
+          "rankable": false
         }
       ]
     },
@@ -324,6 +413,87 @@
               "unit": "score",
               "direction": "desc",
               "decimals": 2
+            }
+          ]
+        },
+        {
+          "id": "frozen-html-timed",
+          "primaryMetric": "overall",
+          "metrics": [
+            {
+              "id": "overall",
+              "label": "Overall",
+              "description": "Mean score across full text, code, formulas, table content and table structure. Higher is better.",
+              "unit": "score",
+              "direction": "desc",
+              "decimals": 2
+            },
+            {
+              "id": "fullText",
+              "label": "Full text",
+              "description": "Quality of full-text extraction compared with the reference content. Higher is better.",
+              "unit": "score",
+              "direction": "desc",
+              "decimals": 2
+            },
+            {
+              "id": "code",
+              "label": "Code",
+              "description": "Quality of code extraction from the page. Higher is better.",
+              "unit": "score",
+              "direction": "desc",
+              "decimals": 2
+            },
+            {
+              "id": "formula",
+              "label": "Formulas",
+              "description": "Quality of mathematical formula extraction. Higher is better.",
+              "unit": "score",
+              "direction": "desc",
+              "decimals": 2
+            },
+            {
+              "id": "tableContent",
+              "label": "Table content",
+              "description": "Quality of extracted table-cell text and data. Higher is better.",
+              "unit": "score",
+              "direction": "desc",
+              "decimals": 2
+            },
+            {
+              "id": "tableStructure",
+              "label": "Table structure",
+              "description": "Quality of preserved table rows, columns and cell structure. Higher is better.",
+              "unit": "score",
+              "direction": "desc",
+              "decimals": 2
+            },
+            {
+              "id": "meanTime",
+              "label": "Mean latency",
+              "unit": "ms",
+              "direction": "asc",
+              "decimals": 0,
+              "highlightBest": false,
+              "description": "Final logical-call duration over all 545 pages, including failures. Methods were collected in different batches; these timings are not a controlled same-window speed comparison."
+            },
+            {
+              "id": "p50Time",
+              "label": "P50 latency",
+              "unit": "ms",
+              "direction": "asc",
+              "decimals": 0,
+              "highlightBest": false,
+              "description": "Final logical-call duration over all 545 pages, including failures. Methods were collected in different batches; these timings are not a controlled same-window speed comparison."
+            },
+            {
+              "id": "p95Time",
+              "label": "P95 latency",
+              "unit": "ms",
+              "direction": "asc",
+              "decimals": 0,
+              "highlightBest": false,
+              "description": "Final logical-call duration over all 545 pages, including failures. Methods were collected in different batches; these timings are not a controlled same-window speed comparison."
             }
           ]
         }
@@ -1557,7 +1727,10 @@
       "End-to-end Testing": "端到端测试",
       "Browser workflow tests": "浏览器流程测试",
       "Browser Capabilities": "Browser Capabilities",
-      "Browser tasks performed by agents.": "由智能体完成浏览器任务。"
+      "Browser tasks performed by agents.": "由智能体完成浏览器任务。",
+      "Web Fetch and WebMainBench: browser results, timing and scoring": "Web Fetch 与 WebMainBench：浏览器结果、耗时和评分",
+      "Six live-page configurations and seven frozen-HTML methods, with separate task populations and scoring rules.": "六种在线网页配置与七种冻结 HTML 方案，分别说明任务范围和评分规则。",
+      "Final logical-call duration over all 545 pages, including failures. Methods were collected in different batches; these timings are not a controlled same-window speed comparison.": "全部 545 页的最终逻辑调用耗时，保留失败。各方案在不同批次运行，不能作为同一时间窗口内的受控速度比较。"
     },
     "en": {
       "全程关闭": "Layout off throughout",
