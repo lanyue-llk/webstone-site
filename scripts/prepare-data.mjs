@@ -75,6 +75,19 @@ export function validateCatalog(catalog) {
     if (track.url !== undefined && !httpsUrl(track.url)) throw new Error("Invalid external track URL");
     const hasBenchmarks = catalog.benchmarks.some(benchmark => benchmark.trackId === track.id);
     if (track.url ? hasBenchmarks : !hasBenchmarks) throw new Error("A track must have either local benchmarks or an external URL");
+    if (track.overview !== undefined) {
+      if (track.url || !record(track.overview)) throw new Error("Invalid track overview");
+      const groups = track.overview.methodGroups ?? [];
+      if (!Array.isArray(groups)) throw new Error("Invalid overview method groups");
+      const memberIds = [];
+      if (groups.length) uniqueIds(groups,"overview method group");
+      for (const group of groups) {
+        if (typeof group.name !== "string" || !group.name.trim() || !Array.isArray(group.providerIds) || !group.providerIds.length || group.providerIds.some(id=>typeof id !== "string" || !Object.hasOwn(catalog.providerUrls,id))) throw new Error("Invalid overview method group");
+        if (Object.hasOwn(catalog.providerUrls, group.id) && !group.providerIds.includes(group.id)) throw new Error("Overview group ID collides with another participant");
+        memberIds.push(...group.providerIds);
+      }
+      if (new Set(memberIds).size !== memberIds.length) throw new Error("Ambiguous overview method group");
+    }
   }
   for (const benchmark of catalog.benchmarks) {
     if (!catalog.tracks.some(track => track.id === benchmark.trackId)) throw new Error("Unknown benchmark track");

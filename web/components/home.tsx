@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight, BookOpenText, Bot, CircleDashed, Clipboard, FileJson2, Globe2, Layers3, MousePointerClick, Search, Star } from "lucide-react";
-import { benchmarkHref, evaluationReports, DATASETS_URL, EVALUATION_URL, EVALUATION_SKILL, SUBMISSION_SKILL, SUBMISSION_URL, WEBSTONE_REPOSITORY_URL, navigationGroups, trackOverview } from "../lib/overview";
+import { trackHref, benchmarkHref, evaluationReports, DATASETS_URL, EVALUATION_URL, EVALUATION_SKILL, SUBMISSION_SKILL, SUBMISSION_URL, WEBSTONE_REPOSITORY_URL, navigationGroups, trackOverview } from "../lib/overview";
 import ExampleDialog from "./example-dialog";
 import type { Language } from "../lib/i18n";
 import type { BenchmarkInfo, Catalog, Snapshot } from "../lib/results";
@@ -25,7 +25,7 @@ export function EvaluationReports({ catalog, snapshots, t, current, language = "
         <h3><a href={article.href} hrefLang={article.language} target="_blank" rel="noreferrer">{t(article.title)}{"\u00a0"}<ArrowUpRight size={15} aria-hidden="true" /><span className="sr-only"> ({t("opens in a new tab")})</span></a></h3>
         <p>{t(article.summary)}</p>
         <div className="article-date">{t("Published")} <time dateTime={article.publishedAt}>{article.date}</time></div>
-        <div className="article-related"><span>{t("Track")}</span><a href={benchmarkHref(article.trackLanding.id)}>{t(article.track.name)} <ArrowRight size={12} aria-hidden="true" /></a></div>
+        <div className="article-related"><span>{t("Track")}</span><a href={article.track.overview ? trackHref(article.track.id) : benchmarkHref(article.trackLanding.id)}>{t(article.track.name)} <ArrowRight size={12} aria-hidden="true" /></a></div>
         <div className="article-tags">
           <span className="article-related-label">{t("Benchmarks")}</span>
           {article.benchmarks.map(benchmark => <a key={benchmark.id} href={benchmarkHref(benchmark.id)}>{t(benchmark.name)} <ArrowRight size={12} aria-hidden="true" /></a>)}
@@ -94,7 +94,7 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
         const exampleBenchmarks = track.benchmarks.filter(item => item.example);
         return <div key={track.id} className="track-card" data-track={track.id}>
           <span className="track-group-label">{t(track.groupName)}</span>
-          <h3><a href={benchmarkHref(landing.id)}><Icon size={18} aria-hidden="true" />{t(track.name)}<ArrowRight size={15} aria-hidden="true" /></a></h3>
+          <h3><a href={track.overview ? trackHref(track.id) : benchmarkHref(landing.id)}><Icon size={18} aria-hidden="true" />{t(track.name)}<ArrowRight size={15} aria-hidden="true" /></a></h3>
           <p className="track-description">{t(track.description)}</p>
           {exampleBenchmarks.length > 0 && <button type="button" className="example-open" aria-haspopup="dialog" onClick={() => setExampleTrack(track)}>{t("See an example")}</button>}
           <div className="track-volume" aria-label={`${track.benchmarks.length} ${t("Benchmarks")}`}>

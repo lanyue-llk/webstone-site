@@ -33,7 +33,7 @@ export type Catalog = {
   providerUrls: Record<string, string>;
   pricingSources?: Record<string, { label: string; url: string }[]>;
   navigationGroups?: { id: string; name: string; description: string; upcoming?: { id: string; name: string; description: string }[] }[];
-  tracks: { id: string; name: string; description: string; url?: string; groupId?: string }[];
+  tracks: { id: string; name: string; description: string; url?: string; groupId?: string; overview?: { methodGroups?: { id: string; name: string; providerIds: string[] }[] } }[];
   benchmarks: BenchmarkInfo[];
 };
 export type BenchmarkResult = {

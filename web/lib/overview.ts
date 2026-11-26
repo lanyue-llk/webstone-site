@@ -11,6 +11,10 @@ export const EVALUATION_SKILL = "https://github.com/lexmount/webstone/blob/main/
 export const SUBMISSION_URL = "https://github.com/lexmount/webstone-site#for-agents";
 export const SUBMISSION_SKILL = "https://github.com/lexmount/webstone-site/blob/main/.agents/skills/submit-webstone-result/SKILL.md";
 
+export function trackHref(id: string) {
+  return `/?${new URLSearchParams({track: id})}`;
+}
+
 export function benchmarkHref(id: string) {
   return `/?${new URLSearchParams({ benchmark: id })}`;
 }

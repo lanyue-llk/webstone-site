@@ -48,8 +48,22 @@ test("published bench views draw meaningful profiles and retain methods with mis
     const snapshot = JSON.parse(readFileSync(new URL(`../results/${file}`, import.meta.url)));
     const benchmark = resolveBenchmark(catalog, snapshot.benchmarks[0]);
     const html = render(benchmark);
+    assert.doesNotMatch(html, /NaN|Infinity/, file);
     if (radarAxes(benchmark).filter(axis => axis.defaultSelected).length < 3) {
-      assert.equal(html, '', file);
+      const win = new Window();
+      try {
+        win.document.body.innerHTML = html;
+        const sections = [...win.document.querySelectorAll('.quality-comparison section')];
+        const qualityIds = new Set(benchmark.metrics.filter(metric=>['ratio','percent','score'].includes(metric.unit) && !metric.signed && metric.direction==='desc').map(metric=>metric.id));
+        const expectedAxes = radarAxes(benchmark).filter(axis=>axis.defaultSelected && (qualityIds.has(axis.id) || axis.id.startsWith('category:')));
+        assert.equal(sections.length, expectedAxes.length, file);
+        assert.deepEqual(sections.map(section=>section.querySelector('h3').textContent),expectedAxes.map(axis=>axis.label),file);
+        for (const section of sections) {
+          const methods = [...section.querySelectorAll('.quality-series > span')].map(node=>node.textContent).sort();
+          assert.equal(methods.length, benchmark.providers.length, file);
+          assert.deepEqual(methods, benchmark.providers.map(provider=>provider.name).sort(), file);
+        }
+      } finally { await win.happyDOM.close(); }
       continue;
     }
     assert.match(html, /aria-label="Capability profile"/, file);
@@ -314,7 +328,7 @@ test("every published benchmark edition shares table and radar controls in both 
           assert.doesNotMatch(win.document.querySelector('.info-tooltip').textContent, /Internal uploader note|reviewed|unverified|unconfirmed|certified product ranking/i, report.id);
           await React.act(async () => win.document.dispatchEvent(new win.KeyboardEvent('keydown', {key: 'Escape', bubbles: true})));
         }
-        const hasProfile = radarAxes(resolveBenchmark(catalog, report.benchmarks[0])).filter(axis => axis.defaultSelected).length >= 3;
+        const hasProfile = radarAxes(resolveBenchmark(catalog, report.benchmarks[0])).length > 0;
         assert.equal(container.querySelectorAll(".metric-selector").length, Number(hasProfile), report.id);
         assert.equal(table.querySelectorAll("th")[1].textContent, "Method", report.id);
         assert.ok(container.querySelector("#reports"), report.id);
@@ -347,14 +361,22 @@ test("every published benchmark edition shares table and radar controls in both 
         const chartMenu = container.querySelector(".radar-heading .metric-selector");
         if (chartMenu) {
         const initialAxes = container.querySelectorAll(".radar-axis").length;
-        assert.ok(initialAxes >= 3, report.id);
+        const checkedMetrics = () => [...chartMenu.querySelectorAll("input")].filter(input=>input.checked).map(input=>input.parentElement.textContent);
+        const initialChecked = checkedMetrics();
+        const initialSections = container.querySelectorAll(".quality-comparison section").length;
+        const initialSeries = container.querySelectorAll(".quality-series").length;
+        assert.ok(initialAxes >= 3 || container.querySelector(".quality-comparison"), report.id);
         for (const input of [...chartMenu.querySelectorAll("input")].filter(input => input.checked)) {
           await React.act(async () => input.click());
         }
         assert.equal(container.querySelectorAll(".radar-axis").length, 0, report.id);
-        assert.match(container.querySelector(".chart-empty").textContent, /at least three/, report.id);
+        assert.match(container.querySelector(".chart-empty").textContent, /at least one/, report.id);
         await React.act(async () => chartMenu.querySelector("button").click());
         assert.equal(container.querySelectorAll(".radar-axis").length, initialAxes, report.id);
+        assert.deepEqual(checkedMetrics(), initialChecked, report.id);
+        assert.ok(!container.querySelector(".chart-empty"), report.id);
+        assert.equal(container.querySelectorAll(".quality-comparison section").length, initialSections, report.id);
+        assert.equal(container.querySelectorAll(".quality-series").length, initialSeries, report.id);
 
         const summary = chartMenu.querySelector("summary");
         chartMenu.open = true;
@@ -870,7 +892,7 @@ test("capability profiles do not turn non-comparable timing into an efficiency a
   const { benchmark } = load('webarena-verified', 'v1.1.0');
   assert.ok(radarAxes(benchmark).filter(axis => axis.defaultSelected).every(axis => !/p50|p95/i.test(axis.id)));
   const single = load('simpleqa-verified-excerpts', 'v2.0.0').benchmark;
-  assert.equal(render(single), '', 'One quality dimension does not need a radar assembled from incomparable timings');
+  assert.match(render(single), /class="quality-comparison"/, 'One quality dimension uses a comparison instead of artificial radar axes');
 });
 
 test("Browser Use reuses the shared radar only when real quality dimensions are supplied", () => {
@@ -884,7 +906,8 @@ test("Browser Use reuses the shared radar only when real quality dimensions are 
       ],
     });
     assert.deepEqual(benchmark.keyMetricIds, [quality, 'costPerTask']);
-    assert.equal(render(benchmark), '', `${id}: a score and partly disclosed cost do not form a radar`);
+    assert.match(render(benchmark), /class="quality-comparison"/, `${id}: available quality scores remain visible`);
+    assert.doesNotMatch(render(benchmark), /class="radar-shape"/, `${id}: no artificial radar dimensions`);
     const expanded = {
       ...benchmark, rankable: true,
       metrics: [...benchmark.metrics, {id: 'quality2', label: 'Second quality', unit: 'percent', direction: 'desc'}, {id: 'quality3', label: 'Third quality', unit: 'percent', direction: 'desc'}],
@@ -948,5 +971,232 @@ test("Online-Mind2Web retains reported scores without ranking different judging 
   });
   assert.equal(benchmark.rankable, false);
   assert.equal(benchmark.providers[1].scores.successRate, 98);
-  assert.equal(render(benchmark), '', 'Non-comparable reports do not imply a shared capability comparison');
+  assert.match(render(benchmark), /class="quality-comparison"/, 'Display source scores without adding ranks, winners or artificial dimensions');
+  assert.doesNotMatch(render(benchmark), /best-value|radar-shape/);
+});
+
+test('track overviews join published methods across the latest benchmark editions without inventing scores', async () => {
+  const { trackComparison } = require('../web/lib/track-comparison.ts');
+  const { discoverResults } = await import('../scripts/prepare-data.mjs');
+  const { fileURLToPath } = await import('node:url');
+  const files = await discoverResults(fileURLToPath(new URL('../results', import.meta.url)), catalog);
+  const snapshots = files.map(({file}) => JSON.parse(readFileSync(new URL('../results/'+file, import.meta.url))));
+  const agents = trackComparison(catalog, [...snapshots].reverse(), 'browser-use');
+  assert.equal(agents.columns.length, 4);
+  assert.equal(agents.rows.length, 16);
+  const lexmount = agents.rows.find(row => row.id === 'lexmount-browser-agent');
+  assert.deepEqual(agents.columns.map(col=>lexmount.results[col.benchmark.id].provider.scores[col.metric.id]), [93.41,98.96,98.95,85.96]);
+  const aside = agents.rows.find(row => row.id === 'aside-gpt-5-5-high');
+  assert.equal(aside.results.webvoyager, undefined);
+  assert.equal(agents.profile.providers.find(p=>p.id===aside.id).scores['webvoyager:successRate'], null);
+  assert.equal(radarAxes(agents.profile).length, 4);
+  assert.equal((render(agents.profile).match(/class="radar-shape"/g)??[]).length,1);
+  assert.equal((render(agents.profile).match(/class="radar-series"/g)??[]).length,16);
+  const fetch = trackComparison(catalog,snapshots,'webfetch');
+  assert.equal(fetch.columns.length, 2);
+  assert.deepEqual(fetch.columns.map(col=>col.snapshot.version),['v2.1.0','v2.1.0']);
+  assert.equal(fetch.rows.length,5);
+  const moli=fetch.rows.find(row=>row.id==='moli');
+  assert.equal(moli.results['lexbench-webfetch'].provider.scores.passRate,89.3);
+  assert.equal(moli.results.webmainbench.provider.scores.overall,39.27);
+  assert.equal(moli.results['lexbench-webfetch'].provider.name,'Moli 1.1.17');
+  assert.equal(moli.results.webmainbench.provider.name,'Moli 1.1.11');
+  assert.ok(radarAxes(fetch.profile).length>=3);
+  const search=trackComparison(catalog,snapshots,'websearch','L1');
+  assert.equal(search.columns.length,2);
+  assert.equal(search.rows.length,9);
+  assert.ok(search.rows.some(row=>row.id==='yuanbao-standard'));
+  assert.ok(search.rows.some(row=>row.id==='yuanbao-lite'));
+  assert.equal(radarAxes(search.profile).length,6);
+  assert.equal(trackComparison(catalog,snapshots,'browserarena'),null);
+  for(const layer of ['L2','L3']){
+    const overview=trackComparison(catalog,snapshots,'websearch',layer);
+    assert.ok(overview.columns.every(col=>col.benchmark.outputLayer===layer));
+  }
+});
+
+test('single-dimension results still draw an honest comparison with zero and missing values', async () => {
+  const benchmark=load('online-mind2web','v1.0.0').benchmark;
+  benchmark.providers=benchmark.providers.map((provider,index)=>{
+    let value=provider.scores.successRate;
+    if(index===0)value=0;
+    else if(index===1)value=null;
+    return {...provider,scores:{...provider.scores,successRate:value}};
+  });
+  const html=render(benchmark);
+  assert.match(html,/class="quality-comparison" role="group"/);
+  assert.doesNotMatch(html,/class="radar-shape"/);
+  assert.match(html,/0.00%/);
+  assert.match(html,/—/);
+  assert.equal((html.match(/class="quality-series"/g)??[]).length,benchmark.providers.length);
+  assert.doesNotMatch(html,/NaN|Infinity/);
+  const win=new Window();
+  try {
+    win.document.body.innerHTML=html;
+    const rows=[...win.document.querySelectorAll('.quality-series')];
+    const valueFor=name=>rows.find(row=>row.querySelector('span').textContent===name)?.querySelector('strong').textContent;
+    assert.equal(valueFor(benchmark.providers[0].name),'0.00%');
+    assert.equal(valueFor(benchmark.providers[1].name),'—');
+  } finally { await win.happyDOM.close(); }
+});
+
+test('track overview links open the combined view without increasing benchmark counts', async () => {
+  const Home=require('../web/components/home.tsx').default;
+  const html=renderToStaticMarkup(React.createElement(Home,{catalog,snapshots:[],t:text=>text}));
+  for(const track of ['webfetch','websearch','browser-use']) assert.ok(html.includes('href="/?track='+track+'"'),track);
+  assert.equal(trackOverview(catalog).flatMap(track=>track.benchmarks).length,12);
+});
+
+test('track overview URLs, individual tabs and search layers retain the correct view', async () => {
+  const {prepareData}=await import('../scripts/prepare-data.mjs');await prepareData();
+  const reports=JSON.parse(readFileSync(new URL('../web/public/results/reports.json',import.meta.url)));
+  const {RELEASE}=require('../web/lib/release.generated.ts');
+  const Dashboard=require('../web/components/dashboard.tsx').default;
+  const previous=[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT];
+  const views=[['browser-use','L1'],['webfetch','L1'],['websearch','L1'],['websearch','L2'],['websearch','L3']];
+  const expectedColumns={
+    'browser-use':{'bu-bench-v1':['v1.0.0','successRate'],'online-mind2web':['v1.0.0','successRate'],webvoyager:['v1.0.0','successRate'],osworld:['v1.0.0','scoreRate']},
+    webfetch:{'lexbench-webfetch':['v2.1.0','passRate'],webmainbench:['v2.1.0','overall']},
+    L1:{'lexbench-websearch':['v2.0.0','ndcg5'],'simpleqa-verified':['v3.0.0','mrr5']},
+    L2:{'lexbench-websearch-excerpts':['v1.0.0','ndcg5'],'simpleqa-verified-excerpts':['v2.0.0','excerptMatch5']},
+    L3:{'lexbench-websearch-answers':['v1.0.0','usefulness'],'simpleqa-verified-answers':['v2.0.0','answerAccuracy']},
+  };
+  try{for(const [trackId,initialLayer] of views)for(const language of ['en','zh']){
+    const params=new URLSearchParams({track:trackId});
+    if(initialLayer!=='L1')params.set('layer',initialLayer);
+    const initialSearch='?'+params;
+    const win=new Window({url:'https://webstone.test/'+initialSearch});win.localStorage.setItem('webstone-language',language);
+    [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+    globalThis.fetch=async input=>{
+      let data={release:RELEASE};
+      if(String(input).includes('/benchmarks/'))data=catalog;
+      else if(String(input).includes('/results/'))data=reports;
+      return new Response(JSON.stringify(data));
+    };
+    const container=win.document.createElement('div');win.document.body.append(container);
+    const root=require('react-dom/client').createRoot(container);
+    try{
+      await React.act(async()=>root.render(React.createElement(Dashboard)));
+      if(language==='zh') await React.act(async()=>[...container.querySelectorAll('.language-control button')].find(button=>button.textContent==='中文').click());
+      assert.ok(container.querySelector('.track-results'),trackId);
+      const expectedAxes={'browser-use':4,webfetch:8,L1:6,L2:4,L3:6};
+      const columnKey=trackId==='websearch'?initialLayer:trackId;
+      assert.equal(container.querySelectorAll('.radar-axis').length,expectedAxes[columnKey]);
+      const columns=expectedColumns[columnKey];
+      assert.deepEqual([...container.querySelectorAll('.track-results thead a')].map(anchor=>new URL(anchor.href).searchParams.get('benchmark')),Object.keys(columns));
+      const scoreLinks=[...container.querySelectorAll('.track-results tbody td.numeric a')];
+      const expectedScoreCounts={'browser-use':20,webfetch:10,L1:18,L2:8,L3:2};
+      assert.equal(scoreLinks.length,expectedScoreCounts[columnKey]);
+      for(const anchor of scoreLinks){
+        const target=new URL(anchor.href).searchParams;
+        const expected=columns[target.get('benchmark')];
+        assert.ok(expected,'score links identify a constituent benchmark');
+        assert.equal(target.get('version'),expected[0]);
+        assert.equal(target.get('metric'),expected[1]);
+        assert.ok(anchor.title,'score links identify the measured configuration');
+      }
+      if(trackId==='websearch'){
+        const active=[...container.querySelectorAll('.layer-control button')].find(button=>button.getAttribute('aria-pressed')==='true');
+        assert.ok(active.textContent.startsWith(initialLayer),'the initial URL layer is selected before interaction');
+      }
+      if(trackId==='webfetch'){
+        const moliLinks=[...container.querySelectorAll('.track-results tr[data-provider="moli"] td.numeric a')];
+        assert.deepEqual(moliLinks.map(anchor=>anchor.title),['Moli 1.1.17','Moli 1.1.11']);
+        assert.ok(moliLinks[1].textContent.startsWith('39.27'));
+      }
+      const overview=[...container.querySelectorAll('.benchmark-navigation button')].find(b=>b.textContent===(language==='en'?'Overview':'总览'));
+      assert.equal(overview.getAttribute('aria-current'),'page');
+      const benchmarkButton=[...container.querySelectorAll('.benchmark-navigation button')].find(b=>b!==overview);
+      await React.act(async()=>benchmarkButton.click());
+      assert.ok(!container.querySelector('.track-results'));
+      assert.ok(win.location.search.includes('benchmark='));
+      let scroll=500;win.scrollTo=options=>{scroll=options.top;};
+      await React.act(async()=>overview.click());
+      assert.equal(scroll,0);assert.equal(win.location.search,initialSearch);
+      assert.ok(container.querySelector('.track-results'));
+      if(trackId==='websearch'){
+        await React.act(async()=>[...container.querySelectorAll('.layer-control button')].find(b=>b.textContent.startsWith('L2')).click());
+        assert.equal(win.location.search,'?track=websearch&layer=L2');
+        assert.ok([...container.querySelectorAll('.track-results thead a')].every(a=>a.href.includes('excerpts')));
+        for(const layer of ['L2','L3']){
+          await React.act(async()=>[...container.querySelectorAll('.layer-control button')].find(b=>b.textContent.startsWith(layer)).click());
+          await React.act(async()=>benchmarkButton.click());
+          assert.ok(win.location.search.includes(layer==='L2'?'excerpts':'answers'));
+          await React.act(async()=>overview.click());
+          assert.equal(win.location.search,'?track=websearch&layer='+layer);
+        }
+      }
+    }finally{await React.act(async()=>root.unmount());await win.happyDOM.close();}
+  }}finally{[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
+});
+
+test('clicking an active Track without an overview preserves the selected edition and metric',async()=>{
+  const {prepareData}=await import('../scripts/prepare-data.mjs');await prepareData();
+  const reports=JSON.parse(readFileSync(new URL('../web/public/results/reports.json',import.meta.url)));
+  const {RELEASE}=require('../web/lib/release.generated.ts');
+  const Dashboard=require('../web/components/dashboard.tsx').default;
+  const previous=[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT];
+  try{for(const [id,metric,track,label,direction] of [['lexbench-swde','valueMicroF1','Web Extract','Value micro F1','descending'],['webarena-verified','actionP95','Trajectory Replay','Action P95','ascending']]){
+    const win=new Window({url:`https://webstone.test/?benchmark=${id}&version=v1.0.0&metric=${metric}`});
+    [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+    globalThis.fetch=async input=>{
+      let data={release:RELEASE};
+      if(String(input).includes('/benchmarks/'))data=catalog;
+      else if(String(input).includes('/results/'))data=reports;
+      return new Response(JSON.stringify(data));
+    };
+    const container=win.document.createElement('div');win.document.body.append(container);const root=require('react-dom/client').createRoot(container);
+    try{
+      await React.act(async()=>root.render(React.createElement(Dashboard)));
+      const sortedHeader=()=>{
+        const header=[...container.querySelectorAll('th[aria-sort]')].find(header=>header.getAttribute('aria-sort')!=='none');
+        return {label:header?.querySelector('.sort-button')?.textContent,direction:header?.getAttribute('aria-sort')};
+      };
+      assert.deepEqual(sortedHeader(),{label,direction});
+      const before=win.location.search;let top=900;win.scrollTo=options=>{top=options.top;};
+      await React.act(async()=>[...container.querySelectorAll('.grouped-navigation button')].find(button=>button.textContent.startsWith(track)).click());
+      assert.equal(win.location.search,before);
+      assert.equal(container.querySelector('#result-version').value,'v1.0.0');
+      assert.deepEqual(sortedHeader(),{label,direction});
+      assert.equal(top,0);
+    }finally{await React.act(async()=>root.unmount());await win.happyDOM.close();}
+  }}finally{[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
+});
+
+test('a two-dimensional comparison retains a populated category alongside overall quality',async()=>{
+  const source=load('lexbench-webfetch','v2.1.0').benchmark;
+  const benchmark={...source,metrics:source.metrics.filter(metric=>metric.id===source.primaryMetric),keyMetricIds:[source.primaryMetric],categories:source.categories.slice(0,1)};
+  const win=new Window();
+  try{
+    win.document.body.innerHTML=render(benchmark);
+    assert.equal(win.document.querySelectorAll('.quality-comparison section').length,2);
+    assert.equal(win.document.querySelectorAll('.metric-selector input').length,2);
+    assert.ok([...win.document.querySelectorAll('.quality-comparison h3')].some(heading=>heading.textContent===benchmark.categories[0].name));
+    assert.equal(win.document.querySelectorAll('.quality-series').length,benchmark.providers.length*2);
+  }finally{await win.happyDOM.close();}
+});
+
+test('compact chart Reset restores selected metrics and visible results for one and two dimensions',async()=>{
+  const source=load('lexbench-webfetch','v2.1.0').benchmark;
+  const two={...source,metrics:source.metrics.filter(metric=>metric.id===source.primaryMetric),keyMetricIds:[source.primaryMetric],categories:source.categories.slice(0,1)};
+  const previous=[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT];
+  try{for(const benchmark of [load('online-mind2web','v1.0.0').benchmark,two]){
+    const win=new Window();[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+    const container=win.document.createElement('div');win.document.body.append(container);const root=require('react-dom/client').createRoot(container);
+    try{
+      await React.act(async()=>root.render(component(benchmark)));
+      const menu=container.querySelector('.metric-selector');
+      const selected=()=>[...menu.querySelectorAll('input')].filter(input=>input.checked).map(input=>input.parentElement.textContent);
+      const expected=selected();
+      const sectionCount=container.querySelectorAll('.quality-comparison section').length;
+      const seriesCount=container.querySelectorAll('.quality-series').length;
+      for(const input of menu.querySelectorAll('input')) if(input.checked)await React.act(async()=>input.click());
+      assert.ok(container.querySelector('.chart-empty'));
+      await React.act(async()=>menu.querySelector('button').click());
+      assert.ok(!container.querySelector('.chart-empty'),'Reset restores a visible chart');
+      assert.deepEqual(selected(),expected);
+      assert.equal(container.querySelectorAll('.quality-comparison section').length,sectionCount);
+      assert.equal(container.querySelectorAll('.quality-series').length,seriesCount);
+    }finally{await React.act(async()=>root.unmount());await win.happyDOM.close();}
+  }}finally{[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
 });
