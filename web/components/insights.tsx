@@ -122,7 +122,7 @@ export default function Insights({ benchmark, t, caption }: Props) {
       </div>
       {visible.length === 0 && <p role="status">{t("Select a method to show its results.")}</p>}
       <figcaption>
-        {t(caption ?? (axes.length < 3 ? "Quality score (% of maximum)" : "Quality and category axes show a share of the maximum. Lower latency, memory and measured cost plot farther out when reported."))}
+        {t(caption ?? (defaultAxisCount < 3 ? "Quality score (% of maximum)" : "Quality and category axes show a share of the maximum. Lower latency, memory and measured cost plot farther out when reported."))}
       </figcaption>
     </figure>
     </div>
