@@ -48,8 +48,19 @@ test("published bench views draw meaningful profiles and retain methods with mis
     const snapshot = JSON.parse(readFileSync(new URL(`../results/${file}`, import.meta.url)));
     const benchmark = resolveBenchmark(catalog, snapshot.benchmarks[0]);
     const html = render(benchmark);
+    assert.doesNotMatch(html, /NaN|Infinity/, file);
     if (radarAxes(benchmark).filter(axis => axis.defaultSelected).length < 3) {
-      assert.match(html, /class="quality-comparison"/, file);
+      const win = new Window();
+      try {
+        win.document.body.innerHTML = html;
+        const sections = [...win.document.querySelectorAll('.quality-comparison section')];
+        assert.equal(sections.length, 1, file);
+        for (const section of sections) {
+          const methods = [...section.querySelectorAll('.quality-series > span')].map(node=>node.textContent).sort();
+          assert.equal(methods.length, benchmark.providers.length, file);
+          assert.deepEqual(methods, benchmark.providers.map(provider=>provider.name).sort(), file);
+        }
+      } finally { await win.happyDOM.close(); }
       continue;
     }
     assert.match(html, /aria-label="Capability profile"/, file);
@@ -1114,7 +1125,7 @@ test('clicking an active Track without an overview preserves the selected editio
   const {RELEASE}=require('../web/lib/release.generated.ts');
   const Dashboard=require('../web/components/dashboard.tsx').default;
   const previous=[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT];
-  try{for(const [id,metric,track] of [['lexbench-swde','valueMicroF1','Web Extract'],['webarena-verified','actionP95','Trajectory Replay']]){
+  try{for(const [id,metric,track,label,direction] of [['lexbench-swde','valueMicroF1','Web Extract','Value micro F1','descending'],['webarena-verified','actionP95','Trajectory Replay','Action P95','ascending']]){
     const win=new Window({url:`https://webstone.test/?benchmark=${id}&version=v1.0.0&metric=${metric}`});
     [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
     globalThis.fetch=async input=>{
@@ -1126,10 +1137,16 @@ test('clicking an active Track without an overview preserves the selected editio
     const container=win.document.createElement('div');win.document.body.append(container);const root=require('react-dom/client').createRoot(container);
     try{
       await React.act(async()=>root.render(React.createElement(Dashboard)));
+      const sortedHeader=()=>{
+        const header=[...container.querySelectorAll('th[aria-sort]')].find(header=>header.getAttribute('aria-sort')!=='none');
+        return {label:header?.querySelector('.sort-button')?.textContent,direction:header?.getAttribute('aria-sort')};
+      };
+      assert.deepEqual(sortedHeader(),{label,direction});
       const before=win.location.search;let top=900;win.scrollTo=options=>{top=options.top;};
       await React.act(async()=>[...container.querySelectorAll('.grouped-navigation button')].find(button=>button.textContent.startsWith(track)).click());
       assert.equal(win.location.search,before);
       assert.equal(container.querySelector('#result-version').value,'v1.0.0');
+      assert.deepEqual(sortedHeader(),{label,direction});
       assert.equal(top,0);
     }finally{await React.act(async()=>root.unmount());await win.happyDOM.close();}
   }}finally{[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
