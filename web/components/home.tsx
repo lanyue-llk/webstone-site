@@ -1,14 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ArrowRight, ArrowUpRight, BookOpenText, Bot, CircleDashed, Clipboard, FileJson2, Globe2, Layers3, Search, Star } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BookOpenText, Bot, CircleDashed, Clipboard, FileJson2, Globe2, Layers3, MousePointerClick, Search, Star } from "lucide-react";
 import { benchmarkHref, evaluationReports, DATASETS_URL, EVALUATION_URL, EVALUATION_SKILL, SUBMISSION_SKILL, SUBMISSION_URL, WEBSTONE_REPOSITORY_URL, navigationGroups, trackOverview } from "../lib/overview";
 import ExampleDialog from "./example-dialog";
 import type { Language } from "../lib/i18n";
 import type { BenchmarkInfo, Catalog, Snapshot } from "../lib/results";
 
 type Props = { catalog: Catalog; snapshots: Snapshot[]; language?: Language; t: (value: string) => string };
-export const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2 };
+export const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, websearch: Search, "trajectory-replay": Bot, webextract: FileJson2, "browser-use": MousePointerClick };
 
 export function EvaluationReports({ catalog, snapshots, t, current, language = "en" }: Props & { current?: BenchmarkInfo }) {
   const reports = evaluationReports(catalog, snapshots, current, language);
@@ -93,11 +93,12 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
         const Icon = TRACK_ICONS[track.id] ?? Layers3;
         const landing = track.benchmarks[0];
         if (!landing) return null;
+        const exampleBenchmarks = track.benchmarks.filter(item => item.example);
         return <div key={track.id} className="track-card" data-track={track.id}>
           <span className="track-group-label">{t(track.groupName)}</span>
           <h3><a href={benchmarkHref(landing.id)}><Icon size={18} aria-hidden="true" />{t(track.name)}<ArrowRight size={15} aria-hidden="true" /></a></h3>
           <p className="track-description">{t(track.description)}</p>
-          <button type="button" className="example-open" aria-haspopup="dialog" onClick={() => setExampleTrack(track)}>{t("See an example")}</button>
+          {exampleBenchmarks.length > 0 && <button type="button" className="example-open" aria-haspopup="dialog" onClick={() => setExampleTrack(track)}>{t("See an example")}</button>}
           <div className="track-volume" aria-label={`${track.benchmarks.length} ${t("Benchmarks")}`}>
             {Array.from({ length: maxBenchmarks }, (_, index) => <span key={index} className={index < track.benchmarks.length ? "filled" : ""} aria-hidden="true" />)}
           </div>
@@ -108,7 +109,7 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
       {navigationGroups(catalog).filter(group => group.upcoming.length > 0).map(group => <div key={group.id} className="track-card upcoming-track"><span className="track-group-label">{t(group.name)}</span><h3><CircleDashed size={18} aria-hidden="true" />{group.upcoming.map(item => t(item.name)).join(" · ")}</h3><span className="upcoming-badge">{t("Coming soon")}</span><p>{t("Benchmarks are in development. Stay tuned.")}</p></div>)}
       </div>
     </section>
-    {exampleTrack && <ExampleDialog key={exampleTrack.id} title={exampleTrack.name} description={exampleTrack.description} benchmarks={exampleTrack.benchmarks} onClose={() => setExampleTrack(null)} t={t} />}
+    {exampleTrack && <ExampleDialog key={exampleTrack.id} title={exampleTrack.name} description={exampleTrack.description} benchmarks={exampleTrack.benchmarks.filter(item => item.example)} onClose={() => setExampleTrack(null)} t={t} />}
     <EvaluationReports catalog={catalog} snapshots={snapshots} t={t} language={language} />
   </div>;
 }

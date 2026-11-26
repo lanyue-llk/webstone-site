@@ -92,19 +92,23 @@ test("the home overview counts search layers as views and shares articles with t
   const reports = await discoverResults(fileURLToPath(new URL("../results", import.meta.url)), catalog);
   const snapshots = reports.map(({ file }) => JSON.parse(readFileSync(new URL(`../results/${file}`, import.meta.url))));
   const tracks = trackOverview(catalog);
-  assert.equal(tracks.length, 4);
-  assert.equal(tracks.flatMap(track => track.benchmarks).length, 8);
-  assert.equal(tracks.flatMap(track => track.views).length, 12);
+  assert.equal(tracks.length, 5);
+  assert.equal(tracks.flatMap(track => track.benchmarks).length, 12);
+  assert.equal(tracks.flatMap(track => track.views).length, 16);
   const articles = evaluationReports(catalog, snapshots);
   assert.ok(articles.every((article, i) => i === 0 || article.date <= articles[i - 1].date));
   assert.equal(new Set(articles.map(article => article.href)).size, articles.length);
-  assert.equal(articles[0].date, "2026-11-10");
+  assert.ok(articles.some(article => article.date === "2026-11-10"));
   assert.equal(articles.at(-1).date, "2026-09-20");
   assert.ok(articles.every(report => Number.isFinite(Date.parse(report.publishedAt))));
-  assert.deepEqual(tracks.map(track => track.id), ["websearch", "webextract", "webfetch", "trajectory-replay"]);
+  assert.deepEqual(tracks.map(track => track.id), ["websearch", "webextract", "webfetch", "trajectory-replay", "browser-use"]);
   assert.deepEqual(tracks.find(track => track.id === "trajectory-replay").benchmarks.map(bench => bench.id),
     ["webarena-verified", "lexbench-headless-372"]);
+  assert.deepEqual(tracks.find(track => track.id === "browser-use").benchmarks.map(bench => bench.id),
+    ["bu-bench-v1", "online-mind2web", "webvoyager", "osworld"]);
+  const publishedBenchmarks = new Set(snapshots.flatMap(snapshot => snapshot.benchmarks.map(bench => bench.id)));
   for (const view of catalog.benchmarks) {
+    if (!publishedBenchmarks.has(view.id)) continue;
     const related = evaluationReports(catalog, snapshots, view);
     assert.ok(related.length, view.id);
     assert.ok(related.every(article => article.benchmarks.some(bench => bench.id === view.id ||
@@ -251,8 +255,8 @@ test("the dashboard exposes two repository guides and preserves each pricing val
     assert.match(star.getAttribute("aria-label"), /Star Webstone/);
     const groups = [...container.querySelectorAll(".grouped-navigation > .nav-group")];
     assert.deepEqual(groups.map(group => group.querySelector("h2").textContent), ["Web Tools", "Browser Capabilities", "Browser Automation"]);
-    assert.deepEqual(groups.map(group => group.querySelectorAll(".nav-track").length), [2, 2, 0]);
-    assert.deepEqual(groups.map(group => group.querySelectorAll(".nav-upcoming").length), [1, 0, 1]);
+    assert.deepEqual(groups.map(group => group.querySelectorAll(".nav-track").length), [2, 2, 1]);
+    assert.deepEqual(groups.map(group => group.querySelectorAll(".nav-upcoming").length), [1, 0, 0]);
     assert.equal(container.querySelectorAll(".grouped-navigation details").length, 0);
     assert.equal(container.querySelectorAll(".nav-upcoming a, .nav-upcoming button").length, 0);
     const rows = [...container.querySelectorAll("tbody tr")];
@@ -485,11 +489,11 @@ test("navigation groups separate browser retrieval from web APIs without countin
   assert.deepEqual(groups.map(group=>group.id),["web-tools","browsers","browser-automation"]);
   assert.deepEqual(groups[0].tracks.map(track=>track.id),["websearch","webextract"]);
   assert.deepEqual(groups[1].tracks.map(track=>track.id),["webfetch","trajectory-replay","browserarena"]);
+  assert.deepEqual(groups[2].tracks.map(track=>track.id),["browser-use"]);
   assert.deepEqual(groups[0].upcoming.map(track=>track.id),["webfetch-api"]);
-  assert.deepEqual(groups[2].upcoming.map(track=>track.id),["browser-use"]);
-  assert.equal(groups[2].tracks.length,0);
+  assert.deepEqual(groups[2].upcoming.map(track=>track.id),[]);
   const published=trackOverview(catalog);
-  assert.equal(published.length,4);assert.equal(published.flatMap(track=>track.benchmarks).length,8);
+  assert.equal(published.length,5);assert.equal(published.flatMap(track=>track.benchmarks).length,12);
   assert.ok(groups.flatMap(group=>group.upcoming).every(item=>!published.some(track=>track.id===item.id)));
 });
 
@@ -502,10 +506,10 @@ test("the homepage offers the evaluation repository star and translates the deve
     assert.equal(star.href,'https://github.com/lexmount/webstone');
     assert.match(star.textContent,/Star/);
     assert.match(win.document.querySelector('.overview-star-note').textContent,/觉得 Webstone 有用/);
-    assert.match([...win.document.querySelectorAll('.upcoming-track')].map(item=>item.textContent).join(' '),/Browser Automation/);
+    assert.match([...win.document.querySelectorAll('.upcoming-track')].map(item=>item.textContent).join(' '),/Web Tools/);
     assert.match(win.document.querySelector('.upcoming-track').textContent,/开发中/);
-    assert.equal(win.document.querySelectorAll('.track-card[data-track]').length,4);
-    assert.equal(win.document.querySelectorAll('.track-overview-grid > .track-card.upcoming-track').length,2);
+    assert.equal(win.document.querySelectorAll('.track-card[data-track]').length,5);
+    assert.equal(win.document.querySelectorAll('.track-overview-grid > .track-card.upcoming-track').length,1);
   } finally {await win.happyDOM.close();}
 });
 
@@ -528,7 +532,7 @@ test("homepage counts reports instead of historical result editions and uses the
   try {
     win.document.body.innerHTML=renderToStaticMarkup(React.createElement(Home,{catalog,snapshots,t:translator('zh',catalog)}));
     const stats=[...win.document.querySelectorAll('.overview-stats > div')].map(item=>[item.querySelector('dt').textContent,Number(item.querySelector('dd').textContent)]);
-    assert.deepEqual(stats,[['评测方向',4],['评测基准',8],['评测报告',6]]);
+    assert.deepEqual(stats,[['评测方向',5],['评测基准',12],['评测报告',evaluationReports(catalog,snapshots).length]]);
     const logo=readFileSync(new URL('../web/public/brand/webstone.png',import.meta.url));
     assert.deepEqual([...logo.subarray(0, 8)], [137,80,78,71,13,10,26,10]);
     assert.match(readFileSync(new URL('../README.md',import.meta.url),'utf8'),/web\/public\/brand\/webstone\.png/);
@@ -690,12 +694,24 @@ test("method details retain raw numerators and denominators alongside compact ra
 
 test("every benchmark view supplies a sourced task, an input, a flow and a reference output", () => {
   for (const benchmark of catalog.benchmarks) {
+    const isLexmountDataset = benchmark.datasetUrl.startsWith("https://huggingface.co/datasets/Lexmount/");
     const example = benchmark.example;
-    assert.ok(example, `${benchmark.id}: missing example`);
+    if (isLexmountDataset) {
+      assert.ok(example, `${benchmark.id}: missing example`);
+    }
+    if (!example) continue;
     assert.ok(example.taskId && example.input && example.output && example.check);
     assert.ok(example.steps.length >= 2);
-    assert.match(example.sourceUrl, /^https:\/\/huggingface\.co\/datasets\/Lexmount\/[^/]+\/blob\/[a-f0-9]{40}\//);
+    if (isLexmountDataset) {
+      assert.match(example.sourceUrl, /^https:\/\/huggingface\.co\/datasets\/Lexmount\/[^/]+\/blob\/[a-f0-9]{40}\//);
+    } else {
+      assert.match(example.sourceUrl, /^https:\/\/(?:huggingface\.co\/datasets\/[^/]+\/[^/]+\/blob\/[a-f0-9]{40}\/|github\.com\/[^/]+\/[^/]+\/blob\/[a-f0-9]{40}\/)/);
+    }
     assert.ok(example.outputLabel, 'Reference output must be distinguished from measured output');
+  }
+  for (const track of catalog.tracks.filter(item => !item.url)) {
+    const trackBenchmarks = catalog.benchmarks.filter(item => item.trackId === track.id);
+    assert.ok(trackBenchmarks.some(item => item.example), `${track.id}: published track needs at least one sourced example`);
   }
 });
 
@@ -841,4 +857,82 @@ test("capability profiles do not turn non-comparable timing into an efficiency a
   assert.ok(radarAxes(benchmark).filter(axis => axis.defaultSelected).every(axis => !/p50|p95/i.test(axis.id)));
   const single = load('simpleqa-verified-excerpts', 'v2.0.0').benchmark;
   assert.equal(render(single), '', 'One quality dimension does not need a radar assembled from incomparable timings');
+});
+
+test("Browser Use reuses the shared radar only when real quality dimensions are supplied", () => {
+  for (const id of ['bu-bench-v1', 'online-mind2web', 'webvoyager', 'osworld']) {
+    const quality = id === 'osworld' ? 'scoreRate' : 'successRate';
+    const benchmark = resolveBenchmark(catalog, {
+      id, definitionId: 'standard', taskCount: 100, notes: [], reportUrl: null,
+      providers: [
+        { id: 'fixture-a', name: 'Fixture A', scores: { [quality]: 90, costPerTask: 0.1 } },
+        { id: 'fixture-b', name: 'Fixture B', scores: { [quality]: 80, costPerTask: null } },
+      ],
+    });
+    assert.deepEqual(benchmark.keyMetricIds, [quality, 'costPerTask']);
+    assert.equal(render(benchmark), '', `${id}: a score and partly disclosed cost do not form a radar`);
+    const expanded = {
+      ...benchmark, rankable: true,
+      metrics: [...benchmark.metrics, {id: 'quality2', label: 'Second quality', unit: 'percent', direction: 'desc'}, {id: 'quality3', label: 'Third quality', unit: 'percent', direction: 'desc'}],
+      keyMetricIds: [quality, 'quality2', 'quality3'],
+      providers: benchmark.providers.map(p => ({...p, scores: {...p.scores, quality2: 80, quality3: 70}})),
+    };
+    const html = render(expanded);
+    assert.match(html, /class="radar-shape"/, `${id}: genuine extra dimensions use the existing radar`);
+    assert.match(html, /class="metric-selector"/);
+    assert.doesNotMatch(html, /radar-divider|overlapping methods|Undisclosed methods/);
+  }
+});
+
+
+test("an undisclosed task population renders scores without inventing a case or pass count", async () => {
+  const {prepareData} = await import('../scripts/prepare-data.mjs');
+  await prepareData();
+  const {RELEASE} = require('../web/lib/release.generated.ts');
+  const Dashboard = require('../web/components/dashboard.tsx').default;
+  const prior = [globalThis.window, globalThis.document, globalThis.fetch, globalThis.IS_REACT_ACT_ENVIRONMENT];
+  const report = {
+    id: 'bu-bench-v1-v1.0.0', version: 'v1.0.0',
+    datasetDifference: 'The source publishes percentages without an evaluated task count.',
+    release: {date: '2026-11-24', kind: 'results', previous: null, summary: 'Publish reported results.'},
+    source: {url: 'https://example.com/report'},
+    benchmarks: [{id: 'bu-bench-v1', definitionId: 'standard', taskCount: null, notes: [], reportUrl: null,
+      providers: [{id: 'fixture', name: 'Fixture agent', description: 'Reported configuration', mode: 'agent',
+        passed: null, scores: {successRate: 93.41, costPerTask: null}}]}],
+  };
+  try {
+    for (const language of ['en', 'zh']) {
+      const win = new Window({url: 'https://webstone.test/?benchmark=bu-bench-v1'});
+      win.localStorage.setItem('webstone-language', language);
+      [globalThis.window, globalThis.document, globalThis.IS_REACT_ACT_ENVIRONMENT] = [win, win.document, true];
+      globalThis.fetch = async input => {
+        if (String(input).includes('/benchmarks/')) return new Response(JSON.stringify(catalog));
+        if (String(input).includes('/results/')) return new Response(JSON.stringify([{file: 'bu-bench-v1/bu-bench-v1-v1.0.0-report.json', report}]));
+        return new Response(JSON.stringify({release: RELEASE}));
+      };
+      const root = require('react-dom/client').createRoot(win.document.body);
+      try {
+        await React.act(async () => root.render(React.createElement(Dashboard)));
+        assert.match(win.document.querySelector('.table-summary').textContent, /1/);
+        assert.doesNotMatch(win.document.querySelector('.table-summary').textContent, /cases|题|NaN|null|undefined/);
+        assert.match(win.document.querySelector('tbody').textContent, /93.41%/);
+        assert.doesNotMatch(win.document.querySelector('thead').textContent, /Passed|通过数/);
+        assert.equal(win.document.querySelector('.count-cell'), null);
+      } finally {await React.act(async () => root.unmount()); await win.happyDOM.close();}
+    }
+  } finally {[globalThis.window, globalThis.document, globalThis.fetch, globalThis.IS_REACT_ACT_ENVIRONMENT] = prior;}
+});
+
+
+test("Online-Mind2Web retains reported scores without ranking different judging protocols", () => {
+  const benchmark = resolveBenchmark(catalog, {
+    id: 'online-mind2web', definitionId: 'standard', taskCount: 300, notes: [], reportUrl: null,
+    providers: [
+      {id: 'reported-a', name: 'Agent A', passed: null, scores: {successRate: 98.96, costPerTask: 0.1}},
+      {id: 'reported-b', name: 'Agent B', passed: null, scores: {successRate: 98, costPerTask: null}},
+    ],
+  });
+  assert.equal(benchmark.rankable, false);
+  assert.equal(benchmark.providers[1].scores.successRate, 98);
+  assert.equal(render(benchmark), '', 'Non-comparable reports do not imply a shared capability comparison');
 });

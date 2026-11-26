@@ -226,8 +226,8 @@ export default function Dashboard() {
           <div className="benchmark-heading"><h1>{details ? t(details.name) : "Webstone"}</h1>
             {details && <p className="benchmark-description">{t(details.description)}</p>}
             {details && <div className="benchmark-links">
-              <a href={details.datasetUrl} target="_blank" rel="noreferrer" aria-label={`${t("Dataset")}: ${details.datasetName}`}><img src="/huggingface.svg" width={16} height={16} alt="" aria-hidden="true" />{t("Dataset")}<ArrowUpRight size={13} aria-hidden="true" /></a>
-              <button type="button" className="example-open" aria-haspopup="dialog" onClick={() => setShowExample(true)}>{t("See an example")}</button>
+              <a href={details.datasetUrl} target="_blank" rel="noreferrer" aria-label={`${t("Dataset")}: ${details.datasetName}`}>{new URL(details.datasetUrl).hostname === "github.com" ? <Github /> : <img src="/huggingface.svg" width={16} height={16} alt="" aria-hidden="true" />}{t("Dataset")}<ArrowUpRight size={13} aria-hidden="true" /></a>
+              {details.example && <button type="button" className="example-open" aria-haspopup="dialog" onClick={() => setShowExample(true)}>{t("See an example")}</button>}
               <a href="#reports">{t("Reports")}<ArrowDown size={13} aria-hidden="true" /></a>
             </div>}
 
@@ -267,9 +267,9 @@ export default function Dashboard() {
           </div> : <>
             <section id="results" className="leaderboard" aria-label={`${t(benchmark.name)} ${t("Leaderboard")}`}>
               <h2 className="sr-only">{t("Leaderboard")}</h2>
-              <div className="table-toolbar"><span className="table-summary">{benchmark.providerCount} {t("methods")} · {benchmark.taskCount.toLocaleString()} {t("cases")}
+              <div className="table-toolbar"><span className="table-summary">{benchmark.providerCount} {t("methods")}{benchmark.taskCount === null ? "" : <> · {benchmark.taskCount.toLocaleString()} {t("cases")}</>}
                 <InfoTooltip label={t("Evaluation scope")} description={[historicalCopy?.scope ?? t(snapshot!.datasetDifference), !snapshot!.release && t("Publication date not listed"), ...evaluationNotes].filter(Boolean).join(" ")} detailsLabel={t("details")} />
-                {benchmark.rankable === false && <span className="comparison-status">{t("Different test conditions")}<InfoTooltip label={t("Different test conditions")} description={t("Collection dates and retry policies differ.")} detailsLabel={t("details")} /></span>}
+                {benchmark.rankable === false && <span className="comparison-status">{t("Different test conditions")}<InfoTooltip label={t("Different test conditions")} description={t("Results use different evaluation conditions.")} detailsLabel={t("details")} /></span>}
               </span><div className="column-views table-controls" role="group" aria-label={t("Table columns")}>
                 {benchmark.categories.length > 0 && <button aria-pressed={showCategories} onClick={() => setShowCategories(current => !current)}>{t("Category breakdown")}</button>}
                 <button aria-pressed={!moreMetrics} onClick={() => {

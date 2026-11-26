@@ -30,7 +30,8 @@ test("result records are versioned files without a hand-maintained index or form
 test("report directories are discovered and their declared provenance is validated", async () => {
   const summary = await prepareData({ write: false });
   assert.equal(summary.files, files.length);
-  assert.equal(summary.benchmarks, catalog.benchmarks.length);
+  assert.equal(summary.benchmarks, new Set(files.flatMap(item => item.report.benchmarks.map(benchmark => benchmark.id))).size);
+  assert.ok(summary.benchmarks <= catalog.benchmarks.length);
 });
 
 test("external tracks use safe HTTPS links and cannot own local benchmark tables", () => {
@@ -322,10 +323,18 @@ test("version-specific sample notes must be nonempty English", () => {
 
 
 test("benchmarks in each published Track share its summary blog", () => {
+  const reportMetadata = JSON.parse(readFileSync(new URL("../reports/metadata.json", import.meta.url), "utf8"));
+  const browserUseIds = new Set(catalog.benchmarks.filter(item => item.trackId === "browser-use").map(item => item.id));
+  const browserUseReport = Object.values(reportMetadata.reports).find(report =>
+    report.benchmarkIds?.some(id => browserUseIds.has(id)));
+  assert.ok(browserUseReport, "browser-use track must reference published report metadata");
+  const browserUseUrl = browserUseReport.urls?.[browserUseReport.originalLanguage ?? "zh"];
+  assert.ok(browserUseUrl, "browser-use report metadata must provide a primary-language URL");
   const reports = {
     webfetch: "https://yours.lexmount.cn/artifact-site/s/sBygxmqjB5wc",
     websearch: "https://yours.lexmount.cn/artifact-site/s/-FtUMQm-NmQa",
     webextract: "https://yours.lexmount.cn/artifact-site/s/-eNSiFI3n7XX",
+    "browser-use": browserUseUrl,
   };
   for (const [trackId, url] of Object.entries(reports)) {
     const benchmarks = catalog.benchmarks.filter(item => item.trackId === trackId);
@@ -487,4 +496,32 @@ test("key metrics name existing columns once and keep the ranking metric first",
     invalid.benchmarks.find(item => item.id === 'lexbench-webfetch').definitions[0].keyMetricIds = value;
     assert.throws(() => validateCatalog(invalid), /Invalid key metric presentation/);
   }
+});
+
+
+test("reported percentages can omit an undisclosed task population without inventing counts", () => {
+  const report = structuredClone(snapshot);
+  const b = report.benchmarks[0];
+  const c = structuredClone(catalog);
+  b.taskCount = null;
+  b.categoryTotals = {};
+  const definition = c.benchmarks.find(item => item.id === b.id).definitions.find(item => item.id === b.definitionId);
+  definition.categories = [];
+  for (const provider of b.providers) {
+    provider.passed = null;
+    delete provider.categoryPassed;
+  }
+  assert.doesNotThrow(() => validateSnapshot(report, entry, c));
+  for (const count of [undefined, 0, -1, 2.5, "100"]) {
+    b.taskCount = count;
+    assert.throws(() => validateSnapshot(report, entry, c), /task count/);
+  }
+  b.taskCount = null;
+  for (const passed of [0, 1]) {
+    b.providers[0].passed = passed;
+    assert.throws(() => validateSnapshot(report, entry, c), /passed count/);
+  }
+  b.providers[0].passed = null;
+  b.providers[0].counts = {passRate: {count: 1, total: 2}};
+  assert.throws(() => validateSnapshot(report, entry, c), /count breakdown/);
 });
