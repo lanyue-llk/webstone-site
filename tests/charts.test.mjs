@@ -1076,3 +1076,16 @@ test('clicking an active Track without an overview preserves the selected editio
     }finally{await React.act(async()=>root.unmount());await win.happyDOM.close();}
   }}finally{[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
 });
+
+test('a two-dimensional comparison retains a populated category alongside overall quality',async()=>{
+  const source=load('lexbench-webfetch','v2.1.0').benchmark;
+  const benchmark={...source,metrics:source.metrics.filter(metric=>metric.id===source.primaryMetric),keyMetricIds:[source.primaryMetric],categories:source.categories.slice(0,1)};
+  const win=new Window();
+  try{
+    win.document.body.innerHTML=render(benchmark);
+    assert.equal(win.document.querySelectorAll('.quality-comparison section').length,2);
+    assert.equal(win.document.querySelectorAll('.metric-selector input').length,2);
+    assert.ok([...win.document.querySelectorAll('.quality-comparison h3')].some(heading=>heading.textContent===benchmark.categories[0].name));
+    assert.equal(win.document.querySelectorAll('.quality-series').length,benchmark.providers.length*2);
+  }finally{await win.happyDOM.close();}
+});

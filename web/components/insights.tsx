@@ -18,7 +18,7 @@ export default function Insights({ benchmark, t, caption }: Props) {
   const allAxes = radarAxes(benchmark);
   const defaultAxisCount = allAxes.filter(axis => axis.defaultSelected).length;
   const qualityIds = new Set(qualityMetrics(benchmark).map(metric => metric.id));
-  const availableAxes = allAxes.filter(axis => defaultAxisCount >= 3 || qualityIds.has(axis.id)).map(axis => ({...axis,label:axis.label.split(" · ").map(t).join(" · ")}));
+  const availableAxes = allAxes.filter(axis => defaultAxisCount >= 3 || qualityIds.has(axis.id) || axis.id.startsWith("category:")).map(axis => ({...axis,label:axis.label.split(" · ").map(t).join(" · ")}));
   const defaultIds = availableAxes.filter(axis => axis.defaultSelected).map(axis => axis.id);
   const selectedIds = selectedMetrics ?? defaultIds;
   const axes = availableAxes.filter(axis => selectedIds.includes(axis.id));
