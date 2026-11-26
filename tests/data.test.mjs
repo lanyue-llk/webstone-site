@@ -480,3 +480,11 @@ test("recorded examples require a provider and safe, traceable response provenan
     assert.throws(() => validateCatalog(invalid), /Invalid recorded example provenance/);
   }
 });
+
+test("key metrics name existing columns once and keep the ranking metric first", () => {
+  for (const value of [[], ['unknown'], ['passRate', 'passRate'], ['requestRate', 'passRate']]) {
+    const invalid = structuredClone(catalog);
+    invalid.benchmarks.find(item => item.id === 'lexbench-webfetch').definitions[0].keyMetricIds = value;
+    assert.throws(() => validateCatalog(invalid), /Invalid key metric presentation/);
+  }
+});

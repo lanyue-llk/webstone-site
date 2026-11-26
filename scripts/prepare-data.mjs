@@ -98,6 +98,9 @@ export function validateCatalog(catalog) {
       if (definition.rankable !== undefined && typeof definition.rankable !== "boolean") throw new Error("Invalid ranking presentation");
       uniqueIds(definition.metrics, "metric");
       if (!definition.metrics.some(metric => metric.id === definition.primaryMetric)) throw new Error("Unknown primary metric");
+      if (!Array.isArray(definition.keyMetricIds) || definition.keyMetricIds[0] !== definition.primaryMetric
+        || new Set(definition.keyMetricIds).size !== definition.keyMetricIds.length
+        || definition.keyMetricIds.some(id => !definition.metrics.some(metric => metric.id === id))) throw new Error("Invalid key metric presentation");
       if (definition.leadingMetricIds && (new Set(definition.leadingMetricIds).size !== definition.leadingMetricIds.length || definition.leadingMetricIds.some(id => !definition.metrics.some(metric => metric.id === id)))) throw new Error("Unknown or duplicate leading metric");
       if (definition.categories) uniqueIds(definition.categories, "category");
       for (const metric of definition.metrics) {

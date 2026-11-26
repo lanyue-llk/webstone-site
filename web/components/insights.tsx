@@ -19,7 +19,7 @@ export default function Insights({ benchmark, t }: Props) {
   const selectedIds = selectedMetrics ?? defaultIds;
   const axes = availableAxes.filter(axis => selectedIds.includes(axis.id)).map(axis => ({ ...axis, label: t(axis.label) }));
   const primary = benchmark.metrics.find(metric => metric.id === benchmark.primaryMetric);
-  if (!primary || !benchmark.providers.length) return null;
+  if (!primary || !benchmark.providers.length || defaultIds.length < 3) return null;
 
   const providers = sortProviders(benchmark.providers, primary.id, primary.direction)
     .map(provider => ({ provider, values: axes.map(axis => axis.value(provider)) }));

@@ -34,13 +34,13 @@ test("Web Fetch compares overall quality and timings without adding a second tab
   const { snapshot, benchmark } = load("lexbench-webfetch");
   const html = render(benchmark, translator("zh", catalog, snapshot));
   assert.match(html, /role="img" aria-label="能力对比"/);
-  assert.deepEqual(radarAxes(benchmark).filter(axis => axis.defaultSelected).map(axis => axis.id), ["passRate", "requestRate", "totalMean", "totalP95"]);
+  assert.deepEqual(radarAxes(benchmark).filter(axis => axis.defaultSelected).map(axis => axis.id), ["passRate", "requestRate", "totalMean"]);
   assert.equal(radarAxes(benchmark).filter(axis => axis.id.startsWith("category:")).length, 7);
   assert.equal((html.match(/class="radar-shape"/g) ?? []).length, 6);
   assert.doesNotMatch(html, /<table|<select|disabled/);
 });
 
-test("all published bench views have a radar and keep each method visible when a measurement is missing", async () => {
+test("published bench views draw meaningful profiles and retain methods with missing values", async () => {
   const { discoverResults } = await import("../scripts/prepare-data.mjs");
   const { fileURLToPath } = await import("node:url");
   const files = await discoverResults(fileURLToPath(new URL("../results", import.meta.url)), catalog);
@@ -48,6 +48,10 @@ test("all published bench views have a radar and keep each method visible when a
     const snapshot = JSON.parse(readFileSync(new URL(`../results/${file}`, import.meta.url)));
     const benchmark = resolveBenchmark(catalog, snapshot.benchmarks[0]);
     const html = render(benchmark);
+    if (radarAxes(benchmark).filter(axis => axis.defaultSelected).length < 3) {
+      assert.equal(html, '', file);
+      continue;
+    }
     assert.match(html, /aria-label="Capability profile"/, file);
     assert.equal((html.match(/class="radar-series"/g) ?? []).length, benchmark.providers.length, file);
     assert.ok(radarAxes(benchmark).length >= 3, file);
@@ -72,7 +76,7 @@ test("radars include latency and memory while keeping quoted prices out of capab
   for (const benchmark of [load("lexbench-websearch", "v2").benchmark,
     load("lexbench-swde").benchmark, load("lexbench-zyte-product-extraction").benchmark]) {
     const axes = radarAxes(benchmark);
-    assert.ok(axes.some(axis => axis.id === "meanTime"));
+    assert.equal(axes.some(axis => axis.id === "meanTime"), benchmark.metrics.find(metric => metric.id === "meanTime")?.highlightBest !== false);
     assert.ok(!axes.some(axis => ["pricePerThousand", "quoted-price"].includes(axis.id)));
     assert.equal((render(benchmark).match(/class="radar-series"/g) ?? []).length, benchmark.providers.length);
   }
@@ -130,10 +134,10 @@ test("the radar starts with all series and lets readers hide or show each one", 
     const metricOptions = [...container.querySelectorAll(".metric-selector-panel label")];
     const median = metricOptions.find(option => option.textContent === "P50 latency").querySelector("input");
     await React.act(async () => median.click());
-    assert.equal(container.querySelectorAll(".radar-axis").length, 5);
+    assert.equal(container.querySelectorAll(".radar-axis").length, 4);
     const reset = container.querySelector(".metric-selector-panel button");
     await React.act(async () => reset.click());
-    assert.equal(container.querySelectorAll(".radar-axis").length, 4);
+    assert.equal(container.querySelectorAll(".radar-axis").length, 3);
     assert.equal(container.querySelectorAll(".radar-shape").length, 5);
   } finally {
     await React.act(async () => root.unmount());
@@ -297,7 +301,8 @@ test("every published benchmark edition shares table and radar controls in both 
         await React.act(async () => root.render(React.createElement(Dashboard)));
         const table = container.querySelector("table");
         assert.equal(table.className, "wide-table", report.id);
-        assert.equal(container.querySelectorAll(".metric-selector").length, 1, report.id);
+        const hasProfile = radarAxes(resolveBenchmark(catalog, report.benchmarks[0])).filter(axis => axis.defaultSelected).length >= 3;
+        assert.equal(container.querySelectorAll(".metric-selector").length, Number(hasProfile), report.id);
         assert.equal(table.querySelectorAll("th")[1].textContent, "Method", report.id);
         assert.ok(container.querySelector("#reports"), report.id);
         for (const row of table.querySelectorAll("tbody tr")) assert.equal(row.children.length, table.querySelectorAll("th").length, report.id);
@@ -320,13 +325,14 @@ test("every published benchmark edition shares table and radar controls in both 
           const extra = disclosed.find(item => !decisionMetrics(definition, false, definition.primaryMetric).some(metric => metric.id === item.id));
           const extraHeader = [...table.querySelectorAll("th")].find(header => header.querySelector(".sort-button")?.textContent === extra.label);
           await React.act(async () => extraHeader.querySelector(".sort-button").click());
-          const collapse = [...container.querySelectorAll(".table-controls button")].find(button => button.textContent === "More metrics");
+          const collapse = [...container.querySelectorAll(".table-controls button")].find(button => button.textContent === "Key metrics");
           assert.ok(collapse, report.id + " can collapse after sorting an extra column");
           await React.act(async () => collapse.click());
           assert.equal(table.querySelectorAll("th").length, initialColumns, report.id);
         }
         assert.equal(container.querySelector('a[href="https://huggingface.co/datasets?author=Lexmount"]')?.textContent, "Datasets", report.id);
         const chartMenu = container.querySelector(".radar-heading .metric-selector");
+        if (chartMenu) {
         const initialAxes = container.querySelectorAll(".radar-axis").length;
         assert.ok(initialAxes >= 3, report.id);
         for (const input of [...chartMenu.querySelectorAll("input")].filter(input => input.checked)) {
@@ -345,9 +351,10 @@ test("every published benchmark edition shares table and radar controls in both 
         await React.act(async () => summary.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
         assert.ok(!chartMenu.open, report.id);
 
+        }
         await React.act(async () => [...container.querySelectorAll(".language-control button")].find(button => button.textContent === "中文").click());
         assert.equal(table.querySelectorAll("th")[1].textContent, "方案", report.id);
-        assert.match(chartMenu.querySelector("summary").textContent, /图表指标/, report.id);
+        if (chartMenu) assert.match(chartMenu.querySelector("summary").textContent, /图表指标/, report.id);
         assert.equal(container.querySelectorAll(".table-controls .metric-selector").length, 0, report.id);
         let scrollTop = 900;
         win.scrollTo = options => { scrollTop = options.top; };
@@ -420,7 +427,7 @@ test("report links select distinct published language editions and identify a mi
 test("compact columns preserve ranking and disclosed resources without inventing missing measurements", () => {
   const {decisionMetrics}=require('../web/lib/comparisons.ts');
   const metric=(id,unit)=>({id,unit});
-  const benchmark={primaryMetric:"quality",leadingMetricIds:["leading"],metrics:[metric("quality","ratio"),metric("time","ms"),metric("other","ratio"),metric("leading","ratio")],providers:[{scores:{quality:1,time:null,other:0.5,leading:null}}]};
+  const benchmark={primaryMetric:"quality",keyMetricIds:["quality","time"],leadingMetricIds:["leading"],metrics:[metric("quality","ratio"),metric("time","ms"),metric("other","ratio"),metric("leading","ratio")],providers:[{scores:{quality:1,time:null,other:0.5,leading:null}}]};
   const ids=(expanded=false,selected="quality")=>decisionMetrics(benchmark,expanded,selected).map(item=>item.id);
   assert.deepEqual(ids(),["quality"]);
   benchmark.providers[0].scores.time=0;assert.deepEqual(ids(),["quality","time"]);
@@ -525,6 +532,14 @@ test("homepage counts reports instead of historical result editions and uses the
     const logo=readFileSync(new URL('../web/public/brand/webstone.png',import.meta.url));
     assert.deepEqual([...logo.subarray(0, 8)], [137,80,78,71,13,10,26,10]);
     assert.match(readFileSync(new URL('../README.md',import.meta.url),'utf8'),/web\/public\/brand\/webstone\.png/);
+    assert.match(readFileSync(new URL('../README.md',import.meta.url),'utf8'),/^# Webstone Site\n/);
+    for (const language of ['en', 'zh']) {
+      const t = translator(language, catalog);
+      win.document.body.innerHTML = renderToStaticMarkup(React.createElement(Home, { catalog, snapshots, t, language }));
+      const hero = win.document.querySelector('.overview-hero').textContent;
+      assert.ok(hero.includes(t("Find the right tools for your agent to browse the web.")));
+      assert.ok(hero.includes(t("The touchstone for your agent's web browsing.")));
+    }
   } finally {await win.happyDOM.close();}
 });
 
@@ -593,7 +608,7 @@ test("diagnostic comparisons never imply a rank or best value in either language
       assert.equal(win.document.querySelectorAll('.category-head').length,7);
       assert.equal(win.document.querySelectorAll('td.best-value').length,0);
       assert.ok([...win.document.querySelectorAll('tbody .rank-cell')].every(cell=>cell.textContent==='—'));
-      assert.match(win.document.querySelector('.leaderboard').textContent,language==='EN'?/Diagnostic results/:/诊断结果/);
+      assert.match(win.document.querySelector('.leaderboard').textContent,language==='EN'?/Different test conditions/:/测试条件不同/);
       assert.equal(win.document.querySelectorAll('tbody tr').length,diagnostic.benchmarks[0].providers.length);
     }
   } finally {
@@ -705,14 +720,13 @@ test("all published versions highlight comparable column winners consistently, i
       try {
         await React.act(async () => root.render(React.createElement(Dashboard)));
         const more = [...win.document.querySelectorAll('.table-controls button')].find(button => button.textContent === 'More metrics');
-        if (more) await React.act(async () => more.click());
-        const check = () => {
+        const check = (expanded) => {
           const headers = [...win.document.querySelectorAll('.wide-table thead th')];
           const rows = [...win.document.querySelectorAll('.wide-table tbody tr')];
           for (const metric of benchmark.metrics) {
             const index = headers.findIndex(header => header.querySelector('.sort-button')?.textContent === metric.label);
             if (index < 0) {
-              assert.ok(metric.id !== benchmark.primaryMetric && benchmark.providers.every(provider => (provider.scores[metric.id] === null || provider.scores[metric.id] === undefined)));
+              assert.ok(!expanded && !benchmark.keyMetricIds.includes(metric.id) || metric.id !== benchmark.primaryMetric && benchmark.providers.every(provider => (provider.scores[metric.id] === null || provider.scores[metric.id] === undefined)));
               continue;
             }
             const values = benchmark.providers.map(provider => provider.scores[metric.id]).filter(value => value !== null && value !== undefined);
@@ -740,9 +754,15 @@ test("all published versions highlight comparable column winners consistently, i
             }
           }
         };
-        check();
+        check(false);
         await React.act(async () => win.document.querySelector('th.sorted .sort-button').click());
-        check();
+        check(false);
+        if (more) {
+          await React.act(async () => more.click());
+          check(true);
+          await React.act(async () => win.document.querySelector('th.sorted .sort-button').click());
+          check(true);
+        }
       } finally { await React.act(async () => root.unmount()); await win.happyDOM.close(); }
     }
   } finally { [globalThis.window, globalThis.document, globalThis.fetch, globalThis.IS_REACT_ACT_ENVIRONMENT] = prior; }
@@ -807,4 +827,18 @@ test("example dialogs distinguish recorded provider responses from reference ans
   delete benchmark.example.recording;
   const reference = renderToStaticMarkup(React.createElement(ExampleDialog, {title: benchmark.name, description: benchmark.description, benchmarks: [benchmark], onClose: () => {}, t: text => text}));
   assert.match(reference, /Reference values are not a measured result/);
+});
+
+test("capability profiles do not turn non-comparable timing into an efficiency advantage", () => {
+  for (const id of ['webmainbench', 'lexbench-websearch']) {
+    const { benchmark } = load(id, id === 'webmainbench' ? 'v2.1.0' : 'v2');
+    const axes = radarAxes(benchmark);
+    for (const metric of benchmark.metrics.filter(item => ['ms', 'seconds', 'mib', 'usd'].includes(item.unit) && item.highlightBest === false)) {
+      assert.ok(!axes.some(axis => axis.id === metric.id), `${id}: ${metric.id} is not a comparable efficiency axis`);
+    }
+  }
+  const { benchmark } = load('webarena-verified', 'v1.1.0');
+  assert.ok(radarAxes(benchmark).filter(axis => axis.defaultSelected).every(axis => !/p50|p95/i.test(axis.id)));
+  const single = load('simpleqa-verified-excerpts', 'v2.0.0').benchmark;
+  assert.equal(render(single), '', 'One quality dimension does not need a radar assembled from incomparable timings');
 });

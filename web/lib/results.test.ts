@@ -97,11 +97,9 @@ test("compact tables keep the ranking metric and charts preserve natural scales 
     const benchmark = readSnapshot(`${info.id}/${name}`).benchmarks[0];
     const visible = decisionMetrics(benchmark, false, benchmark.primaryMetric);
     assert.ok(visible.some(metric => metric.id === benchmark.primaryMetric));
-    for (const metric of benchmark.metrics.filter(item => ["seconds", "ms", "mib", "usd"].includes(item.unit))) {
-      const disclosed = benchmark.providers.some(provider => typeof provider.scores[metric.id] === "number");
-      assert.equal(visible.includes(metric), disclosed || metric.id === benchmark.primaryMetric);
-    }
-    assert.deepEqual(decisionMetrics(benchmark, true, benchmark.primaryMetric), benchmark.metrics.filter(metric => metric.id === benchmark.primaryMetric || benchmark.providers.some(provider => typeof provider.scores[metric.id] === "number")));
+    const disclosed = benchmark.metrics.filter(metric => metric.id === benchmark.primaryMetric || benchmark.providers.some(provider => typeof provider.scores[metric.id] === "number"));
+    assert.deepEqual(visible.map(metric => metric.id), benchmark.keyMetricIds!.filter(id => disclosed.some(metric => metric.id === id)));
+    assert.deepEqual(new Set(decisionMetrics(benchmark, true, benchmark.primaryMetric).map(metric => metric.id)), new Set(disclosed.map(metric => metric.id)));
   }
   const usefulness = catalog.benchmarks.flatMap(info => info.definitions.flatMap(definition => definition.metrics)).find(metric => metric.id === "usefulness")!;
   assert.equal(qualityScale(usefulness), 3);
@@ -483,4 +481,31 @@ test("source detail formatting retains native units and the original ratio scale
   assert.equal(formatMetric(14174, "ms", 0, false, undefined, "source"), "14174 ms");
   assert.equal(formatMetric(.827, "ratio", 3, false, undefined, "source"), "0.827");
   assert.equal(formatMetric(-.15, "ms", 2, true, undefined, "source"), "-0.15 ms");
+});
+
+test("key views prioritize benchmark quality and expose one representative timing", () => {
+  const qualityByBenchmark: Record<string, string[]> = {
+    "lexbench-webfetch": ["passRate", "requestRate"],
+    "webmainbench": ["overall", "fullText", "code", "formula", "tableContent", "tableStructure"],
+    "lexbench-websearch": ["ndcg5", "precision5", "success5"],
+    "simpleqa-verified": ["hit5", "mrr5", "answerMatch5"],
+    "lexbench-websearch-excerpts": ["ndcg5", "precision5", "success5"],
+    "simpleqa-verified-excerpts": ["excerptMatch5"],
+    "lexbench-websearch-answers": ["usefulness", "citationSupport", "citationMembership"],
+    "simpleqa-verified-answers": ["answerAccuracy", "citationSupport", "citationMembership"],
+    "webarena-verified": ["successRate"],
+    "lexbench-headless-372": ["successRate"],
+    "lexbench-swde": ["pageMacroF1", "valueMicroF1", "fieldSetExact", "pageExact"],
+    "lexbench-zyte-product-extraction": ["pageExact", "priceF1", "skuF1", "stockF1", "outOfStockF1"],
+  };
+  for (const info of catalog.benchmarks) for (const name of readdirSync(new URL(`../../results/${info.id}/`, import.meta.url))) {
+    const benchmark = readSnapshot(`${info.id}/${name}`).benchmarks[0];
+    const visible = decisionMetrics(benchmark, false, benchmark.primaryMetric);
+    const ids = visible.map(metric => metric.id);
+    for (const id of qualityByBenchmark[info.id]) {
+      if (benchmark.metrics.some(metric => metric.id === id) && benchmark.providers.some(provider => typeof provider.scores[id] === "number")) assert.ok(ids.includes(id), `${info.id}: ${id} belongs in Key metrics`);
+    }
+    assert.ok(visible.filter(metric => ["seconds", "ms"].includes(metric.unit)).length <= 1, `${info.id}: only one timing belongs in the default view`);
+    assert.ok(!ids.some(id => /p50|p95|meanChars|Delta|cpuDelta/.test(id)), `${info.id}: distribution tails and diagnostics belong in More metrics`);
+  }
 });
