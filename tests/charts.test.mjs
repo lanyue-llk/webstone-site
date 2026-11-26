@@ -19,7 +19,7 @@ const { translator } = require("../web/lib/i18n.ts");
 const { radarAxes } = require("../web/lib/radar.ts");
 const { evaluationReports, trackOverview } = require("../web/lib/overview.ts");
 const { resolveBenchmark } = require("../web/lib/results.ts");
-const { historicalResultCopy } = require("../web/lib/result-copy.ts");
+const { evaluationScopeCopy } = require("../web/lib/result-copy.ts");
 const catalog = JSON.parse(readFileSync(new URL("../benchmarks/catalog.json", import.meta.url)));
 
 function load(id, version = "v1") {
@@ -150,15 +150,16 @@ test("the radar starts with all series and lets readers hide or show each one", 
   }
 });
 
-test("published historical editions have Chinese and English evaluation notes", async () => {
+test("published evaluation scopes have concise Chinese and English population copy", async () => {
   const { discoverResults } = await import("../scripts/prepare-data.mjs");
   const { fileURLToPath } = await import("node:url");
   const files = await discoverResults(fileURLToPath(new URL("../results", import.meta.url)), catalog);
   for (const { file } of files) {
     const snapshot = JSON.parse(readFileSync(new URL(`../results/${file}`, import.meta.url)));
     for (const language of ["en", "zh"]) {
-      const copy = historicalResultCopy(snapshot.id, language);
-      if (!snapshot.release) assert.ok(copy?.scope && copy.notes.every(note => note.trim()), file);
+      const copy = evaluationScopeCopy(snapshot.id, language);
+      if (snapshot.benchmarks[0].taskCount !== null) assert.ok(copy?.trim(), file);
+      if (copy) assert.doesNotMatch(copy, /reviewed|unverified|unconfirmed|certified|PR919|Different test conditions/i, file);
     }
   }
 });
@@ -284,6 +285,7 @@ test("every published benchmark edition shares table and radar controls in both 
   const { RELEASE } = require("../web/lib/release.generated.ts");
   const files = await discoverResults(fileURLToPath(new URL("../results", import.meta.url)), catalog);
   const reports = files.map(({ file }) => ({ file, report: JSON.parse(readFileSync(new URL("../results/" + file, import.meta.url))) }));
+  for (const item of reports) item.report.benchmarks[0].notes.push('Internal uploader note for review.');
   const previous = [globalThis.window, globalThis.document, globalThis.fetch, globalThis.IS_REACT_ACT_ENVIRONMENT];
 
   try {
@@ -305,6 +307,13 @@ test("every published benchmark edition shares table and radar controls in both 
         await React.act(async () => root.render(React.createElement(Dashboard)));
         const table = container.querySelector("table");
         assert.equal(table.className, "wide-table", report.id);
+        assert.doesNotMatch(container.textContent, /Different test conditions|Internal uploader note/, report.id);
+        const scope = container.querySelector('.table-summary .info-trigger');
+        if (scope) {
+          await React.act(async () => scope.click());
+          assert.doesNotMatch(win.document.querySelector('.info-tooltip').textContent, /Internal uploader note|reviewed|unverified|unconfirmed|certified product ranking/i, report.id);
+          await React.act(async () => win.document.dispatchEvent(new win.KeyboardEvent('keydown', {key: 'Escape', bubbles: true})));
+        }
         const hasProfile = radarAxes(resolveBenchmark(catalog, report.benchmarks[0])).filter(axis => axis.defaultSelected).length >= 3;
         assert.equal(container.querySelectorAll(".metric-selector").length, Number(hasProfile), report.id);
         assert.equal(table.querySelectorAll("th")[1].textContent, "Method", report.id);
@@ -505,7 +514,7 @@ test("the homepage offers the evaluation repository star and translates the deve
     const star=win.document.querySelector('.overview-star');
     assert.equal(star.href,'https://github.com/lexmount/webstone');
     assert.match(star.textContent,/Star/);
-    assert.match(win.document.querySelector('.overview-star-note').textContent,/觉得 Webstone 有用/);
+    assert.equal(win.document.querySelector('.overview-star-note'), null);
     assert.match([...win.document.querySelectorAll('.upcoming-track')].map(item=>item.textContent).join(' '),/Web Tools/);
     assert.match(win.document.querySelector('.upcoming-track').textContent,/开发中/);
     assert.equal(win.document.querySelectorAll('.track-card[data-track]').length,5);
@@ -542,7 +551,10 @@ test("homepage counts reports instead of historical result editions and uses the
       win.document.body.innerHTML = renderToStaticMarkup(React.createElement(Home, { catalog, snapshots, t, language }));
       const hero = win.document.querySelector('.overview-hero').textContent;
       assert.ok(hero.includes(t("Find the right tools for your agent to browse the web.")));
-      assert.ok(hero.includes(t("The touchstone for your agent's web browsing.")));
+      assert.ok(hero.includes(t("The touchstone")));
+      assert.equal(win.document.querySelector('h1').textContent, 'Webstone');
+      assert.equal(win.document.querySelectorAll('.overview-hero p').length, 1);
+      assert.doesNotMatch(hero, /The touchstone for your agent|give it a star/);
     }
   } finally {await win.happyDOM.close();}
 });
@@ -612,7 +624,7 @@ test("diagnostic comparisons never imply a rank or best value in either language
       assert.equal(win.document.querySelectorAll('.category-head').length,7);
       assert.equal(win.document.querySelectorAll('td.best-value').length,0);
       assert.ok([...win.document.querySelectorAll('tbody .rank-cell')].every(cell=>cell.textContent==='—'));
-      assert.match(win.document.querySelector('.leaderboard').textContent,language==='EN'?/Different test conditions/:/测试条件不同/);
+      assert.doesNotMatch(win.document.body.textContent,/Different test conditions|测试条件不同|Results use different evaluation conditions/);
       assert.equal(win.document.querySelectorAll('tbody tr').length,diagnostic.benchmarks[0].providers.length);
     }
   } finally {
@@ -842,7 +854,9 @@ test("example dialogs distinguish recorded provider responses from reference ans
   assert.doesNotMatch(html, /Reference values are not a measured result/);
   delete benchmark.example.recording;
   const reference = renderToStaticMarkup(React.createElement(ExampleDialog, {title: benchmark.name, description: benchmark.description, benchmarks: [benchmark], onClose: () => {}, t: text => text}));
-  assert.match(reference, /Reference values are not a measured result/);
+  assert.doesNotMatch(reference, /Reference values are not a measured result/);
+  assert.ok(reference.includes(benchmark.example.outputLabel));
+  assert.ok(reference.includes(benchmark.example.output));
 });
 
 test("capability profiles do not turn non-comparable timing into an efficiency advantage", () => {

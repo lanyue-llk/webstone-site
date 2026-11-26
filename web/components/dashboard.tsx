@@ -12,12 +12,11 @@ import ReleaseCheck from "./release-check";
 import { RELEASE, BUILT_AT } from "../lib/release.generated";
 import { translator } from "../lib/i18n";
 import { useLanguage } from "../lib/use-language";
-import { historicalResultCopy } from "../lib/result-copy";
+import { evaluationScopeCopy } from "../lib/result-copy";
 import { decisionMetrics, hasPricingInformation } from "../lib/comparisons";
 
 import Home, { EvaluationReports, TRACK_ICONS } from "./home";
 import { benchmarkHref, DATASETS_URL, EVALUATION_URL, SUBMISSION_URL, WEBSTONE_REPOSITORY_URL, navigationGroups } from "../lib/overview";
-const LEGACY_DATE_NOTE = "The evaluation date was not supplied; the displayed date is the date of import.";
 type Selection = { benchmark: string; version: string; metric: string };
 
 export default function Dashboard() {
@@ -88,8 +87,7 @@ export default function Dashboard() {
   const t = translator(language, catalog, snapshot);
   const result = snapshot?.benchmarks.find(item => item.id === selection.benchmark);
   const benchmark = catalog && result ? resolveBenchmark(catalog, result) : null;
-  const historicalCopy = snapshot ? historicalResultCopy(snapshot.id, language) : null;
-  const evaluationNotes = historicalCopy?.notes ?? benchmark?.notes.filter(note => note !== LEGACY_DATE_NOTE).map(t) ?? [];
+  const evaluationScope = snapshot ? evaluationScopeCopy(snapshot.id, language) : null;
   const details = catalog?.benchmarks.find(item => item.id === selection.benchmark);
   const groups = catalog ? navigationGroups(catalog) : [];
   const tracks = groups.flatMap(group => group.tracks);
@@ -268,8 +266,7 @@ export default function Dashboard() {
             <section id="results" className="leaderboard" aria-label={`${t(benchmark.name)} ${t("Leaderboard")}`}>
               <h2 className="sr-only">{t("Leaderboard")}</h2>
               <div className="table-toolbar"><span className="table-summary">{benchmark.providerCount} {t("methods")}{benchmark.taskCount === null ? "" : <> · {benchmark.taskCount.toLocaleString()} {t("cases")}</>}
-                <InfoTooltip label={t("Evaluation scope")} description={[historicalCopy?.scope ?? t(snapshot!.datasetDifference), !snapshot!.release && t("Publication date not listed"), ...evaluationNotes].filter(Boolean).join(" ")} detailsLabel={t("details")} />
-                {benchmark.rankable === false && <span className="comparison-status">{t("Different test conditions")}<InfoTooltip label={t("Different test conditions")} description={t("Results use different evaluation conditions.")} detailsLabel={t("details")} /></span>}
+                {evaluationScope && <InfoTooltip label={t("Evaluation scope")} description={evaluationScope} detailsLabel={t("details")} />}
               </span><div className="column-views table-controls" role="group" aria-label={t("Table columns")}>
                 {benchmark.categories.length > 0 && <button aria-pressed={showCategories} onClick={() => setShowCategories(current => !current)}>{t("Category breakdown")}</button>}
                 <button aria-pressed={!moreMetrics} onClick={() => {
