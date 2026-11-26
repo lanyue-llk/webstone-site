@@ -1,0 +1,148 @@
+{
+  "id": "webvoyager-v1.0.0",
+  "version": "v1.0.0",
+  "release": {
+    "date": "2026-11-26",
+    "kind": "results",
+    "previous": null,
+    "summary": "Publish the author-reported agent scores and disclosed per-task costs."
+  },
+  "datasetDifference": "The report uses a 512-task WebVoyager subset across 13 websites.",
+  "source": {
+    "kind": "report-page",
+    "url": "https://yours.lexmount.cn/artifact-site/s/m7XSPPvew0gv?version=ver_e46357402ba7440bb0372fa2e0a07d78#cmp-webvoyager",
+    "title": "Lexmount Browser Agent · 产品能力评测与真实案例白皮书",
+    "importedAt": "2026-11-26T11:40:51Z",
+    "method": "Transcribed the five rows of the author’s benchmark comparison table without recalculating scores, costs or pass counts.",
+    "scope": "webvoyager comparison table; author report snapshot ver_e46357402ba7440bb0372fa2e0a07d78.",
+    "sha256": "5d35dc07d5a67ea2e0a1151bee579503b5bda7ab427eab7491b85e5c8d0e3f04",
+    "references": [
+      {
+        "providerId": "lexmount-browser-agent",
+        "row": [
+          "Lexmount Browser Agent",
+          "98.95%",
+          "$0.02"
+        ],
+        "urls": []
+      },
+      {
+        "providerId": "browser-control-claude-fable-5",
+        "row": [
+          "browser-control + Claude Fable 5",
+          "99.19%",
+          "$1.36"
+        ],
+        "urls": [
+          "https://github.com/omxyz/webvoyager#current-results"
+        ]
+      },
+      {
+        "providerId": "alumnium-sonnet-4-6-gpt-5-nano",
+        "row": [
+          "Alumnium + Claude Code Sonnet 4.6 + GPT-5 nano",
+          "98.5%",
+          "未公开"
+        ],
+        "urls": [
+          "https://alumnium.ai/blog/webvoyager-benchmark/"
+        ]
+      },
+      {
+        "providerId": "h-company-surfer-2",
+        "row": [
+          "H Company Surfer 2",
+          "97.1%",
+          "未公开"
+        ],
+        "urls": [
+          "https://hcompany.ai/newsroom/surfer-2"
+        ]
+      },
+      {
+        "providerId": "google-gemini-2-5-computer-use",
+        "row": [
+          "Google Gemini 2.5 Computer Use",
+          "88.9%",
+          "未公开"
+        ],
+        "urls": [
+          "https://storage.googleapis.com/deepmind-media/Model-Cards/Gemini-2-5-Computer-Use-Model-Card.pdf"
+        ]
+      }
+    ],
+    "dateNote": "The result release date records publication in this repository, not the measurement date."
+  },
+  "translations": {
+    "zh": {
+      "The report uses a 512-task WebVoyager subset across 13 websites.": "报告使用 WebVoyager 中 13 个网站的 512 道任务。",
+      "agent": "浏览器智能体"
+    }
+  },
+  "benchmarks": [
+    {
+      "id": "webvoyager",
+      "definitionId": "standard",
+      "taskCount": 512,
+      "notes": [],
+      "reportUrl": "https://yours.lexmount.cn/artifact-site/s/m7XSPPvew0gv",
+      "providers": [
+        {
+          "id": "lexmount-browser-agent",
+          "name": "Lexmount Browser Agent",
+          "description": "Lexmount Browser Agent",
+          "mode": "agent",
+          "scores": {
+            "successRate": 98.95,
+            "costPerTask": 0.02
+          },
+          "passed": null
+        },
+        {
+          "id": "browser-control-claude-fable-5",
+          "name": "browser-control + Claude Fable 5",
+          "description": "browser-control + Claude Fable 5",
+          "mode": "agent",
+          "scores": {
+            "successRate": 99.19,
+            "costPerTask": 1.36
+          },
+          "passed": null
+        },
+        {
+          "id": "alumnium-sonnet-4-6-gpt-5-nano",
+          "name": "Alumnium + Claude Code Sonnet 4.6 + GPT-5 nano",
+          "description": "Alumnium + Claude Code Sonnet 4.6 + GPT-5 nano",
+          "mode": "agent",
+          "scores": {
+            "successRate": 98.5,
+            "costPerTask": null
+          },
+          "passed": null
+        },
+        {
+          "id": "h-company-surfer-2",
+          "name": "H Company Surfer 2",
+          "description": "H Company Surfer 2",
+          "mode": "agent",
+          "scores": {
+            "successRate": 97.1,
+            "costPerTask": null
+          },
+          "passed": null
+        },
+        {
+          "id": "google-gemini-2-5-computer-use",
+          "name": "Google Gemini 2.5 Computer Use",
+          "description": "Google Gemini 2.5 Computer Use",
+          "mode": "agent",
+          "scores": {
+            "successRate": 88.9,
+            "costPerTask": null
+          },
+          "passed": null
+        }
+      ]
+    }
+  ]
+}

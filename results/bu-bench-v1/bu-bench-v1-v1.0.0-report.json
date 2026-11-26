@@ -1,0 +1,148 @@
+{
+  "id": "bu-bench-v1-v1.0.0",
+  "version": "v1.0.0",
+  "release": {
+    "date": "2026-11-26",
+    "kind": "results",
+    "previous": null,
+    "summary": "Publish the author-reported agent scores and disclosed per-task costs."
+  },
+  "datasetDifference": "The source report does not specify the evaluated BU Bench v1 task selection.",
+  "source": {
+    "kind": "report-page",
+    "url": "https://yours.lexmount.cn/artifact-site/s/m7XSPPvew0gv?version=ver_e46357402ba7440bb0372fa2e0a07d78#cmp-bu",
+    "title": "Lexmount Browser Agent · 产品能力评测与真实案例白皮书",
+    "importedAt": "2026-11-26T11:40:51Z",
+    "method": "Transcribed the five rows of the author’s benchmark comparison table without recalculating scores, costs or pass counts.",
+    "scope": "bu-bench-v1 comparison table; author report snapshot ver_e46357402ba7440bb0372fa2e0a07d78.",
+    "sha256": "5d35dc07d5a67ea2e0a1151bee579503b5bda7ab427eab7491b85e5c8d0e3f04",
+    "references": [
+      {
+        "providerId": "lexmount-browser-agent",
+        "row": [
+          "Lexmount Browser Agent",
+          "93.41%",
+          "$0.10"
+        ],
+        "urls": []
+      },
+      {
+        "providerId": "cook-browser-desktop",
+        "row": [
+          "Cook Browser Desktop",
+          "94.0%",
+          "未公开"
+        ],
+        "urls": [
+          "https://trycook.ai/research"
+        ]
+      },
+      {
+        "providerId": "aside-gpt-5-5-high",
+        "row": [
+          "Aside + GPT-5.5 high",
+          "93.0%",
+          "未公开"
+        ],
+        "urls": [
+          "https://github.com/at-inc/aside-benchmarks/blob/main/bu-bench-v1/results/gpt55-20260524/run_summary.json"
+        ]
+      },
+      {
+        "providerId": "browsercode-claude-opus-4-8",
+        "row": [
+          "BrowserCode + Claude Opus 4.8",
+          "89.5%",
+          "未公开"
+        ],
+        "urls": [
+          "https://github.com/browser-use/benchmark/blob/main/official_plots/browser_harness_by_model_light.png"
+        ]
+      },
+      {
+        "providerId": "browser-use-oss-claude-fable-5",
+        "row": [
+          "Browser Use OSS + Claude Fable 5",
+          "80.0%",
+          "$5.81"
+        ],
+        "urls": [
+          "https://browser-use.com/posts/claude-fable-browser-agent-benchmark"
+        ]
+      }
+    ],
+    "dateNote": "The result release date records publication in this repository, not the measurement date."
+  },
+  "translations": {
+    "zh": {
+      "The source report does not specify the evaluated BU Bench v1 task selection.": "来源报告未注明所用 BU Bench v1 任务范围。",
+      "agent": "浏览器智能体"
+    }
+  },
+  "benchmarks": [
+    {
+      "id": "bu-bench-v1",
+      "definitionId": "standard",
+      "taskCount": null,
+      "notes": [],
+      "reportUrl": "https://yours.lexmount.cn/artifact-site/s/m7XSPPvew0gv",
+      "providers": [
+        {
+          "id": "lexmount-browser-agent",
+          "name": "Lexmount Browser Agent",
+          "description": "Lexmount Browser Agent",
+          "mode": "agent",
+          "scores": {
+            "successRate": 93.41,
+            "costPerTask": 0.1
+          },
+          "passed": null
+        },
+        {
+          "id": "cook-browser-desktop",
+          "name": "Cook Browser Desktop",
+          "description": "Cook Browser Desktop",
+          "mode": "agent",
+          "scores": {
+            "successRate": 94.0,
+            "costPerTask": null
+          },
+          "passed": null
+        },
+        {
+          "id": "aside-gpt-5-5-high",
+          "name": "Aside + GPT-5.5 high",
+          "description": "Aside + GPT-5.5 high",
+          "mode": "agent",
+          "scores": {
+            "successRate": 93.0,
+            "costPerTask": null
+          },
+          "passed": null
+        },
+        {
+          "id": "browsercode-claude-opus-4-8",
+          "name": "BrowserCode + Claude Opus 4.8",
+          "description": "BrowserCode + Claude Opus 4.8",
+          "mode": "agent",
+          "scores": {
+            "successRate": 89.5,
+            "costPerTask": null
+          },
+          "passed": null
+        },
+        {
+          "id": "browser-use-oss-claude-fable-5",
+          "name": "Browser Use OSS + Claude Fable 5",
+          "description": "Browser Use OSS + Claude Fable 5",
+          "mode": "agent",
+          "scores": {
+            "successRate": 80.0,
+            "costPerTask": 5.81
+          },
+          "passed": null
+        }
+      ]
+    }
+  ]
+}

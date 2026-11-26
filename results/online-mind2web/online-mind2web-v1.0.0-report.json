@@ -1,0 +1,148 @@
+{
+  "id": "online-mind2web-v1.0.0",
+  "version": "v1.0.0",
+  "release": {
+    "date": "2026-11-26",
+    "kind": "results",
+    "previous": null,
+    "summary": "Publish the author-reported agent scores and disclosed per-task costs."
+  },
+  "datasetDifference": "The report covers 300 Online-Mind2Web tasks. The dataset revision is not specified.",
+  "source": {
+    "kind": "report-page",
+    "url": "https://yours.lexmount.cn/artifact-site/s/m7XSPPvew0gv?version=ver_e46357402ba7440bb0372fa2e0a07d78#cmp-online",
+    "title": "Lexmount Browser Agent · 产品能力评测与真实案例白皮书",
+    "importedAt": "2026-11-26T11:40:51Z",
+    "method": "Transcribed the five rows of the author’s benchmark comparison table without recalculating scores, costs or pass counts. The Browser Use Cloud source page also identifies its result as self-reported and not human-graded.",
+    "scope": "online-mind2web comparison table; author report snapshot ver_e46357402ba7440bb0372fa2e0a07d78.",
+    "sha256": "5d35dc07d5a67ea2e0a1151bee579503b5bda7ab427eab7491b85e5c8d0e3f04",
+    "references": [
+      {
+        "providerId": "lexmount-browser-agent",
+        "row": [
+          "Lexmount Browser Agent",
+          "98.96%",
+          "$0.10"
+        ],
+        "urls": []
+      },
+      {
+        "providerId": "aside-gpt-5-5-high",
+        "row": [
+          "Aside + GPT-5.5 high",
+          "99.0%",
+          "未公开"
+        ],
+        "urls": [
+          "https://github.com/at-inc/aside-benchmarks#online-mind2web"
+        ]
+      },
+      {
+        "providerId": "browser-use-cloud",
+        "row": [
+          "Browser Use Cloud",
+          "98%",
+          "未公开"
+        ],
+        "urls": [
+          "https://browser-use.com/best-web-agents"
+        ]
+      },
+      {
+        "providerId": "dassi-gemini-3-8-flash",
+        "row": [
+          "Dassi + Gemini 3.8 Flash",
+          "96.3%",
+          "$0.32"
+        ],
+        "urls": [
+          "https://github.com/omnify-labs/dassi-evals#online-mind2web--300-tasks"
+        ]
+      },
+      {
+        "providerId": "microsoft-cuawright-gpt-5-5",
+        "row": [
+          "Microsoft CUAWright + GPT-5.5",
+          "89.4%",
+          "未公开"
+        ],
+        "urls": [
+          "https://arxiv.org/html/2610.04116v1#S3.SS1"
+        ]
+      }
+    ],
+    "dateNote": "The result release date records publication in this repository, not the measurement date."
+  },
+  "translations": {
+    "zh": {
+      "The report covers 300 Online-Mind2Web tasks. The dataset revision is not specified.": "报告覆盖 300 道 Online-Mind2Web 任务，未注明数据集版本。",
+      "agent": "浏览器智能体"
+    }
+  },
+  "benchmarks": [
+    {
+      "id": "online-mind2web",
+      "definitionId": "standard",
+      "taskCount": 300,
+      "notes": [],
+      "reportUrl": "https://yours.lexmount.cn/artifact-site/s/m7XSPPvew0gv",
+      "providers": [
+        {
+          "id": "lexmount-browser-agent",
+          "name": "Lexmount Browser Agent",
+          "description": "Lexmount Browser Agent",
+          "mode": "agent",
+          "scores": {
+            "successRate": 98.96,
+            "costPerTask": 0.1
+          },
+          "passed": null
+        },
+        {
+          "id": "aside-gpt-5-5-high",
+          "name": "Aside + GPT-5.5 high",
+          "description": "Aside + GPT-5.5 high",
+          "mode": "agent",
+          "scores": {
+            "successRate": 99.0,
+            "costPerTask": null
+          },
+          "passed": null
+        },
+        {
+          "id": "browser-use-cloud",
+          "name": "Browser Use Cloud",
+          "description": "Browser Use Cloud",
+          "mode": "agent",
+          "scores": {
+            "successRate": 98.0,
+            "costPerTask": null
+          },
+          "passed": null
+        },
+        {
+          "id": "dassi-gemini-3-8-flash",
+          "name": "Dassi + Gemini 3.8 Flash",
+          "description": "Dassi + Gemini 3.8 Flash",
+          "mode": "agent",
+          "scores": {
+            "successRate": 96.3,
+            "costPerTask": 0.32
+          },
+          "passed": null
+        },
+        {
+          "id": "microsoft-cuawright-gpt-5-5",
+          "name": "Microsoft CUAWright + GPT-5.5",
+          "description": "Microsoft CUAWright + GPT-5.5",
+          "mode": "agent",
+          "scores": {
+            "successRate": 89.4,
+            "costPerTask": null
+          },
+          "passed": null
+        }
+      ]
+    }
+  ]
+}
