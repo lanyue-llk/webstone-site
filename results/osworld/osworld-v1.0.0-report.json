@@ -1,0 +1,148 @@
+{
+  "id": "osworld-v1.0.0",
+  "version": "v1.0.0",
+  "release": {
+    "date": "2026-11-26",
+    "kind": "results",
+    "previous": null,
+    "summary": "Publish the author-reported agent scores and disclosed per-task costs."
+  },
+  "datasetDifference": "The report uses 75 OSWorld browser and web-to-document tasks.",
+  "source": {
+    "kind": "report-page",
+    "url": "https://yours.lexmount.cn/artifact-site/s/m7XSPPvew0gv?version=ver_e46357402ba7440bb0372fa2e0a07d78#cmp-osworld",
+    "title": "Lexmount Browser Agent · 产品能力评测与真实案例白皮书",
+    "importedAt": "2026-11-26T11:40:51Z",
+    "method": "Transcribed the five rows of the author’s benchmark comparison table without recalculating scores, costs or pass counts.",
+    "scope": "osworld comparison table; author report snapshot ver_e46357402ba7440bb0372fa2e0a07d78.",
+    "sha256": "5d35dc07d5a67ea2e0a1151bee579503b5bda7ab427eab7491b85e5c8d0e3f04",
+    "references": [
+      {
+        "providerId": "lexmount-browser-agent",
+        "row": [
+          "Lexmount Browser Agent",
+          "85.96%",
+          "$0.06"
+        ],
+        "urls": []
+      },
+      {
+        "providerId": "ouroboros-claude-opus-5",
+        "row": [
+          "Ouroboros + Claude Opus 5",
+          "86.25%",
+          "未公开"
+        ],
+        "urls": [
+          "https://huggingface.co/datasets/razzant/ouroboros-osworld-verified-opus5"
+        ]
+      },
+      {
+        "providerId": "ouroboros-claude-sonnet-4-6",
+        "row": [
+          "Ouroboros + Claude Sonnet 4.6",
+          "83.58%",
+          "未公开"
+        ],
+        "urls": [
+          "https://huggingface.co/datasets/razzant/ouroboros-osworld-verified-sonnet46"
+        ]
+      },
+      {
+        "providerId": "intelligence-indeed-agent",
+        "row": [
+          "Intelligence-Indeed Agent",
+          "78.24%",
+          "未公开"
+        ],
+        "urls": [
+          "https://huggingface.co/datasets/xlangai/ubuntu_osworld_verified_trajs/blob/main/intelligence-indeed-claude-sonnet-4-6-opus-4-7-nogdrive-100steps.zip"
+        ]
+      },
+      {
+        "providerId": "claude-computer-use-fable-5",
+        "row": [
+          "Claude Computer Use + Claude Fable 5",
+          "77.06%",
+          "未公开"
+        ],
+        "urls": [
+          "https://huggingface.co/datasets/xlangai/ubuntu_osworld_verified_trajs/blob/main/results_fable5_task218872_osworld1.0_shareable.zip"
+        ]
+      }
+    ],
+    "dateNote": "The result release date records publication in this repository, not the measurement date."
+  },
+  "translations": {
+    "zh": {
+      "The report uses 75 OSWorld browser and web-to-document tasks.": "报告使用 75 道 OSWorld 浏览器及网页与文档联动任务。",
+      "agent": "浏览器智能体"
+    }
+  },
+  "benchmarks": [
+    {
+      "id": "osworld",
+      "definitionId": "standard",
+      "taskCount": 75,
+      "notes": [],
+      "reportUrl": "https://yours.lexmount.cn/artifact-site/s/m7XSPPvew0gv",
+      "providers": [
+        {
+          "id": "lexmount-browser-agent",
+          "name": "Lexmount Browser Agent",
+          "description": "Lexmount Browser Agent",
+          "mode": "agent",
+          "scores": {
+            "scoreRate": 85.96,
+            "costPerTask": 0.06
+          },
+          "passed": null
+        },
+        {
+          "id": "ouroboros-claude-opus-5",
+          "name": "Ouroboros + Claude Opus 5",
+          "description": "Ouroboros + Claude Opus 5",
+          "mode": "agent",
+          "scores": {
+            "scoreRate": 86.25,
+            "costPerTask": null
+          },
+          "passed": null
+        },
+        {
+          "id": "ouroboros-claude-sonnet-4-6",
+          "name": "Ouroboros + Claude Sonnet 4.6",
+          "description": "Ouroboros + Claude Sonnet 4.6",
+          "mode": "agent",
+          "scores": {
+            "scoreRate": 83.58,
+            "costPerTask": null
+          },
+          "passed": null
+        },
+        {
+          "id": "intelligence-indeed-agent",
+          "name": "Intelligence-Indeed Agent",
+          "description": "Intelligence-Indeed Agent",
+          "mode": "agent",
+          "scores": {
+            "scoreRate": 78.24,
+            "costPerTask": null
+          },
+          "passed": null
+        },
+        {
+          "id": "claude-computer-use-fable-5",
+          "name": "Claude Computer Use + Claude Fable 5",
+          "description": "Claude Computer Use + Claude Fable 5",
+          "mode": "agent",
+          "scores": {
+            "scoreRate": 77.06,
+            "costPerTask": null
+          },
+          "passed": null
+        }
+      ]
+    }
+  ]
+}

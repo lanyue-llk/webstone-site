@@ -45,7 +45,23 @@
     "bocha-ai": "https://github.com/Bocha-Labs/bocha-skills",
     "bocha-summary": "https://github.com/Bocha-Labs/bocha-skills",
     "moli-pr785-fixed": "https://github.com/lexmount/moli",
-    "moli-content-fixed": "https://github.com/lexmount/moli"
+    "moli-content-fixed": "https://github.com/lexmount/moli",
+    "lexmount-browser-agent": "https://browser.lexmount.com/",
+    "cook-browser-desktop": "https://trycook.ai/",
+    "aside-gpt-5-5-high": "https://github.com/at-inc/aside-benchmarks",
+    "browsercode-claude-opus-4-8": "https://github.com/browser-use/browsercode",
+    "browser-use-oss-claude-fable-5": "https://github.com/browser-use/browser-use",
+    "browser-use-cloud": "https://browser-use.com/",
+    "dassi-gemini-3-8-flash": "https://github.com/omnify-labs/dassi-evals",
+    "microsoft-cuawright-gpt-5-5": "https://github.com/microsoft/CUAWright",
+    "browser-control-claude-fable-5": "https://github.com/omxyz/webvoyager",
+    "alumnium-sonnet-4-6-gpt-5-nano": "https://alumnium.ai/",
+    "h-company-surfer-2": "https://hcompany.ai/",
+    "google-gemini-2-5-computer-use": "https://ai.google.dev/gemini-api/docs/computer-use",
+    "ouroboros-claude-opus-5": "https://github.com/razzant/ouroboros",
+    "ouroboros-claude-sonnet-4-6": "https://github.com/razzant/ouroboros",
+    "intelligence-indeed-agent": "https://github.com/intelligence-indeed",
+    "claude-computer-use-fable-5": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool"
   },
   "navigationGroups": [
     {
