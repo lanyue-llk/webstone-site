@@ -4,13 +4,18 @@ import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSyn
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { checkResultChange as checkResultChangeRaw, checkGitChange, validateReleaseChange } from "../scripts/check-result-change.mjs";
+import { checkResultChange as checkResultChangeRaw, checkGitChange, validateReleaseChange, validateBrowserCohort } from "../scripts/check-result-change.mjs";
 
 const catalog = JSON.parse(readFileSync(new URL("../benchmarks/catalog.json", import.meta.url), "utf8"));
 const original = JSON.parse(readFileSync(new URL("../results/lexbench-webfetch/lexbench-webfetch-v1-report.json", import.meta.url), "utf8"));
+// The publication fixture contains one measured version per browser.
+original.benchmarks[0].providers = original.benchmarks[0].providers.filter(provider => provider.id !== "moli-1-1-15");
 const published = ["results/lexbench-webfetch/lexbench-webfetch-v1-report.json"];
 const versionName = version => typeof version === "number" ? `v1.${version - 1}.0` : version;
-const report = version => ({ ...structuredClone(original), source: { ...original.source, url: "https://example.com/evaluation" }, id: `lexbench-webfetch-${versionName(version)}`, version: versionName(version), release: { date: "2026-11-16", kind: "results", previous: typeof version === "number" && version > 2 ? `v1.${version - 2}.0` : "v1.0.0", summary: "Publish evaluation results." } });
+const report = version => {
+  const candidate = { ...structuredClone(original), source: { ...original.source, url: "https://example.com/evaluation" }, id: `lexbench-webfetch-${versionName(version)}`, version: versionName(version), release: { date: "2026-11-16", kind: "results", previous: typeof version === "number" && version > 2 ? `v1.${version - 2}.0` : "v1.0.0", summary: "Publish evaluation results." } };
+  return candidate;
+};
 const addition = version => ({ path: `results/lexbench-webfetch/lexbench-webfetch-${versionName(version)}-report.json`, status: "A", mode: "100644", content: JSON.stringify(report(version)) });
 const checkResultChange = (before, after, changes, paths, prior = new Map([[published[0], original]])) => checkResultChangeRaw(before, after, changes, paths, prior);
 
@@ -33,16 +38,18 @@ test("result submissions add the next version without changing definitions or hi
 });
 
 test("external submissions can add their own public project and evidence URLs", () => {
-  const next = structuredClone(catalog);
+  const registered = structuredClone(catalog);
+  registered.browserProjects.external = ["https://example.com/product"];
+  const next = structuredClone(registered);
   next.providerUrls["new-method"] = "https://example.com/product";
   const data = report(2);
   data.source.url = "https://example.com/evaluation";
   data.source.kind = "report-page";
   data.benchmarks[0].providers[0].id = "new-method";
   const change = { ...addition(2), content: JSON.stringify(data) };
-  assert.deepEqual(checkResultChange(catalog, next, [change], published), { reports: 1 });
+  assert.deepEqual(checkResultChange(registered, next, [change], published), { reports: 1 });
   next.providerUrls.moli = "https://example.com/replacement";
-  assert.throws(() => checkResultChange(catalog, next, [change], published), /Existing participant URLs/);
+  assert.throws(() => checkResultChange(registered, next, [change], published), /Existing participant URLs/);
   const invalid = report(2);
   invalid.source.url = "http://example.com/report";
   assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: JSON.stringify(invalid) }], published), /HTTPS source/);
@@ -207,4 +214,66 @@ test("metadata may correct pricing wording while preserving all numeric pricing 
   assert.deepEqual(checkResultChange(catalog, catalog, [change], [previousPath], new Map([[previousPath, previous]])), { reports: 1 });
   pricing.min += 1;
   assert.throws(() => validateReleaseChange(previous, metadata), /cannot change measurements/);
+});
+
+
+test("new browser comparisons reject multiple configurations of one project", () => {
+  const candidate = report(2);
+  const first = candidate.benchmarks[0].providers.find(provider => provider.id === "moli-1-1-17");
+  assert.ok(first);
+  candidate.benchmarks[0].providers.push({ ...structuredClone(first), id: "moli-1-1-15", name: "Moli other build" });
+  assert.throws(() => checkResultChange(catalog, catalog, [{ ...addition(2), content: JSON.stringify(candidate) }], published), /one configuration per browser/i);
+});
+
+
+test("cohort policy keeps real service tiers and explicit Headless build comparisons", () => {
+  for (const [id, version] of [["lexbench-headless-372", "v2.0.0"], ["lexbench-websearch", "v2"]]) {
+    const snapshot = JSON.parse(readFileSync(new URL(`../results/${id}/${id}-${version}-report.json`, import.meta.url)));
+    assert.doesNotThrow(() => validateBrowserCohort(catalog, snapshot.benchmarks[0]));
+  }
+});
+
+test("unchanged historical cohorts still allow metadata-only corrections", () => {
+  const legacy = JSON.parse(readFileSync(new URL('../results/lexbench-webfetch/lexbench-webfetch-v2.0.0-report.json', import.meta.url)));
+  assert.equal(legacy.benchmarks[0].providers.filter(provider => provider.name.startsWith('Moli')).length, 2);
+  const candidate = structuredClone(legacy);
+  candidate.id = 'lexbench-webfetch-v2.0.1';
+  candidate.version = 'v2.0.1';
+  candidate.release = { date: legacy.release.date, kind: 'metadata', previous: 'v2.0.0', summary: 'Clarify the existing task scope.' };
+  candidate.benchmarks[0].notes.push('Task populations remain unchanged.');
+  const change = { path: 'results/lexbench-webfetch/lexbench-webfetch-v2.0.1-report.json', status: 'A', mode: '100644', content: JSON.stringify(candidate) };
+  const paths = ['results/lexbench-webfetch/lexbench-webfetch-v2.0.0-report.json'];
+  assert.deepEqual(checkResultChange(catalog, catalog, [change], paths, new Map([[paths[0], legacy]])), { reports: 1 });
+});
+
+test("GitHub repository URL aliases cannot publish duplicate browser builds", () => {
+  for (const url of ['https://github.com/lexmount/moli.git', 'https://github.com/LEXMOUNT/Moli/', 'https://www.github.com/lexmount/moli/tree/main', 'https://github.com/lexmount/%6doli', 'https://github.com./lexmount/moli', 'https://www.github.com./lexmount/moli']) {
+    const updatedCatalog = structuredClone(catalog);
+    updatedCatalog.providerUrls['another-moli-build'] = url;
+    const candidate = report(2);
+    const first = candidate.benchmarks[0].providers.find(provider => provider.id === 'moli-1-1-17');
+    candidate.benchmarks[0].providers.push({ ...structuredClone(first), id: 'another-moli-build', name: 'Moli another build' });
+    assert.throws(() => checkResultChange(catalog, updatedCatalog, [{ ...addition(2), content: JSON.stringify(candidate) }], published), /one configuration per browser/i);
+  }
+});
+
+
+test("official-site paths cannot establish a separate browser project", () => {
+  const updated = structuredClone(catalog);
+  updated.providerUrls['kitesurf-another-build'] = 'https://kitesurf.dev/build-2';
+  const candidate = report(2);
+  const first = candidate.benchmarks[0].providers.find(provider => provider.id === 'kitesurf');
+  candidate.benchmarks[0].providers.push({ ...structuredClone(first), id: 'kitesurf-another-build', name: 'Kitesurf another build' });
+  assert.throws(() => checkResultChange(catalog, updated, [{ ...addition(2), content: JSON.stringify(candidate) }], published), /one configuration per browser/i);
+});
+
+test("a result submission cannot register its own browser project identity", () => {
+  const updated = structuredClone(catalog);
+  updated.providerUrls['unreviewed-browser'] = 'https://example.com/browser';
+  const candidate = report(2);
+  candidate.benchmarks[0].providers[0].id = 'unreviewed-browser';
+  const change = { ...addition(2), content: JSON.stringify(candidate) };
+  assert.throws(() => checkResultChange(catalog, updated, [change], published), /registered browser project/i);
+  updated.browserProjects = { ...updated.browserProjects, unreviewed: ['https://example.com/browser'] };
+  assert.throws(() => checkResultChange(catalog, updated, [change], published), /separate pull request/i);
 });

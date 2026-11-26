@@ -62,6 +62,7 @@ export function checkResultChange(baseCatalog, catalog, changes, publishedPaths,
     rejectCredentials(report);
     if (!publicEvidenceUrl(report.source?.url)) throw new Error("New submissions require a public HTTPS source URL with a DNS hostname and no credentials.");
     validateSnapshot(report, entry, catalog);
+    if (report.release.kind !== "metadata") validateBrowserCohort(catalog, report.benchmarks[0]);
     return { entry, report };
   }).sort((a, b) => a.entry.benchmarkId.localeCompare(b.entry.benchmarkId) || compareVersions(a.entry.version, b.entry.version));
   const participants = new Set(reports.flatMap(({ report }) => report.benchmarks[0].providers.map(provider => provider.id)));
@@ -83,6 +84,40 @@ export function checkResultChange(baseCatalog, catalog, changes, publishedPaths,
     reportsByPath.set(`${entry.benchmarkId}/${entry.version}`, report);
   }
   return { reports: reports.length };
+}
+
+// Standard browser comparisons publish one configuration per verified project.
+// The historical Headless Browser protocol explicitly compares build/layout variants.
+export function validateBrowserCohort(catalog, benchmark) {
+  const info = catalog.benchmarks.find(item => item.id === benchmark.id);
+  if (info?.trackId !== "webfetch" && benchmark.id !== "webarena-verified") return;
+  const identities = new Map();
+  for (const [id, aliases] of Object.entries(catalog.browserProjects ?? {})) {
+    for (const alias of aliases) {
+      const key = browserProjectKey(alias);
+      if (identities.has(key)) throw new Error("Browser project aliases must identify one registered project.");
+      identities.set(key, id);
+    }
+  }
+  const projects = new Set();
+  for (const provider of benchmark.providers) {
+    const project = identities.get(browserProjectKey(catalog.providerUrls[provider.id]));
+    if (!project) throw new Error("A new browser or domain alias needs a registered browser project in a separate reviewed catalog pull request.");
+    if (projects.has(project)) throw new Error("Public comparisons allow one configuration per browser.");
+    projects.add(project);
+  }
+}
+
+function browserProjectKey(value) {
+  const url = new URL(value);
+  url.hostname = url.hostname.replace(/\.$/, "");
+  const hostname = url.hostname.replace(/^www\./, "");
+  // GitHub hosts many projects; a product's own domain identifies its project.
+  const parts = url.pathname.split("/").filter(Boolean).map(part => decodeURIComponent(part));
+  if (hostname === "github.com" && parts.length >= 2) {
+    return `github:${parts[0].toLowerCase()}/${parts[1].replace(/\.git$/i, "").toLowerCase()}`;
+  }
+  return hostname;
 }
 
 function population(benchmark) {
