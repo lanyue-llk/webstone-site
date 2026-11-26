@@ -99,6 +99,7 @@
             "id": "moli",
             "name": "Moli",
             "providerIds": [
+              "moli",
               "moli-1-1-17",
               "moli-content-fixed"
             ]

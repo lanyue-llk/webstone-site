@@ -543,3 +543,9 @@ test('overview participant IDs cannot use coercible non-string values',()=>{
     assert.throws(()=>validateCatalog(invalid),/Invalid overview method group/);
   }
 });
+
+test('overview group IDs cannot collide with an unrelated registered participant',()=>{
+  const invalid=structuredClone(catalog);
+  invalid.tracks.find(track=>track.id==='webfetch').overview.methodGroups[0].id='serper';
+  assert.throws(()=>validateCatalog(invalid),/collides/);
+});

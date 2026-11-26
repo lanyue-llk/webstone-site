@@ -191,79 +191,11 @@ export default function Dashboard() {
     >{item.unit === "usd" && catalog?.pricingSources?.[provider.id]?.length ? <div className="metric-heading"><span>{formatMetric(value, item.unit, item.decimals, item.signed)}</span><InfoTooltip label={`${provider.name} · ${t("Billing basis")}`} description={t(provider.billingDescription ?? "The table retains the evaluation report’s quoted price. Official rates may change.")} sources={catalog.pricingSources[provider.id]} sourcesLabel={t("Official pricing")} detailsLabel={t("details")} /></div> : formatMetric(value, item.unit, item.decimals, item.signed, provider.counts?.[item.id])}{isBest && <span className="sr-only"> {t("Best in this column")}</span>}</td>;
   }
 
-  return <div className="app-shell">
-    <ReleaseCheck />
-    <a className="skip-link" href="#main">{t("Skip to results")}</a>
-    {menuOpen && <button className="sidebar-scrim" aria-label={t("Close navigation")} onClick={() => setMenuOpen(false)} />}
-    <aside className={`sidebar ${menuOpen ? "is-open" : ""}`}>
-      <a href="/" className="brand" aria-label={t("Webstone home")}><span className="brand-heading"><span className="brand-mark" aria-hidden="true"><img src="/brand/webstone.png" alt="" width={1536} height={820} /></span><span>Webstone</span></span></a>
-      <nav className="grouped-navigation" aria-label={t("Benchmark navigation")}>{groups.map(group => <section key={group.id} className="nav-group" aria-labelledby={`navigation-${group.id}`}><h2 id={`navigation-${group.id}`}>{t(group.name)}</h2>{group.tracks.map(item => {
-        const Icon = TRACK_ICONS[item.id] ?? Layers3;
-        if (item.url) return <a key={item.id} className="nav-item" href={item.url} target="_blank" rel="noopener noreferrer" aria-label={`${t(item.name)} (${t("opens in a new tab")})`}>
-          <Icon size={17} aria-hidden="true" /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span><ArrowUpRight className="track-external" size={14} aria-hidden="true" />
-        </a>;
-        return <div key={item.id} className="nav-track"><button
-          className={`nav-item ${track?.id === item.id ? "active" : ""}`}
-          aria-current={track?.id === item.id ? "page" : undefined}
-          onClick={() => { if(item.overview) chooseTrack(item.id); else chooseBenchmark(item.benchmarks[0].id); }}
-        ><Icon size={17} /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span></button>
-
-        </div>;
-      })}{group.upcoming.map(item => <div key={item.id} className="nav-upcoming">
-        <CircleDashed size={16} aria-hidden="true" /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span><span className="upcoming-badge">{t("Coming soon")}</span>
-      </div>)}</section>)}</nav>
-      <div className="sidebar-guides">
-        <a href={EVALUATION_URL} target="_blank" rel="noreferrer" aria-label={`${t("Run an evaluation")} · lexmount/webstone`}>
-          <Github /><span>{t("Run an evaluation")}<small>webstone</small></span><ArrowUpRight size={13} aria-hidden="true" />
-        </a>
-        <a href={SUBMISSION_URL} target="_blank" rel="noreferrer" aria-label={`${t("Submit results")} · lexmount/webstone-site`}>
-          <Github /><span>{t("Submit results")}<small>webstone-site</small></span><ArrowUpRight size={13} aria-hidden="true" />
-        </a>
-        <a href={DATASETS_URL} target="_blank" rel="noreferrer" aria-label={t("Datasets")}>
-          <img src="/huggingface.svg" width="16" height="16" alt="" aria-hidden="true" /><span>{t("Datasets")}</span><ArrowUpRight size={13} aria-hidden="true" />
-        </a>
-      </div>
-      <div className="sidebar-footer">
-        <div className="language-control" role="group" aria-label="Language / 语言"><button lang="en" aria-pressed={language === "en"} onClick={() => chooseLanguage("en")}>EN</button><button lang="zh" aria-pressed={language === "zh"} onClick={() => chooseLanguage("zh")}>中文</button></div>
-        <a className="nav-star" href={WEBSTONE_REPOSITORY_URL} target="_blank" rel="noreferrer" aria-label={t("Star Webstone on GitHub")}><Star size={14} aria-hidden="true" />Star<ArrowUpRight size={12} aria-hidden="true" /></a>
-      </div>
-    </aside>
-
-    <div className="main-shell">
-      <div className="benchmark-tabs-bar"><button className="mobile-menu icon-button" aria-label={t("Open navigation")} onClick={() => setMenuOpen(true)}><Menu size={20} /></button>          {track && <div className="benchmark-navigation" role="group" aria-label={t("Benchmarks")}>
-            {track.overview && <button aria-current={overviewTrack ? 'page' : undefined} onClick={()=>chooseTrack(track.id)}>{t('Overview')}</button>}
-            {track.benchmarks.filter(bench => !bench.outputLayer || bench.outputLayer === "L1").map(bench => {
-              const active = bench.searchGroup ? details?.searchGroup === bench.searchGroup : selection.benchmark === bench.id;
-              return <button key={bench.id} aria-current={active ? "page" : undefined} onClick={() => {
-                const target = bench.searchGroup ? catalog?.benchmarks.find(candidate => candidate.searchGroup === bench.searchGroup && candidate.outputLayer === (details?.outputLayer ?? overviewLayer)) : bench;
-                chooseBenchmark(target?.id ?? bench.id);
-              }}>{bench.name}</button>;
-            })}
-          </div>}</div>
-      {(selection.benchmark || overviewTrack) && <header className="topbar">
-        <div className="title-group">
-          <div className="benchmark-heading"><h1>{overviewTrack ? `${track?.name} · ${t("Overview")}` : details ? t(details.name) : "Webstone"}</h1>
-            {overviewTrack && <p className="benchmark-description">{t("Latest results across benchmarks.")}</p>}
-            {details && <p className="benchmark-description">{t(details.description)}</p>}
-            {details && <div className="benchmark-links">
-              <a href={details.datasetUrl} target="_blank" rel="noreferrer" aria-label={`${t("Dataset")}: ${details.datasetName}`}>{new URL(details.datasetUrl).hostname === "github.com" ? <Github /> : <img src="/huggingface.svg" width={16} height={16} alt="" aria-hidden="true" />}{t("Dataset")}<ArrowUpRight size={13} aria-hidden="true" /></a>
-              {details.example && <button type="button" className="example-open" aria-haspopup="dialog" onClick={() => setShowExample(true)}>{t("See an example")}</button>}
-              <a href="#reports">{t("Reports")}<ArrowDown size={13} aria-hidden="true" /></a>
-            </div>}
-
-          </div>
-        </div>
-        <div className="topbar-actions">
-          {entry && <a className="download-link" href={`/results/${entry.file}`} download aria-label={t("Download Report")}><ArrowDownToLine size={17} aria-hidden="true" /><span>{t("Download Report")}</span></a>}
-          <a className="submit-result-link" href={SUBMISSION_URL} target="_blank" rel="noreferrer">{t("Submit results")} <ArrowUpRight size={13} aria-hidden="true" /></a>
-          <span className="site-updated">{t("Website updated")} <time dateTime={BUILT_AT}>{BUILT_AT.slice(0, 16).replace("T", " ")} UTC</time></span>
-        </div>
-      </header>}
-
-      <main id="main" className="main-content">
-        {!entries && !error && <div className="loading-panel" role="status">{t("Loading…")}</div>}
-        {error && <div className="empty-state" role="alert"><p>{t(error)}</p><button className="text-button" onClick={() => window.location.reload()}>{t("Retry")}</button></div>}
-        {entries && catalog && (overviewTrack ? <TrackResults key={overviewTrack} catalog={catalog} snapshots={snapshots} trackId={overviewTrack} layer={overviewLayer} onLayer={value=>{window.scrollTo({top:0,left:0,behavior:"instant"});setOverviewLayer(value);}} t={t} language={language}/> : !selection.benchmark ? <Home catalog={catalog} snapshots={snapshots} t={t} language={language} /> : <>
+  function renderResults() {
+    if (!entries || !catalog) return null;
+    if (overviewTrack) return <TrackResults key={overviewTrack} catalog={catalog} snapshots={snapshots} trackId={overviewTrack} layer={overviewLayer} onLayer={value=>{window.scrollTo({top:0,left:0,behavior:"instant"});setOverviewLayer(value);}} t={t} language={language}/>;
+    if (!selection.benchmark) return <Home catalog={catalog} snapshots={snapshots} t={t} language={language}/>;
+    return <>
           <div className="results-controls">
             {details?.searchGroup ? <div className="search-selectors">
               <div className="column-views layer-control" role="group" aria-label={t("Output layer")}>{(["L1", "L2", "L3"] as const).map((layer, index) => <button key={layer} aria-pressed={details.outputLayer === layer} onClick={() => {
@@ -333,7 +265,90 @@ export default function Dashboard() {
             {details && <EvaluationReports key={selection.benchmark} catalog={catalog} snapshots={snapshots} current={details} t={t} language={language} />}
             <MethodDetails provider={selectedProvider} benchmark={benchmark} t={t} onClose={() => setSelectedProvider(null)} />
           </>}
-        </>)}
+        </>;
+  }
+
+  function pageTitle() {
+    if (overviewTrack) return `${track?.name} · ${t("Overview")}`;
+    if (details) return t(details.name);
+    return "Webstone";
+  }
+
+  return <div className="app-shell">
+    <ReleaseCheck />
+    <a className="skip-link" href="#main">{t("Skip to results")}</a>
+    {menuOpen && <button className="sidebar-scrim" aria-label={t("Close navigation")} onClick={() => setMenuOpen(false)} />}
+    <aside className={`sidebar ${menuOpen ? "is-open" : ""}`}>
+      <a href="/" className="brand" aria-label={t("Webstone home")}><span className="brand-heading"><span className="brand-mark" aria-hidden="true"><img src="/brand/webstone.png" alt="" width={1536} height={820} /></span><span>Webstone</span></span></a>
+      <nav className="grouped-navigation" aria-label={t("Benchmark navigation")}>{groups.map(group => <section key={group.id} className="nav-group" aria-labelledby={`navigation-${group.id}`}><h2 id={`navigation-${group.id}`}>{t(group.name)}</h2>{group.tracks.map(item => {
+        const Icon = TRACK_ICONS[item.id] ?? Layers3;
+        if (item.url) return <a key={item.id} className="nav-item" href={item.url} target="_blank" rel="noopener noreferrer" aria-label={`${t(item.name)} (${t("opens in a new tab")})`}>
+          <Icon size={17} aria-hidden="true" /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span><ArrowUpRight className="track-external" size={14} aria-hidden="true" />
+        </a>;
+        return <div key={item.id} className="nav-track"><button
+          className={`nav-item ${track?.id === item.id ? "active" : ""}`}
+          aria-current={track?.id === item.id ? "page" : undefined}
+          onClick={() => { if (item.overview) chooseTrack(item.id);
+            else if (track?.id === item.id) { window.scrollTo({top:0,left:0,behavior:'instant'}); setMenuOpen(false); }
+            else chooseBenchmark(item.benchmarks[0].id); }}
+        ><Icon size={17} /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span></button>
+
+        </div>;
+      })}{group.upcoming.map(item => <div key={item.id} className="nav-upcoming">
+        <CircleDashed size={16} aria-hidden="true" /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span><span className="upcoming-badge">{t("Coming soon")}</span>
+      </div>)}</section>)}</nav>
+      <div className="sidebar-guides">
+        <a href={EVALUATION_URL} target="_blank" rel="noreferrer" aria-label={`${t("Run an evaluation")} · lexmount/webstone`}>
+          <Github /><span>{t("Run an evaluation")}<small>webstone</small></span><ArrowUpRight size={13} aria-hidden="true" />
+        </a>
+        <a href={SUBMISSION_URL} target="_blank" rel="noreferrer" aria-label={`${t("Submit results")} · lexmount/webstone-site`}>
+          <Github /><span>{t("Submit results")}<small>webstone-site</small></span><ArrowUpRight size={13} aria-hidden="true" />
+        </a>
+        <a href={DATASETS_URL} target="_blank" rel="noreferrer" aria-label={t("Datasets")}>
+          <img src="/huggingface.svg" width="16" height="16" alt="" aria-hidden="true" /><span>{t("Datasets")}</span><ArrowUpRight size={13} aria-hidden="true" />
+        </a>
+      </div>
+      <div className="sidebar-footer">
+        <div className="language-control" role="group" aria-label="Language / 语言"><button lang="en" aria-pressed={language === "en"} onClick={() => chooseLanguage("en")}>EN</button><button lang="zh" aria-pressed={language === "zh"} onClick={() => chooseLanguage("zh")}>中文</button></div>
+        <a className="nav-star" href={WEBSTONE_REPOSITORY_URL} target="_blank" rel="noreferrer" aria-label={t("Star Webstone on GitHub")}><Star size={14} aria-hidden="true" />Star<ArrowUpRight size={12} aria-hidden="true" /></a>
+      </div>
+    </aside>
+
+    <div className="main-shell">
+      <div className="benchmark-tabs-bar"><button className="mobile-menu icon-button" aria-label={t("Open navigation")} onClick={() => setMenuOpen(true)}><Menu size={20} /></button>          {track && <div className="benchmark-navigation" role="group" aria-label={t("Benchmarks")}>
+            {track.overview && <button aria-current={overviewTrack ? 'page' : undefined} onClick={()=>chooseTrack(track.id)}>{t('Overview')}</button>}
+            {track.benchmarks.filter(bench => !bench.outputLayer || bench.outputLayer === "L1").map(bench => {
+              const active = bench.searchGroup ? details?.searchGroup === bench.searchGroup : selection.benchmark === bench.id;
+              return <button key={bench.id} aria-current={active ? "page" : undefined} onClick={() => {
+                const target = bench.searchGroup ? catalog?.benchmarks.find(candidate => candidate.searchGroup === bench.searchGroup && candidate.outputLayer === (details?.outputLayer ?? overviewLayer)) : bench;
+                chooseBenchmark(target?.id ?? bench.id);
+              }}>{bench.name}</button>;
+            })}
+          </div>}</div>
+      {(selection.benchmark || overviewTrack) && <header className="topbar">
+        <div className="title-group">
+          <div className="benchmark-heading"><h1>{pageTitle()}</h1>
+            {overviewTrack && <p className="benchmark-description">{t("Latest results across benchmarks.")}</p>}
+            {details && <p className="benchmark-description">{t(details.description)}</p>}
+            {details && <div className="benchmark-links">
+              <a href={details.datasetUrl} target="_blank" rel="noreferrer" aria-label={`${t("Dataset")}: ${details.datasetName}`}>{new URL(details.datasetUrl).hostname === "github.com" ? <Github /> : <img src="/huggingface.svg" width={16} height={16} alt="" aria-hidden="true" />}{t("Dataset")}<ArrowUpRight size={13} aria-hidden="true" /></a>
+              {details.example && <button type="button" className="example-open" aria-haspopup="dialog" onClick={() => setShowExample(true)}>{t("See an example")}</button>}
+              <a href="#reports">{t("Reports")}<ArrowDown size={13} aria-hidden="true" /></a>
+            </div>}
+
+          </div>
+        </div>
+        <div className="topbar-actions">
+          {entry && <a className="download-link" href={`/results/${entry.file}`} download aria-label={t("Download Report")}><ArrowDownToLine size={17} aria-hidden="true" /><span>{t("Download Report")}</span></a>}
+          <a className="submit-result-link" href={SUBMISSION_URL} target="_blank" rel="noreferrer">{t("Submit results")} <ArrowUpRight size={13} aria-hidden="true" /></a>
+          <span className="site-updated">{t("Website updated")} <time dateTime={BUILT_AT}>{BUILT_AT.slice(0, 16).replace("T", " ")} UTC</time></span>
+        </div>
+      </header>}
+
+      <main id="main" className="main-content">
+        {!entries && !error && <div className="loading-panel" role="status">{t("Loading…")}</div>}
+        {error && <div className="empty-state" role="alert"><p>{t(error)}</p><button className="text-button" onClick={() => window.location.reload()}>{t("Retry")}</button></div>}
+        {renderResults()}
         {showExample && details && <ExampleDialog key={details.id} title={details.name} description={details.description} benchmarks={[details]} onClose={() => setShowExample(false)} t={t} />}
       </main>
     </div>

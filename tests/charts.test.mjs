@@ -1054,3 +1054,25 @@ test('track overview URLs, individual tabs and search layers retain the correct 
     }finally{await React.act(async()=>root.unmount());await win.happyDOM.close();}
   }}finally{[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
 });
+
+test('clicking an active Track without an overview preserves the selected edition and metric',async()=>{
+  const {prepareData}=await import('../scripts/prepare-data.mjs');await prepareData();
+  const reports=JSON.parse(readFileSync(new URL('../web/public/results/reports.json',import.meta.url)));
+  const {RELEASE}=require('../web/lib/release.generated.ts');
+  const Dashboard=require('../web/components/dashboard.tsx').default;
+  const previous=[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT];
+  try{for(const [id,metric,track] of [['lexbench-swde','valueMicroF1','Web Extract'],['webarena-verified','actionP95','Trajectory Replay']]){
+    const win=new Window({url:`https://webstone.test/?benchmark=${id}&version=v1.0.0&metric=${metric}`});
+    [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+    globalThis.fetch=async input=>new Response(JSON.stringify(String(input).includes('/benchmarks/')?catalog:String(input).includes('/results/')?reports:{release:RELEASE}));
+    const container=win.document.createElement('div');win.document.body.append(container);const root=require('react-dom/client').createRoot(container);
+    try{
+      await React.act(async()=>root.render(React.createElement(Dashboard)));
+      const before=win.location.search;let top=900;win.scrollTo=options=>{top=options.top;};
+      await React.act(async()=>[...container.querySelectorAll('.grouped-navigation button')].find(button=>button.textContent.startsWith(track)).click());
+      assert.equal(win.location.search,before);
+      assert.equal(container.querySelector('#result-version').value,'v1.0.0');
+      assert.equal(top,0);
+    }finally{await React.act(async()=>root.unmount());await win.happyDOM.close();}
+  }}finally{[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
+});

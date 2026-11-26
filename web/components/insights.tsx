@@ -38,25 +38,8 @@ export default function Insights({ benchmark, t, caption }: Props) {
   const profileLabel = (provider: Provider) =>
     [methodName(provider), ...axes.map(axis => `${axis.label}: ${axis.display(provider)}`)].join(" · ");
 
-  return <section id="insights" className="insights-section" aria-labelledby="comparison-heading">
-    <div className="radar-heading">
-      <h2 id="comparison-heading">{t("Capability profile")}</h2>
-      <MetricSelector label="Chart metrics" options={availableAxes} selectedIds={selectedIds}
-        defaultIds={defaultIds} onChange={setSelectedMetrics} t={t} />
-    </div>
-    <div className="radar-layout">
-    <div className="radar-legend" role="group" aria-label={t("Methods to compare")}>
-      {providers.map(({ provider }, index) => <label key={provider.id} style={{ color: colors[index % colors.length] }}>
-        <input type="checkbox" checked={!hidden.includes(provider.id)} onChange={event => {
-          const checked = event.currentTarget.checked;
-          setHidden(current => checked ? current.filter(id => id !== provider.id) : [...current, provider.id]);
-        }} />
-        <span>{methodName(provider)}</span>
-      </label>)}
-    </div>
-    <figure className="radar-figure">
-      <div className="radar-scroll" tabIndex={0} role="region" aria-label={t("Capability profile")}>
-        {axes.length >= 3 ? <svg viewBox="-285 -173 570 346" role="img" aria-label={t("Capability profile")} aria-describedby={descriptionId}>
+  function renderChart() {
+    if (axes.length >= 3) return (<svg viewBox="-285 -173 570 346" role="img" aria-label={t("Capability profile")} aria-describedby={descriptionId}>
           <desc id={descriptionId}>{visible.map(({ provider }) => profileLabel(provider)).join(". ")}</desc>
           {[.25, .5, .75, 1].map(level => <g key={level}>
             <polygon points={ring(level)} className="radar-grid" />
@@ -107,7 +90,8 @@ export default function Insights({ benchmark, t, caption }: Props) {
               })}
             </g>;
           })}
-        </svg> : axes.length > 0 ? <div className="quality-comparison" role="group" aria-label={t("Results comparison")}>
+        </svg>);
+    if (axes.length > 0) return (<div className="quality-comparison" role="group" aria-label={t("Results comparison")}>
           {axes.map(axis => <section key={axis.id} aria-label={axis.label}>
             <h3>{axis.label}</h3>
             <div className="quality-scale" aria-hidden="true"><span/><span className="quality-ticks"><span>0</span><span>50</span><span>100</span></span><span/></div>
@@ -118,7 +102,29 @@ export default function Insights({ benchmark, t, caption }: Props) {
               </div>;
             })}
           </section>)}
-        </div> : <p className="chart-empty" role="status">{t("Select at least one metric.")}</p>}
+        </div>);
+    return <p className="chart-empty" role="status">{t("Select at least one metric.")}</p>;
+  }
+
+  return <section id="insights" className="insights-section" aria-labelledby="comparison-heading">
+    <div className="radar-heading">
+      <h2 id="comparison-heading">{t("Capability profile")}</h2>
+      <MetricSelector label="Chart metrics" options={availableAxes} selectedIds={selectedIds}
+        defaultIds={defaultIds} onChange={setSelectedMetrics} t={t} />
+    </div>
+    <div className="radar-layout">
+    <div className="radar-legend" role="group" aria-label={t("Methods to compare")}>
+      {providers.map(({ provider }, index) => <label key={provider.id} style={{ color: colors[index % colors.length] }}>
+        <input type="checkbox" checked={!hidden.includes(provider.id)} onChange={event => {
+          const checked = event.currentTarget.checked;
+          setHidden(current => checked ? current.filter(id => id !== provider.id) : [...current, provider.id]);
+        }} />
+        <span>{methodName(provider)}</span>
+      </label>)}
+    </div>
+    <figure className="radar-figure">
+      <div className="radar-scroll" tabIndex={0} role="region" aria-label={t("Capability profile")}>
+        {renderChart()}
       </div>
       {visible.length === 0 && <p role="status">{t("Select a method to show its results.")}</p>}
       <figcaption>
