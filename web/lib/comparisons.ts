@@ -3,10 +3,10 @@ import type { Benchmark, Metric, Provider } from "./results.ts";
 export function decisionMetrics(benchmark: Benchmark, expanded: boolean, selected: string): Metric[] {
   const disclosed = benchmark.metrics.filter(metric => metric.id === benchmark.primaryMetric
     || benchmark.providers.some(provider => typeof provider.scores[metric.id] === "number"));
-  if (expanded) return disclosed;
-  return disclosed.filter(metric => metric.id === benchmark.primaryMetric || metric.id === selected
-    || benchmark.leadingMetricIds?.includes(metric.id)
-    || (["seconds", "ms", "mib", "usd"].includes(metric.unit) && benchmark.providers.some(provider => typeof provider.scores[metric.id] === "number")));
+  const keyIds = benchmark.keyMetricIds ?? [benchmark.primaryMetric];
+  const key = keyIds.flatMap(id => disclosed.filter(metric => metric.id === id));
+  const extra = disclosed.filter(metric => !keyIds.includes(metric.id));
+  return [...key, ...(expanded ? extra : extra.filter(metric => metric.id === selected))];
 }
 
 // Never turn unknown, software-only, or ranged billing into a point price.

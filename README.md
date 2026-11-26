@@ -1,16 +1,12 @@
-# Webstone
+# Webstone Site
 
-<img src="web/public/brand/webstone.png" alt="Webstone" width="640">
+<img src="web/public/brand/webstone.png" alt="Webstone logo" width="240">
 
-[![Datasets](https://img.shields.io/badge/%F0%9F%A4%97-Datasets-ffd21e)](https://huggingface.co/Lexmount)
+[![Leaderboard](https://img.shields.io/badge/Leaderboard-webstone.lexmount.io-527e68)](https://webstone.lexmount.io) [![Datasets](https://img.shields.io/badge/%F0%9F%A4%97-Datasets-ffd21e)](https://huggingface.co/Lexmount)
 
-**Find the right tools for your agent to browse the web.**
+The website for [Webstone](https://github.com/lexmount/webstone), the touchstone for your agent’s web browsing. Use the [leaderboard](https://webstone.lexmount.io) to compare methods and read published evaluation reports. It covers twelve benchmark views across four Tracks and links to the independently hosted BrowserArena.
 
-The official [Webstone leaderboard](https://webstone.lexmount.io): published benchmark results, method comparisons and evaluation reports.
-
-[Run evaluations with Webstone](https://github.com/lexmount/webstone). Submit measured results through this repository.
-
-Twelve local benchmark views across four Tracks are published on this site. A fifth Track, BrowserArena, opens the independently deployed benchmark site in a new tab. The evaluation harness is [lexmount/webstone](https://github.com/lexmount/webstone).
+Run evaluations with [Webstone](https://github.com/lexmount/webstone); submit measured results and public evidence to this repository.
 
 ## Run evaluations or submit results
 
@@ -77,7 +73,7 @@ A 372-task subset of the historical [Lexbench Headless Browser](https://github.c
 
 The Web Extract Track compares ten hosted API and open-source / DeepSeek methods on 800 archived SWDE pages. The single table includes page-hit macro F1, value micro F1, field-set exact match, full-page exact match, null handling, execution and returned-field counts, timing coverage, mean / P50 / P95 elapsed time and USD per 1,000 calls. Page-hit macro F1 is the default ranking metric.
 
-Full-page exact match uses 740 eligible pages: 60 pages are excluded because reference coverage is incomplete. Null handling uses 25 pages. Both show the supplied numerator, denominator and percentage. Every method executed 800 of 800 pages and has 800 timing records, with none missing.
+Full-page exact match uses 740 eligible pages: 60 pages are excluded because reference coverage is incomplete. Null handling uses 25 empty reference fields across 24 pages. Numerators and denominators remain available in cell details and downloads. Every method executed 800 of 800 pages and has 800 timing records, with none missing.
 
 The numbers come from the two user-supplied tables. The linked Dataset contains inputs only; the correspondence to a particular revision and its scoring references is unverified. Pricing ranges and billing conditions are preserved as supplied, not checked against current plans. Ranges are not ranked or reduced to a single price. Open-source software costs $0, with DeepSeek token usage additional and the total undisclosed. Per-method interpretation and official billing-source URLs were not supplied, so no such links are fabricated.
 
@@ -138,7 +134,9 @@ Optional provider `counts` records a metric's numerator and denominator, validat
 
 The default ranking metric is the first numeric column after the provider. Task success leads Web Fetch, Overall leads WebMainBench, nDCG@5 leads Web Search, MRR@5 leads the latest SimpleQA Verified L1 (historical v1 uses Hit@5), and task success leads both agent benchmarks. Clicking another header sorts by it without moving the column.
 
-Every numeric column computes its own best value from the metric direction. Ties are all highlighted; undisclosed values and columns with fewer than two disclosed values have no winner. The currently sorted header is highlighted separately.
+Each definition selects its Key metrics: the quality measures needed to understand the benchmark, at most one representative timing, and useful reported resource or cost measures. More metrics adds the remaining disclosed measurements. Category breakdown is open by default.
+
+Each comparable column highlights its best value using the metric direction. Ties are all highlighted; missing values and columns with fewer than two distinct disclosed values have no winner. Incomparable timings and price quotes do not declare a winner; diagnostic editions show neither ranks nor winners. The sorted header is highlighted separately.
 
 ## Local development
 
@@ -195,7 +193,7 @@ For optional Rainbond deployment directly from GitHub:
 
 This path uses Rainbond's own Dockerfile builder and image storage. Gitea, GitHub Actions and an external image registry are not required. `rainbond.app.json` declares `main` as the source branch. It is a deployment descriptor, not evidence of the running component's settings, and changing it does not update an existing Rainbond component automatically.
 
-To deploy on every update to `main`, the running component must build this repository's `main` branch with the root Dockerfile, and its GitHub push webhook and automatic build/deploy settings must be enabled. Verify the webhook delivery and the deployed commit after a merge. There is no GitHub Actions deployment workflow in this repository. A manual or local-package component will not pick up GitHub changes automatically.
+To deploy on every update to `main`, the running component must build this repository's `main` branch with the root Dockerfile, and its GitHub push webhook and automatic build/deploy settings must be enabled. Verify the webhook delivery and the deployed commit after a merge. This optional Rainbond path does not use the Cloudflare Pages release workflow. A manual or local-package component will not pick up GitHub changes automatically.
 
 Configure the running component to fetch the official GitHub repository from `main`, enable automatic builds and disable keyword filtering if every main update should trigger a build. A private repository also requires a repository-read credential in Rainbond's protected source settings. Rainbond workspace membership and GitHub repository access are separate permissions; do not route private repository credentials through a public download proxy. Verify build logs and the active code version after each release: a successful webhook delivery alone is not proof of a completed deployment.
 
@@ -213,7 +211,7 @@ CI serves the actual static export through this Nginx configuration and checks e
 
 English is the first-visit default. An explicit EN / 中文 selection persists locally and updates document language. The catalog owns translations of reusable names, descriptions and metric definitions; each report owns translations of its version-specific scope and notes. Original source quotations and provenance are preserved, including historical non-English notes with a separate English display translation.
 
-Every benchmark uses the same table, metric selectors and capability profile. Users choose visible columns, radar axes and methods to compare. Missing measurements stay missing; quoted prices are separate from measured costs and stay outside the radar. Reports appear below the capability profile and on the homepage.
+Every benchmark uses the shared table and metric selectors. A capability profile appears when at least three meaningful axes are available. Users choose visible columns, radar axes and methods to compare. Missing measurements stay missing; quoted prices are separate from measured costs and stay outside the radar. Reports appear below the capability profile and on the homepage.
 
 ### BrowserArena
 
@@ -228,6 +226,11 @@ The website software uses Apache License 2.0, matching Webstone; see `LICENSE` a
 See the official [Dockerfile deployment guide](https://www.rainbond.com/docs/how-to-guides/app-deploy/source-code/dockefile).
 
 ## Validation and updates
+
+Before changing the site, read the [website specification](docs/spec.md) and the
+[field-level contracts](AGENTS.md). Use the [review guide](docs/references/review-guidelines.md)
+to choose checks for the affected data, table, navigation or publication behavior.
+Result contributors also follow the [submission guide](docs/submitting-results.md).
 
 ```sh
 npm test

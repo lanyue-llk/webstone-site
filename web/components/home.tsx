@@ -54,7 +54,7 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
       <div>
         <h1>Webstone</h1>
         <p>{t("Find the right tools for your agent to browse the web.")}</p>
-        <p className="overview-summary">{t("Compare web tools, browsers and browser agents on real tasks.")}</p>
+        <p className="overview-summary">{t("The touchstone for your agent's web browsing.")}</p>
         <div className="overview-actions">
           {firstBenchmark && <a href={benchmarkHref(firstBenchmark.id)} className="overview-primary">{t("Explore leaderboards")} <ArrowRight size={17} aria-hidden="true" /></a>}
           <a className="overview-star" href={WEBSTONE_REPOSITORY_URL} target="_blank" rel="noreferrer"><Star size={16} aria-hidden="true" />{t("Star Webstone")} <ArrowUpRight size={14} aria-hidden="true" /></a>

@@ -2,6 +2,12 @@
 
 Instructions for agents and contributors working in this repository.
 
+Read [the website specification](docs/spec.md) before changing behavior and apply
+[the review guide](docs/references/review-guidelines.md) before handing off a PR.
+This file owns field-level data and rendering contracts; the specification owns
+product boundaries, and the review guide owns verification. Update the existing
+owner when a requirement changes; do not append a competing rule elsewhere.
+
 ## What this is
 
 The Webstone companion website: a static leaderboard for twelve benchmark views across four local Tracks, plus an external BrowserArena Track. Browser side: **LexBench Web Fetch** (live websites, 430 cases across seven categories in its published version) and **WebMainBench** (545 frozen HTML pages, five scored dimensions). Search side: **LexBench Web Search** (149 scenario queries, nDCG@5 / Precision@5 / Success@5) and **SimpleQA Verified** (773 factual queries, Hit@5 / MRR@5 / Answer Match@5). Agent side: **LexBench WebArena Replay** (812 tasks from [ServiceNow/webarena-verified](https://github.com/ServiceNow/webarena-verified), success rate plus end-to-end task and per-action latency at mean / P50 / P95). **LexBench Headless Browser** covers a 372-task subset of the historical [Lexbench Headless Browser](https://github.com/lexmount/Lexbench-Headless-Browser) protocol with signed deltas against a baseline row, PSS in MiB and latency in milliseconds. The evaluation harness that produces the results lives in [lexmount/webstone](https://github.com/lexmount/webstone); this repository only publishes the numbers and renders them.
@@ -60,14 +66,16 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 - Derived pass counts are allowed when every category count is known; record the arithmetic in `passedDerivation` so the tooltip explains where the number came from.
 - Result `categoryTotals` keys must match the referenced definition's categories and sum to `taskCount`; each `provider.categoryPassed` must be within that category total. Known category pass counts must sum to the published passed count. `prepare:data` throws otherwise and the build fails.
 - When a new result changes published numbers, update the assertions that pin those numbers in `web/lib/results.test.ts` in the same change.
+- Optional `reports/source-notes.json` is repository-only uploader reference information. Do not bundle it, display its restricted links, treat it as public evidence, or check its link accessibility.
+- Standard browser comparisons publish one measured configuration per browser product, with its actual version in the name. Keep superseded builds and temporary PR variants out of new public cohorts. The Headless Browser benchmark may retain build/layout variants because comparing them is its stated purpose. Distinct commercial products and service tiers are not duplicate browser versions. New-result validation enforces the browser rule using verified project identities, including GitHub URL aliases. Metadata-only corrections retain historical configurations unchanged.
 
 ## Rendering rules
 
 - One table per benchmark, with rank and provider first, then the benchmark's data columns. The default ranking metric is the first numeric column after the provider. LexBench Web Fetch places Task success first, then Request success, then its category columns, then timing metrics. `Passed / Total` is always the last column there. The published version separates 17 embedded-media and 3 direct-media cases.
 - Each Benchmark opens on its highest version. A version explicitly requested through the URL is shown even when it does not exist, with an English empty state and a `View latest version` action; never silently fall back. A Benchmark with no results also gets an empty state, without an undefined version or a broken latest link.
 - URL state uses `?benchmark=<id>&version=vX.Y.Z&metric=<id>`. Ignore and drop legacy `date` parameters. When a version does not contain the currently selected metric, fall back to that version's default metric and direction.
-- Show the evaluation scope in the selected language beside the result version. Use `datasetDifference` unless there is separate display copy for a historical result. Keep the Dataset and Evaluation report links visible.
-- The default table shows a compact set of quality and resource metrics; More metrics reveals the remaining disclosed numeric columns; omit wholly undisclosed non-ranking columns. Category breakdown shows category counts by default and can collapse them without discarding data. All visible data columns are equal width: the tables use `table-layout: fixed` with a minimum width, so the table scrolls horizontally only when the container is narrower than that minimum. Do not reintroduce auto layout.
+- Show one method/case summary beside the table controls, with evaluation scope and sample details in its tooltip. Use `datasetDifference` unless there is separate display copy for a historical result. Keep comparability status visible, and keep Dataset and Evaluation report links visible. Historical results without a known publication date say so in the scope details; do not substitute an import or build date.
+- Each definition declares `keyMetricIds`, primary metric first. Key metrics shows the benchmark’s quality measures and at most one representative timing, plus reported cost/resource measures where useful; comparability rules still apply. More metrics adds the remaining disclosed numeric columns, including P50/P95, output size, sample counts and baseline deltas. Never infer importance from units. Omit wholly undisclosed non-ranking columns. Category breakdown shows category counts by default and can collapse them without discarding data. All visible data columns are equal width: the tables use `table-layout: fixed` with a minimum width, so the table scrolls horizontally only when the container is narrower than that minimum. Do not reintroduce auto layout.
 - Row heights are fixed: header and rows 46px on desktop; rows 44px below 760px. Numeric cells remain single-line. Method names and configurations wrap when needed so the full name stays visible.
 - The first two columns stay sticky while the table scrolls sideways.
 - Output size, timings collected under incomparable conditions and quotes with incomparable billing bases use catalog `highlightBest: false`: allow numeric sorting without declaring a winner.
@@ -76,8 +84,10 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 - English is the first-visit default. Support a complete explicit English/Chinese switch, persist the preference locally and update the document language. The catalog owns translations of reusable definitions; reports own translations of new version-specific text. Historical edits live in `web/lib/result-copy.ts`. Official project, model and Dataset names, navigation group names and Track names retain their English spelling in both languages. Translate descriptions and actions.
 - Default result display text remains English. Preserve original source quotations and provenance; supply display translations separately rather than rewriting original evidence.
 - The download link must show `Download Report` in English and its Chinese translation in Chinese, including on mobile, and use the same accessible name as its visible label. It downloads the file for the selected version. Do not add a hover tooltip or rely on one to explain the action.
-- All local Tracks and Benchmarks share the same table geometry, typography, controls and capability-profile layout. Use the shared metric selector for radar axes; tables use the common More metrics and Category breakdown buttons. Data availability may change the available options; do not introduce Track-specific styling or alternate controls. Keep the ranking column visible. Radar controls offer a reset and require at least three axes to draw a chart.
+- All local Tracks and Benchmarks share the same table geometry, typography, controls and capability-profile layout. Use the shared metric selector for radar axes; tables use the common Key metrics, More metrics and Category breakdown buttons. Data availability may change the available options; do not introduce Track-specific styling or alternate controls. Keep the ranking column visible. Radar controls offer a reset. Draw a profile only when at least three meaningful axes are available; never fill it with incomparable timings, quoted prices or repeated timing percentiles merely to reach three.
 - Keep the dependency surface small; prefer plain CSS in `globals.css` over new UI packages.
+- A definition with `rankable: false` is diagnostic: show values and allow inspection, but render no ranks or best-value highlights, including category and passed-count cells.
+- Presentation uses percentages for percent and 0–1 ratio metrics, seconds for durations, and the original units for counts, scores, MiB and percentage-point deltas. Preserve stored units, precision, numerators and denominators in downloadable results. Keep fractions in cell details instead of repeating them beside every percentage. Official pricing links are catalog resources, not evidence that historical quoted prices equal current rates.
 
 ## Security
 
@@ -101,21 +111,17 @@ Serve a build with `python3 -m http.server 5173 --directory web/out`; never `nex
 - For every change to reader-facing text, read `.agents/skills/humanizer/SKILL.md` and `.agents/skills/humanizer-chinese/SKILL.md`. Review the English and Chinese together in the rendered page, including labels, accessibility text, empty states, and text drawn from the catalog or a report. Remove repeated explanations. Keep the facts needed to interpret the results.
 - Preserve published result files and source quotations. Put editorial changes to old results in the display copy. Keep metric names, units, sample counts and billing basis accurate in both languages.
 - Mark the bilingual copy check in the PR after review. The website check requires that attestation for changes to copy-bearing source files. Reviewers check the rendered text against the underlying data.
+- Public reports are finished publications. Start from their existing source and preserve the layout, illustrations and narrative. Correct facts in place and add only the required content in the relevant section. Do not replace a report with a data summary or add editing history, working notes or revision comparisons unless the user explicitly requests them.
 
 ## Public delivery
 
 - Reports and blog links must open for an anonymous reader, including embedded previews. Run `npm run check:reports` before publishing. CI checks them on PRs, main updates and daily; HTTP 200 alone does not prove access. Never broaden access without the owner’s authorization.
 - Cloudflare Pages publishes `web/out` through the tag-triggered `pages-release.yml` workflow. Tags must be on main history. See `docs/deploying-pages.md` for the established release and verification commands. Keep its `_headers` and `_redirects` behavior consistent with the optional Nginx deployment. Verify the public domain, data, downloads, report access and release identity before shutting down a previous host.
 
-- A definition with `rankable: false` is diagnostic: show values and allow inspection, but render no ranks or best-value highlights, including category and passed-count cells.
-- Optional `reports/source-notes.json` is repository-only uploader reference information. Do not bundle it, display its restricted links, treat it as public evidence, or check its link accessibility.
-
 ## PR titles and merge commits
 
+Use a feature branch and PR; never push directly to main. Merge only with the
+owner’s authorization for that work. Publishing requires a release request.
+Never force-push another branch. Keep unrelated local changes intact.
+
 Use Conventional Commit titles: `type(scope): English summary`, with an optional scope. Allowed types are `fix`, `feat`, `docs`, `refactor`, `test`, `perf`, `build`, `ci` and `chore`. Prefer 72 characters, keep the title within 100, omit a final period, and use `!` for breaking changes. Run `node scripts/check-pr-title.mjs "fix(ui): align cards"` locally. The required PR title check validates new and edited titles before merge; squash merges use the PR title.
-
-- Presentation uses percentages for percent and 0–1 ratio metrics, seconds for durations, and the original units for counts, scores, MiB and percentage-point deltas. Preserve stored units, precision, numerators and denominators in downloadable results. Keep fractions in cell details instead of repeating them beside every percentage. Official pricing links are catalog resources, not evidence that historical quoted prices equal current rates.
-
-- Public reports are finished publications. Start from their existing source and preserve the layout, illustrations and narrative. Correct facts in place and add only the required content in the relevant section. Do not replace a report with a data summary or add editing history, working notes or revision comparisons unless the user explicitly requests them.
-
-- Standard browser comparisons publish one measured configuration per browser product, with its actual version in the name. Keep superseded builds and temporary PR variants out of new public cohorts. The Headless Browser benchmark may retain build/layout variants because comparing them is its stated purpose. Distinct commercial products and service tiers are not duplicate browser versions. New-result validation enforces the browser rule using verified project identities, including GitHub URL aliases. Metadata-only corrections retain historical configurations unchanged.
