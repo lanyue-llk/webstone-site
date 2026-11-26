@@ -70,6 +70,15 @@ Method names remain readable. [AGENTS.md](../AGENTS.md#rendering-rules) owns exa
 A capability profile must reveal several meaningful dimensions. Do not construct
 one from redundant timing percentiles or incomparable costs to fill three axes.
 Preserve absent values and label scales. Readers can select methods and axes.
+Use a horizontal comparison when only one or two dimensions are available.
+
+Browser Use, Web Fetch and Web Search offer a Track Overview before their
+benchmark tabs. It compares current published results across the constituent
+benchmarks without becoming a new benchmark or inventing an overall score.
+Retain all methods and missing cells. Explicit catalog groups can align browser
+versions while keeping the tested configuration available for each result;
+service and model variants remain distinct. Table cells link to their exact
+benchmark editions. Search overviews retain the L1/L2/L3 distinction.
 
 Selecting a benchmark or layer starts its content at the top. Version and metric
 links must identify the intended edition and sorting metric. A missing edition

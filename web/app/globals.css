@@ -640,3 +640,15 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
 .wide-table col.provider-column { width: var(--provider-width); }
 
 .table-summary { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+
+.quality-comparison { padding: 12px; }
+.quality-comparison section + section { margin-top: 24px; }
+.quality-comparison h3 { font-size: 13px; margin: 0 0 14px; color: #344f40; }
+.quality-scale { display: flex; justify-content: space-between; margin: 0 64px 10px 40%; color: #68776e; font-size: 11px; }
+.quality-series { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) 64px; align-items: center; gap: 10px; min-height: 40px; font-size: 12px; }
+.quality-series > span { overflow-wrap: anywhere; }
+.quality-series strong { text-align: right; font-variant-numeric: tabular-nums; }
+.quality-bar { height: 12px; background: #f0f4f1; border-radius: 3px; overflow: hidden; }
+.quality-bar i { display: block; height: 100%; background: currentColor; opacity: .8; }
+.track-results th > small { display: block; font-size: 10px; font-weight: 400; white-space: normal; }
+.track-results .numeric a { text-decoration: underline; text-underline-offset: 3px; }

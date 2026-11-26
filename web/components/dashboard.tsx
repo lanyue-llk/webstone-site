@@ -7,6 +7,7 @@ import { providerColors } from "../lib/presentation";
 import ExampleDialog from "./example-dialog";
 import InfoTooltip from "./info-tooltip";
 import Insights from "./insights";
+import TrackResults from "./track-results";
 import MethodDetails from "./method-details";
 import ReleaseCheck from "./release-check";
 import { RELEASE, BUILT_AT } from "../lib/release.generated";
@@ -24,6 +25,8 @@ export default function Dashboard() {
   const [entries, setEntries] = useState<Entry[] | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [selection, setSelection] = useState<Selection>({ benchmark: "", version: "", metric: "" });
+  const [overviewTrack,setOverviewTrack] = useState("");
+  const [overviewLayer,setOverviewLayer] = useState("L1");
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -48,6 +51,8 @@ export default function Dashboard() {
         setEntries(resultEntries);
         setSnapshots(records);
         const params = new URLSearchParams(window.location.search);
+        const requestedTrack = benchmarkCatalog.tracks.find(track=>track.id===params.get('track')&&track.overview);
+        if(requestedTrack) {setOverviewTrack(requestedTrack.id);setOverviewLayer(['L1','L2','L3'].includes(params.get('layer')??'')?params.get('layer')!:'L1');return;}
         const candidate = params.get("benchmark");
         const benchmark = benchmarkCatalog.benchmarks.find(item => item.id === candidate)?.id ?? "";
         if (!benchmark) return;
@@ -75,12 +80,19 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (!entries || !selection.benchmark) return;
+    if (!entries) return;
+    if (overviewTrack) {
+      const params = new URLSearchParams({track:overviewTrack});
+      if(overviewTrack==='websearch'&&overviewLayer!=='L1')params.set('layer',overviewLayer);
+      window.history.replaceState(null,'',`${window.location.pathname}?${params}`);
+      return;
+    }
+    if (!selection.benchmark) return;
     const params = new URLSearchParams({ benchmark: selection.benchmark });
     if (selection.version) params.set("version", selection.version);
     params.set("metric", selection.metric);
     window.history.replaceState(null, "", `${window.location.pathname}?${params}`);
-  }, [selection, entries]);
+  }, [selection, entries, overviewTrack, overviewLayer]);
 
   const entry = entries ? selectEntry(entries, selection.version, selection.benchmark) : null;
   const snapshot = snapshots.find(item => item.id === entry?.id) ?? null;
@@ -91,7 +103,7 @@ export default function Dashboard() {
   const details = catalog?.benchmarks.find(item => item.id === selection.benchmark);
   const groups = catalog ? navigationGroups(catalog) : [];
   const tracks = groups.flatMap(group => group.tracks);
-  const track = tracks.find(item => item.id === details?.trackId);
+  const track = tracks.find(item => item.id === (overviewTrack || details?.trackId));
   const metric = benchmark?.metrics.find(item => item.id === selection.metric) ?? benchmark?.metrics.find(item => item.id === benchmark.primaryMetric) ?? benchmark?.metrics[0];
   const versionEntries = entries ? benchmarkEntries(entries, selection.benchmark) : [];
   const versions = versionEntries.map(item => canonicalVersion(item.version));
@@ -114,7 +126,14 @@ export default function Dashboard() {
     return !["seconds", "ms", "mib", "usd"].includes(item.unit);
   }
 
+  function chooseTrack(id: string) {
+    window.scrollTo({top:0,left:0,behavior:'instant'});
+    setOverviewTrack(id);setSelection({benchmark:'',version:'',metric:''});setOverviewLayer('L1');
+    setMenuOpen(false);setSelectedProvider(null);setShowExample(false);
+  }
+
   function chooseBenchmark(id: string) {
+    setOverviewTrack('');
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     setShowCategories(true);
     setMoreMetrics(false);
@@ -185,7 +204,7 @@ export default function Dashboard() {
         return <div key={item.id} className="nav-track"><button
           className={`nav-item ${track?.id === item.id ? "active" : ""}`}
           aria-current={track?.id === item.id ? "page" : undefined}
-          onClick={() => { if (track?.id === item.id) { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); setMenuOpen(false); } else if (!selection.benchmark) window.location.assign(benchmarkHref(item.benchmarks[0].id)); else chooseBenchmark(item.benchmarks[0].id); }}
+          onClick={() => { if(item.overview) chooseTrack(item.id); else chooseBenchmark(item.benchmarks[0].id); }}
         ><Icon size={17} /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span></button>
 
         </div>;
@@ -211,17 +230,19 @@ export default function Dashboard() {
 
     <div className="main-shell">
       <div className="benchmark-tabs-bar"><button className="mobile-menu icon-button" aria-label={t("Open navigation")} onClick={() => setMenuOpen(true)}><Menu size={20} /></button>          {track && <div className="benchmark-navigation" role="group" aria-label={t("Benchmarks")}>
+            {track.overview && <button aria-current={overviewTrack ? 'page' : undefined} onClick={()=>chooseTrack(track.id)}>{t('Overview')}</button>}
             {track.benchmarks.filter(bench => !bench.outputLayer || bench.outputLayer === "L1").map(bench => {
               const active = bench.searchGroup ? details?.searchGroup === bench.searchGroup : selection.benchmark === bench.id;
               return <button key={bench.id} aria-current={active ? "page" : undefined} onClick={() => {
-                const target = bench.searchGroup ? catalog?.benchmarks.find(candidate => candidate.searchGroup === bench.searchGroup && candidate.outputLayer === details?.outputLayer) : bench;
+                const target = bench.searchGroup ? catalog?.benchmarks.find(candidate => candidate.searchGroup === bench.searchGroup && candidate.outputLayer === (details?.outputLayer ?? overviewLayer)) : bench;
                 chooseBenchmark(target?.id ?? bench.id);
               }}>{bench.name}</button>;
             })}
           </div>}</div>
-      {selection.benchmark && <header className="topbar">
+      {(selection.benchmark || overviewTrack) && <header className="topbar">
         <div className="title-group">
-          <div className="benchmark-heading"><h1>{details ? t(details.name) : "Webstone"}</h1>
+          <div className="benchmark-heading"><h1>{overviewTrack ? `${track?.name} · ${t("Overview")}` : details ? t(details.name) : "Webstone"}</h1>
+            {overviewTrack && <p className="benchmark-description">{t("Latest results across benchmarks.")}</p>}
             {details && <p className="benchmark-description">{t(details.description)}</p>}
             {details && <div className="benchmark-links">
               <a href={details.datasetUrl} target="_blank" rel="noreferrer" aria-label={`${t("Dataset")}: ${details.datasetName}`}>{new URL(details.datasetUrl).hostname === "github.com" ? <Github /> : <img src="/huggingface.svg" width={16} height={16} alt="" aria-hidden="true" />}{t("Dataset")}<ArrowUpRight size={13} aria-hidden="true" /></a>
@@ -241,7 +262,7 @@ export default function Dashboard() {
       <main id="main" className="main-content">
         {!entries && !error && <div className="loading-panel" role="status">{t("Loading…")}</div>}
         {error && <div className="empty-state" role="alert"><p>{t(error)}</p><button className="text-button" onClick={() => window.location.reload()}>{t("Retry")}</button></div>}
-        {entries && catalog && (!selection.benchmark ? <Home catalog={catalog} snapshots={snapshots} t={t} language={language} /> : <>
+        {entries && catalog && (overviewTrack ? <TrackResults key={overviewTrack} catalog={catalog} snapshots={snapshots} trackId={overviewTrack} layer={overviewLayer} onLayer={value=>{window.scrollTo({top:0,left:0,behavior:"instant"});setOverviewLayer(value);}} t={t} language={language}/> : !selection.benchmark ? <Home catalog={catalog} snapshots={snapshots} t={t} language={language} /> : <>
           <div className="results-controls">
             {details?.searchGroup ? <div className="search-selectors">
               <div className="column-views layer-control" role="group" aria-label={t("Output layer")}>{(["L1", "L2", "L3"] as const).map((layer, index) => <button key={layer} aria-pressed={details.outputLayer === layer} onClick={() => {

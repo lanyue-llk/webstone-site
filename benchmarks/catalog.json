@@ -92,13 +92,54 @@
       "id": "webfetch",
       "name": "Web Fetch",
       "description": "Content retrieval",
-      "groupId": "browsers"
+      "groupId": "browsers",
+      "overview": {
+        "methodGroups": [
+          {
+            "id": "moli",
+            "name": "Moli",
+            "providerIds": [
+              "moli-1-1-17",
+              "moli-content-fixed"
+            ]
+          },
+          {
+            "id": "chromium",
+            "name": "Chromium",
+            "providerIds": [
+              "chromium"
+            ]
+          },
+          {
+            "id": "lightpanda",
+            "name": "Lightpanda",
+            "providerIds": [
+              "lightpanda"
+            ]
+          },
+          {
+            "id": "obscura",
+            "name": "Obscura",
+            "providerIds": [
+              "obscura"
+            ]
+          },
+          {
+            "id": "kitesurf",
+            "name": "Kitesurf",
+            "providerIds": [
+              "kitesurf"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "websearch",
       "name": "Web Search",
       "description": "Search retrieval",
-      "groupId": "web-tools"
+      "groupId": "web-tools",
+      "overview": {}
     },
     {
       "id": "webextract",
@@ -123,7 +164,8 @@
       "id": "browser-use",
       "name": "Browser Use",
       "description": "Browser agents",
-      "groupId": "browser-automation"
+      "groupId": "browser-automation",
+      "overview": {}
     }
   ],
   "benchmarks": [
@@ -2272,7 +2314,15 @@
       "Lexmount Browser Agent: capability benchmarks and real-world examples": "Lexmount Browser Agent · 产品能力评测与真实案例白皮书",
       "Browser agent capabilities, four benchmark comparisons and real-world task examples.": "浏览器 Agent 能力、四项基准对比与真实任务案例。",
       "Agent": "智能体",
-      "The touchstone": "试金石"
+      "The touchstone": "试金石",
+      "Overview": "总览",
+      "Results comparison": "结果对比",
+      "Latest results across benchmarks.": "各项评测的最新结果。",
+      "Each axis shows a published quality metric.": "各轴展示一项已公布的质量指标。",
+      "Select at least one metric.": "请选择至少一项指标。",
+      "Quality score (% of maximum)": "质量得分（占满分的百分比）",
+      "Configurations": "评测配置",
+      "View benchmark": "查看评测"
     },
     "en": {
       "全程关闭": "Layout off throughout",

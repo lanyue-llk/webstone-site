@@ -525,3 +525,12 @@ test("reported percentages can omit an undisclosed task population without inven
   b.providers[0].counts = {passRate: {count: 1, total: 2}};
   assert.throws(() => validateSnapshot(report, entry, c), /count breakdown/);
 });
+
+test('overview method groups reject unknown or ambiguous participant aliases', () => {
+  const invalid=structuredClone(catalog);
+  const track=invalid.tracks.find(track=>track.id==='webfetch');
+  track.overview.methodGroups.push({id:'duplicate',name:'Duplicate browser',providerIds:['chromium']});
+  assert.throws(()=>validateCatalog(invalid),/Ambiguous overview method group/);
+  track.overview.methodGroups.at(-1).providerIds=['unregistered-project'];
+  assert.throws(()=>validateCatalog(invalid),/Invalid overview method group/);
+});

@@ -2,24 +2,28 @@
 
 import { useId, useState } from "react";
 import MetricSelector from "./metric-selector";
+import { qualityMetrics } from "../lib/comparisons";
 import { radarAxes } from "../lib/radar";
 import { sortProviders, type Benchmark, type Provider } from "../lib/results";
 
-type Props = { benchmark: Benchmark; t: (text: string) => string };
+type Props = { benchmark: Benchmark; t: (text: string) => string; caption?: string };
 const radius = 123;
 const colors = ["#007d64", "#5163a8", "#ad5229", "#925c95", "#247a9c", "#926b18",
   "#ac4e67", "#507d35", "#674bc1", "#4d7373", "#aa4944", "#4e5c70"];
 
-export default function Insights({ benchmark, t }: Props) {
+export default function Insights({ benchmark, t, caption }: Props) {
   const [hidden, setHidden] = useState<string[]>([]);
   const [selectedMetrics, setSelectedMetrics] = useState<string[] | null>(null);
   const descriptionId = useId();
-  const availableAxes = radarAxes(benchmark);
+  const allAxes = radarAxes(benchmark);
+  const defaultAxisCount = allAxes.filter(axis => axis.defaultSelected).length;
+  const qualityIds = new Set(qualityMetrics(benchmark).map(metric => metric.id));
+  const availableAxes = allAxes.filter(axis => defaultAxisCount >= 3 || qualityIds.has(axis.id)).map(axis => ({...axis,label:axis.label.split(" · ").map(t).join(" · ")}));
   const defaultIds = availableAxes.filter(axis => axis.defaultSelected).map(axis => axis.id);
   const selectedIds = selectedMetrics ?? defaultIds;
-  const axes = availableAxes.filter(axis => selectedIds.includes(axis.id)).map(axis => ({ ...axis, label: t(axis.label) }));
+  const axes = availableAxes.filter(axis => selectedIds.includes(axis.id));
   const primary = benchmark.metrics.find(metric => metric.id === benchmark.primaryMetric);
-  if (!primary || !benchmark.providers.length || defaultIds.length < 3) return null;
+  if (!primary || !benchmark.providers.length || availableAxes.length === 0) return null;
 
   const providers = sortProviders(benchmark.providers, primary.id, primary.direction)
     .map(provider => ({ provider, values: axes.map(axis => axis.value(provider)) }));
@@ -103,11 +107,22 @@ export default function Insights({ benchmark, t }: Props) {
               })}
             </g>;
           })}
-        </svg> : <p className="chart-empty" role="status">{t("Select at least three metrics for a radar chart.")}</p>}
+        </svg> : axes.length > 0 ? <div className="quality-comparison" role="img" aria-label={t("Results comparison")}>
+          {axes.map(axis => <section key={axis.id} aria-label={axis.label}>
+            <h3>{axis.label}</h3>
+            <div className="quality-scale"><span>0</span><span>50</span><span>100</span></div>
+            {visible.map(({provider}) => {
+              const value = axis.value(provider);
+              return <div className="quality-series" key={provider.id} style={{color: colors[providers.findIndex(item=>item.provider.id===provider.id) % colors.length]}}>
+                <span>{methodName(provider)}</span><div className="quality-bar"><i style={{width: `${Math.max(0,Math.min(1,value?.[0] ?? 0))*100}%`}} /></div><strong>{axis.display(provider)}</strong>
+              </div>;
+            })}
+          </section>)}
+        </div> : <p className="chart-empty" role="status">{t("Select at least one metric.")}</p>}
       </div>
       {visible.length === 0 && <p role="status">{t("Select a method to show its results.")}</p>}
       <figcaption>
-        {t("Quality and category axes show a share of the maximum. Lower latency, memory and measured cost plot farther out when reported.")}
+        {t(caption ?? (axes.length < 3 ? "Quality score (% of maximum)" : "Quality and category axes show a share of the maximum. Lower latency, memory and measured cost plot farther out when reported."))}
       </figcaption>
     </figure>
     </div>
