@@ -347,6 +347,10 @@ test("every published benchmark edition shares table and radar controls in both 
         const chartMenu = container.querySelector(".radar-heading .metric-selector");
         if (chartMenu) {
         const initialAxes = container.querySelectorAll(".radar-axis").length;
+        const checkedMetrics = () => [...chartMenu.querySelectorAll("input")].filter(input=>input.checked).map(input=>input.parentElement.textContent);
+        const initialChecked = checkedMetrics();
+        const initialSections = container.querySelectorAll(".quality-comparison section").length;
+        const initialSeries = container.querySelectorAll(".quality-series").length;
         assert.ok(initialAxes >= 3 || container.querySelector(".quality-comparison"), report.id);
         for (const input of [...chartMenu.querySelectorAll("input")].filter(input => input.checked)) {
           await React.act(async () => input.click());
@@ -355,6 +359,10 @@ test("every published benchmark edition shares table and radar controls in both 
         assert.match(container.querySelector(".chart-empty").textContent, /at least one/, report.id);
         await React.act(async () => chartMenu.querySelector("button").click());
         assert.equal(container.querySelectorAll(".radar-axis").length, initialAxes, report.id);
+        assert.deepEqual(checkedMetrics(), initialChecked, report.id);
+        assert.ok(!container.querySelector(".chart-empty"), report.id);
+        assert.equal(container.querySelectorAll(".quality-comparison section").length, initialSections, report.id);
+        assert.equal(container.querySelectorAll(".quality-series").length, initialSeries, report.id);
 
         const summary = chartMenu.querySelector("summary");
         chartMenu.open = true;
@@ -995,7 +1003,12 @@ test('track overviews join published methods across the latest benchmark edition
 
 test('single-dimension results still draw an honest comparison with zero and missing values', () => {
   const benchmark=load('online-mind2web','v1.0.0').benchmark;
-  benchmark.providers=benchmark.providers.map((p,i)=>({...p,scores:{...p.scores,successRate:i===0?0:i===1?null:p.scores.successRate}}));
+  benchmark.providers=benchmark.providers.map((provider,index)=>{
+    let value=provider.scores.successRate;
+    if(index===0)value=0;
+    else if(index===1)value=null;
+    return {...provider,scores:{...provider.scores,successRate:value}};
+  });
   const html=render(benchmark);
   assert.match(html,/class="quality-comparison" role="group"/);
   assert.doesNotMatch(html,/class="radar-shape"/);
@@ -1021,14 +1034,20 @@ test('track overview URLs, individual tabs and search layers retain the correct 
   try{for(const trackId of ['browser-use','webfetch','websearch'])for(const language of ['en','zh']){
     const win=new Window({url:'https://webstone.test/?track='+trackId});win.localStorage.setItem('webstone-language',language);
     [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
-    globalThis.fetch=async input=>new Response(JSON.stringify(String(input).includes('/benchmarks/')?catalog:String(input).includes('/results/')?reports:{release:RELEASE}));
+    globalThis.fetch=async input=>{
+      let data={release:RELEASE};
+      if(String(input).includes('/benchmarks/'))data=catalog;
+      else if(String(input).includes('/results/'))data=reports;
+      return new Response(JSON.stringify(data));
+    };
     const container=win.document.createElement('div');win.document.body.append(container);
     const root=require('react-dom/client').createRoot(container);
     try{
       await React.act(async()=>root.render(React.createElement(Dashboard)));
       if(language==='zh') await React.act(async()=>[...container.querySelectorAll('.language-control button')].find(button=>button.textContent==='中文').click());
       assert.ok(container.querySelector('.track-results'),trackId);
-      assert.equal(container.querySelectorAll('.radar-axis').length,trackId==='browser-use'?4:trackId==='webfetch'?8:6);
+      const expectedAxes={'browser-use':4,webfetch:8,websearch:6};
+      assert.equal(container.querySelectorAll('.radar-axis').length,expectedAxes[trackId]);
       const overview=[...container.querySelectorAll('.benchmark-navigation button')].find(b=>b.textContent===(language==='en'?'Overview':'总览'));
       assert.equal(overview.getAttribute('aria-current'),'page');
       const benchmarkButton=[...container.querySelectorAll('.benchmark-navigation button')].find(b=>b!==overview);
@@ -1064,7 +1083,12 @@ test('clicking an active Track without an overview preserves the selected editio
   try{for(const [id,metric,track] of [['lexbench-swde','valueMicroF1','Web Extract'],['webarena-verified','actionP95','Trajectory Replay']]){
     const win=new Window({url:`https://webstone.test/?benchmark=${id}&version=v1.0.0&metric=${metric}`});
     [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
-    globalThis.fetch=async input=>new Response(JSON.stringify(String(input).includes('/benchmarks/')?catalog:String(input).includes('/results/')?reports:{release:RELEASE}));
+    globalThis.fetch=async input=>{
+      let data={release:RELEASE};
+      if(String(input).includes('/benchmarks/'))data=catalog;
+      else if(String(input).includes('/results/'))data=reports;
+      return new Response(JSON.stringify(data));
+    };
     const container=win.document.createElement('div');win.document.body.append(container);const root=require('react-dom/client').createRoot(container);
     try{
       await React.act(async()=>root.render(React.createElement(Dashboard)));
@@ -1088,4 +1112,29 @@ test('a two-dimensional comparison retains a populated category alongside overal
     assert.ok([...win.document.querySelectorAll('.quality-comparison h3')].some(heading=>heading.textContent===benchmark.categories[0].name));
     assert.equal(win.document.querySelectorAll('.quality-series').length,benchmark.providers.length*2);
   }finally{await win.happyDOM.close();}
+});
+
+test('compact chart Reset restores selected metrics and visible results for one and two dimensions',async()=>{
+  const source=load('lexbench-webfetch','v2.1.0').benchmark;
+  const two={...source,metrics:source.metrics.filter(metric=>metric.id===source.primaryMetric),keyMetricIds:[source.primaryMetric],categories:source.categories.slice(0,1)};
+  const previous=[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT];
+  try{for(const benchmark of [load('online-mind2web','v1.0.0').benchmark,two]){
+    const win=new Window();[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+    const container=win.document.createElement('div');win.document.body.append(container);const root=require('react-dom/client').createRoot(container);
+    try{
+      await React.act(async()=>root.render(component(benchmark)));
+      const menu=container.querySelector('.metric-selector');
+      const selected=()=>[...menu.querySelectorAll('input')].filter(input=>input.checked).map(input=>input.parentElement.textContent);
+      const expected=selected();
+      const sectionCount=container.querySelectorAll('.quality-comparison section').length;
+      const seriesCount=container.querySelectorAll('.quality-series').length;
+      for(const input of menu.querySelectorAll('input')) if(input.checked)await React.act(async()=>input.click());
+      assert.ok(container.querySelector('.chart-empty'));
+      await React.act(async()=>menu.querySelector('button').click());
+      assert.ok(!container.querySelector('.chart-empty'),'Reset restores a visible chart');
+      assert.deepEqual(selected(),expected);
+      assert.equal(container.querySelectorAll('.quality-comparison section').length,sectionCount);
+      assert.equal(container.querySelectorAll('.quality-series').length,seriesCount);
+    }finally{await React.act(async()=>root.unmount());await win.happyDOM.close();}
+  }}finally{[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
 });
