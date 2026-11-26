@@ -52,14 +52,12 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
   return <div className="overview">
     <section className="overview-hero">
       <div>
-        <h1>Webstone</h1>
+        <div className="overview-brand"><h1>Webstone</h1><span className="overview-brand-label">{t("The touchstone")}</span></div>
         <p>{t("Find the right tools for your agent to browse the web.")}</p>
-        <p className="overview-summary">{t("The touchstone for your agent's web browsing.")}</p>
         <div className="overview-actions">
           {firstBenchmark && <a href={benchmarkHref(firstBenchmark.id)} className="overview-primary">{t("Explore leaderboards")} <ArrowRight size={17} aria-hidden="true" /></a>}
           <a className="overview-star" href={WEBSTONE_REPOSITORY_URL} target="_blank" rel="noreferrer"><Star size={16} aria-hidden="true" />{t("Star Webstone")} <ArrowUpRight size={14} aria-hidden="true" /></a>
         </div>
-        <p className="overview-star-note">{t("If Webstone helps, give it a star.")}</p>
       </div>
       <dl className="overview-stats">
         <div><dt>{t("Tracks")}</dt><dd>{tracks.length}</dd></div>

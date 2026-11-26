@@ -94,7 +94,7 @@ The Browser Use Track under Browser Automation compares browser agents on four b
 - **WebVoyager** ([MinorJerry/WebVoyager](https://github.com/MinorJerry/WebVoyager)): tasks across 13 major live websites.
 - **OSWorld** ([xlang-ai/OSWorld](https://github.com/xlang-ai/OSWorld)): desktop tasks, including browser and local-file handling.
 
-BU Bench v1, Online-Mind2Web and WebVoyager report success rates on evaluable tasks, excluding tasks blocked by website access denials. Peer results are taken from each project's official public report, and per-task model costs remain undisclosed where not published.
+BU Bench v1, Online-Mind2Web and WebVoyager show author-reported task success rates. OSWorld uses average task scores. Per-task model costs are shown where published.
 
 ### Dataset alignment
 

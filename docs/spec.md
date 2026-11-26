@@ -87,17 +87,18 @@ fresh decisions.
 
 Write for someone arriving without the development conversation. Keep the visible
 page concise: one title, one method/case summary and the facts needed to compare.
-Put denominators, execution conditions and provenance in their relevant details;
-keep a material comparability status visible. Do not add editing history, task
-notes or repeated generic explanations to the public page.
+Put denominators and pass criteria in metric details and concise evaluation scopes.
+Keep execution notes and review history in downloadable provenance. Do not generate
+generic warning badges from ranking flags or append raw notes to public tooltips.
 
 English and Chinese communicate the same meaning naturally; one need not copy the
 other's sentence structure. Preserve official names and original evidence. Follow
 the bilingual editorial workflow in [AGENTS.md](../AGENTS.md#website-copy).
 
-Keep both parts of the positioning: **Find the right tools for your agent to
-browse the web.** and **The touchstone for your agent's web browsing.** The first
-states the benefit; the second explains the name. The site and evaluation repo
+Keep **Find the right tools for your agent to browse the web.** as the homepage's
+only descriptive slogan. Place **The touchstone** beside the Webstone name as a
+short brand label. Keep the hero compact with content-driven height, moderate
+padding and no second sentence repeating the benefit. The site and evaluation repo
 share the official Webstone logo asset. Their READMEs explain their respective
 roles; the site's README must not read like the evaluation tool's installation page.
 Use the stone symbol for the favicon, and the Hugging Face identity for datasets.

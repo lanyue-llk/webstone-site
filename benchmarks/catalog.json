@@ -2225,7 +2225,6 @@
       "Compare the structured values against the original SWDE field annotations.": "将结构化结果与 SWDE 原始字段标注比较。",
       "The shown fields come from the original SWDE annotations. Field F1 and full-page exact match measure different kinds of extraction errors.": "这里的字段来自 SWDE 原始标注。字段 F1 和整页完全匹配衡量不同的提取错误。",
       "Find the right tools for your agent to browse the web.": "为你的 Agent 选对上网工具。",
-      "The touchstone for your agent's web browsing.": "Agent 网页浏览的试金石。",
       "Compare web tools, browsers and browser agents on real tasks.": "用真实任务比较 Web Tools、浏览器和 Browser Agents。",
       "See an example": "看一个例子",
       "Close example": "关闭示例",
@@ -2235,11 +2234,9 @@
       "Task": "任务",
       "Input": "输入",
       "Run": "执行",
-      "This dataset example explains the task. Reference values are not a measured result for the selected version.": "此例用于说明数据集任务。参考值并非当前所选版本的实测输出。",
       "Collection dates and retry policies differ in this edition.": "此版本中，各方案的采集日期和重试策略不同。",
       "How highlights work": "高亮规则",
       "Green marks the best comparable value in each column, including ties. Missing values and columns with no variation have no highlight.": "绿色标出每列可比较的最佳值，并列最佳也会标出。缺失值，以及所有数值相同的列不标出。",
-      "This diagnostic edition has no ranks or best-value highlights.": "此诊断版本不显示名次或最佳值高亮。",
       "This is one annotated relevant source. nDCG@5 rewards relevant results appearing earlier.": "这是标注的相关来源之一。nDCG@5 会奖励排在前面的相关结果。",
       "Moli Ranks First in Web Fetch with an 89.8% Pass Rate": "Moli 以 89.8% 通过率拿下 Web Fetch 第一",
       "Compare live-site retrieval with main-content extraction from frozen HTML.": "比较在线网页获取与冻结 HTML 的正文提取效果。",
@@ -2250,8 +2247,6 @@
       "Recorded response excerpt.": "实测响应摘录。",
       "View evaluation report": "查看评测报告",
       "Key metrics": "关键指标",
-      "Different test conditions": "测试条件不同",
-      "Results use different evaluation conditions.": "各方案的评测条件不同。",
       "Reference answer": "参考答案",
       "Reference check": "参考判定",
       "BU Bench v1": "BU Bench v1",
@@ -2276,7 +2271,8 @@
       "The OSWorld evaluator restarts Chrome and checks the browser preference with an exact_match rule.": "OSWorld 评估器会重启 Chrome，并用 exact_match 规则检查该浏览器偏好设置。",
       "Lexmount Browser Agent: capability benchmarks and real-world examples": "Lexmount Browser Agent · 产品能力评测与真实案例白皮书",
       "Browser agent capabilities, four benchmark comparisons and real-world task examples.": "浏览器 Agent 能力、四项基准对比与真实任务案例。",
-      "Agent": "智能体"
+      "Agent": "智能体",
+      "The touchstone": "试金石"
     },
     "en": {
       "全程关闭": "Layout off throughout",
