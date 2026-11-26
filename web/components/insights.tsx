@@ -107,10 +107,10 @@ export default function Insights({ benchmark, t, caption }: Props) {
               })}
             </g>;
           })}
-        </svg> : axes.length > 0 ? <div className="quality-comparison" role="img" aria-label={t("Results comparison")}>
+        </svg> : axes.length > 0 ? <div className="quality-comparison" role="group" aria-label={t("Results comparison")}>
           {axes.map(axis => <section key={axis.id} aria-label={axis.label}>
             <h3>{axis.label}</h3>
-            <div className="quality-scale"><span>0</span><span>50</span><span>100</span></div>
+            <div className="quality-scale" aria-hidden="true"><span/><span className="quality-ticks"><span>0</span><span>50</span><span>100</span></span><span/></div>
             {visible.map(({provider}) => {
               const value = axis.value(provider);
               return <div className="quality-series" key={provider.id} style={{color: colors[providers.findIndex(item=>item.provider.id===provider.id) % colors.length]}}>

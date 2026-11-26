@@ -22,7 +22,13 @@ export default function TrackResults({catalog,snapshots,trackId,layer,onLayer,t,
     const column=columns.find(col=>col.benchmark.id===sort.id);
     if (!column) return 0;
     const left=a.results[sort.id]?.provider.scores[column.metric.id],right=b.results[sort.id]?.provider.scores[column.metric.id];
-    return left==null ? right==null?0:1 : right==null?-1 : sort.direction==='asc'?left-right:right-left;
+    if (left === null || left === undefined) {
+      if (right === null || right === undefined) return 0;
+      return 1;
+    }
+    if (right === null || right === undefined) return -1;
+    if (sort.direction === 'asc') return left - right;
+    return right - left;
   }):rows;
   const snapshotsForTrack=snapshots.filter(snapshot=>snapshot.benchmarks.some(b=>columns.some(c=>c.benchmark.id===b.id)));
   return <>
@@ -47,7 +53,7 @@ export default function TrackResults({catalog,snapshots,trackId,layer,onLayer,t,
               const value=measured?.provider.scores[col.metric.id];
               const best=col.benchmark.rankable===false||col.metric.highlightBest===false?null:bestValue(rows.map(row=>row.results[col.benchmark.id]?.provider.scores[col.metric.id]),col.metric.direction);
               const winner=isBestValue(value,best);
-              return <td className={`numeric ${winner?'best-value':''}`} key={col.benchmark.id}>{value==null?'—':<a href={`${benchmarkHref(col.benchmark.id)}&version=${canonicalVersion(col.snapshot.version)}&metric=${col.metric.id}`} title={measured.provider.name}>{formatMetric(value,col.metric.unit,col.metric.decimals)}<span className="sr-only"> · {measured.provider.name}</span></a>}{winner&&<span className="sr-only"> {t('Best in this column')}</span>}</td>;
+              return <td className={`numeric ${winner?'best-value':''}`} key={col.benchmark.id}>{value === null || value === undefined ? '—' :<a href={`${benchmarkHref(col.benchmark.id)}&version=${canonicalVersion(col.snapshot.version)}&metric=${col.metric.id}`} title={measured.provider.name}>{formatMetric(value,col.metric.unit,col.metric.decimals)}<span className="sr-only"> · {measured.provider.name}</span></a>}{winner&&<span className="sr-only"> {t('Best in this column')}</span>}</td>;
             })}
           </tr>)}</tbody>
         </table>

@@ -534,3 +534,12 @@ test('overview method groups reject unknown or ambiguous participant aliases', (
   track.overview.methodGroups.at(-1).providerIds=['unregistered-project'];
   assert.throws(()=>validateCatalog(invalid),/Invalid overview method group/);
 });
+
+
+test('overview participant IDs cannot use coercible non-string values',()=>{
+  for(const ids of [[['chromium']],[['chromium'],'chromium']]){
+    const invalid=structuredClone(catalog);
+    invalid.tracks.find(track=>track.id==='webfetch').overview.methodGroups[0].providerIds=ids;
+    assert.throws(()=>validateCatalog(invalid),/Invalid overview method group/);
+  }
+});

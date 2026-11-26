@@ -644,8 +644,10 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
 .quality-comparison { padding: 12px; }
 .quality-comparison section + section { margin-top: 24px; }
 .quality-comparison h3 { font-size: 13px; margin: 0 0 14px; color: #344f40; }
-.quality-scale { display: flex; justify-content: space-between; margin: 0 64px 10px 40%; color: #68776e; font-size: 11px; }
-.quality-series { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) 64px; align-items: center; gap: 10px; min-height: 40px; font-size: 12px; }
+.quality-scale, .quality-series { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) 64px; align-items: center; gap: 10px; }
+.quality-scale { margin: 0 0 10px; color: #68776e; font-size: 11px; }
+.quality-ticks { display: flex; justify-content: space-between; }
+.quality-series { min-height: 40px; font-size: 12px; }
 .quality-series > span { overflow-wrap: anywhere; }
 .quality-series strong { text-align: right; font-variant-numeric: tabular-nums; }
 .quality-bar { height: 12px; background: #f0f4f1; border-radius: 3px; overflow: hidden; }

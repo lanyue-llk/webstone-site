@@ -128,7 +128,8 @@ export default function Dashboard() {
 
   function chooseTrack(id: string) {
     window.scrollTo({top:0,left:0,behavior:'instant'});
-    setOverviewTrack(id);setSelection({benchmark:'',version:'',metric:''});setOverviewLayer('L1');
+    const layer = id === 'websearch' && track?.id === id ? details?.outputLayer ?? overviewLayer : 'L1';
+    setOverviewTrack(id);setSelection({benchmark:'',version:'',metric:''});setOverviewLayer(layer);
     setMenuOpen(false);setSelectedProvider(null);setShowExample(false);
   }
 

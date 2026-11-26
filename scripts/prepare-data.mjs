@@ -82,7 +82,7 @@ export function validateCatalog(catalog) {
       const memberIds = [];
       if (groups.length) uniqueIds(groups,"overview method group");
       for (const group of groups) {
-        if (typeof group.name !== "string" || !group.name.trim() || !Array.isArray(group.providerIds) || !group.providerIds.length || group.providerIds.some(id=>!Object.hasOwn(catalog.providerUrls,id))) throw new Error("Invalid overview method group");
+        if (typeof group.name !== "string" || !group.name.trim() || !Array.isArray(group.providerIds) || !group.providerIds.length || group.providerIds.some(id=>typeof id !== "string" || !Object.hasOwn(catalog.providerUrls,id))) throw new Error("Invalid overview method group");
         memberIds.push(...group.providerIds);
       }
       if (new Set(memberIds).size !== memberIds.length) throw new Error("Ambiguous overview method group");

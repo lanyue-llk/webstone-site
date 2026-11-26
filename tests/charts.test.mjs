@@ -997,7 +997,7 @@ test('single-dimension results still draw an honest comparison with zero and mis
   const benchmark=load('online-mind2web','v1.0.0').benchmark;
   benchmark.providers=benchmark.providers.map((p,i)=>({...p,scores:{...p.scores,successRate:i===0?0:i===1?null:p.scores.successRate}}));
   const html=render(benchmark);
-  assert.match(html,/class="quality-comparison"/);
+  assert.match(html,/class="quality-comparison" role="group"/);
   assert.doesNotMatch(html,/class="radar-shape"/);
   assert.match(html,/0.00%/);
   assert.match(html,/—/);
@@ -1043,6 +1043,13 @@ test('track overview URLs, individual tabs and search layers retain the correct 
         await React.act(async()=>[...container.querySelectorAll('.layer-control button')].find(b=>b.textContent.startsWith('L2')).click());
         assert.equal(win.location.search,'?track=websearch&layer=L2');
         assert.ok([...container.querySelectorAll('.track-results thead a')].every(a=>a.href.includes('excerpts')));
+        for(const layer of ['L2','L3']){
+          await React.act(async()=>[...container.querySelectorAll('.layer-control button')].find(b=>b.textContent.startsWith(layer)).click());
+          await React.act(async()=>benchmarkButton.click());
+          assert.ok(win.location.search.includes(layer==='L2'?'excerpts':'answers'));
+          await React.act(async()=>overview.click());
+          assert.equal(win.location.search,'?track=websearch&layer='+layer);
+        }
       }
     }finally{await React.act(async()=>root.unmount());await win.happyDOM.close();}
   }}finally{[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
