@@ -54,7 +54,10 @@ test("published bench views draw meaningful profiles and retain methods with mis
       try {
         win.document.body.innerHTML = html;
         const sections = [...win.document.querySelectorAll('.quality-comparison section')];
-        assert.equal(sections.length, 1, file);
+        const qualityIds = new Set(benchmark.metrics.filter(metric=>['ratio','percent','score'].includes(metric.unit) && !metric.signed && metric.direction==='desc').map(metric=>metric.id));
+        const expectedAxes = radarAxes(benchmark).filter(axis=>axis.defaultSelected && (qualityIds.has(axis.id) || axis.id.startsWith('category:')));
+        assert.equal(sections.length, expectedAxes.length, file);
+        assert.deepEqual(sections.map(section=>section.querySelector('h3').textContent),expectedAxes.map(axis=>axis.label),file);
         for (const section of sections) {
           const methods = [...section.querySelectorAll('.quality-series > span')].map(node=>node.textContent).sort();
           assert.equal(methods.length, benchmark.providers.length, file);
@@ -1012,7 +1015,7 @@ test('track overviews join published methods across the latest benchmark edition
   }
 });
 
-test('single-dimension results still draw an honest comparison with zero and missing values', () => {
+test('single-dimension results still draw an honest comparison with zero and missing values', async () => {
   const benchmark=load('online-mind2web','v1.0.0').benchmark;
   benchmark.providers=benchmark.providers.map((provider,index)=>{
     let value=provider.scores.successRate;
@@ -1027,6 +1030,14 @@ test('single-dimension results still draw an honest comparison with zero and mis
   assert.match(html,/—/);
   assert.equal((html.match(/class="quality-series"/g)??[]).length,benchmark.providers.length);
   assert.doesNotMatch(html,/NaN|Infinity/);
+  const win=new Window();
+  try {
+    win.document.body.innerHTML=html;
+    const rows=[...win.document.querySelectorAll('.quality-series')];
+    const valueFor=name=>rows.find(row=>row.querySelector('span').textContent===name)?.querySelector('strong').textContent;
+    assert.equal(valueFor(benchmark.providers[0].name),'0.00%');
+    assert.equal(valueFor(benchmark.providers[1].name),'—');
+  } finally { await win.happyDOM.close(); }
 });
 
 test('track overview links open the combined view without increasing benchmark counts', async () => {
