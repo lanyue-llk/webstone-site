@@ -1031,8 +1031,19 @@ test('track overview URLs, individual tabs and search layers retain the correct 
   const {RELEASE}=require('../web/lib/release.generated.ts');
   const Dashboard=require('../web/components/dashboard.tsx').default;
   const previous=[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT];
-  try{for(const trackId of ['browser-use','webfetch','websearch'])for(const language of ['en','zh']){
-    const win=new Window({url:'https://webstone.test/?track='+trackId});win.localStorage.setItem('webstone-language',language);
+  const views=[['browser-use','L1'],['webfetch','L1'],['websearch','L1'],['websearch','L2'],['websearch','L3']];
+  const expectedColumns={
+    'browser-use':{'bu-bench-v1':['v1.0.0','successRate'],'online-mind2web':['v1.0.0','successRate'],webvoyager:['v1.0.0','successRate'],osworld:['v1.0.0','scoreRate']},
+    webfetch:{'lexbench-webfetch':['v2.1.0','passRate'],webmainbench:['v2.1.0','overall']},
+    L1:{'lexbench-websearch':['v2.0.0','ndcg5'],'simpleqa-verified':['v3.0.0','mrr5']},
+    L2:{'lexbench-websearch-excerpts':['v1.0.0','ndcg5'],'simpleqa-verified-excerpts':['v2.0.0','excerptMatch5']},
+    L3:{'lexbench-websearch-answers':['v1.0.0','usefulness'],'simpleqa-verified-answers':['v2.0.0','answerAccuracy']},
+  };
+  try{for(const [trackId,initialLayer] of views)for(const language of ['en','zh']){
+    const params=new URLSearchParams({track:trackId});
+    if(initialLayer!=='L1')params.set('layer',initialLayer);
+    const initialSearch='?'+params;
+    const win=new Window({url:'https://webstone.test/'+initialSearch});win.localStorage.setItem('webstone-language',language);
     [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
     globalThis.fetch=async input=>{
       let data={release:RELEASE};
@@ -1046,8 +1057,31 @@ test('track overview URLs, individual tabs and search layers retain the correct 
       await React.act(async()=>root.render(React.createElement(Dashboard)));
       if(language==='zh') await React.act(async()=>[...container.querySelectorAll('.language-control button')].find(button=>button.textContent==='中文').click());
       assert.ok(container.querySelector('.track-results'),trackId);
-      const expectedAxes={'browser-use':4,webfetch:8,websearch:6};
-      assert.equal(container.querySelectorAll('.radar-axis').length,expectedAxes[trackId]);
+      const expectedAxes={'browser-use':4,webfetch:8,L1:6,L2:4,L3:6};
+      const columnKey=trackId==='websearch'?initialLayer:trackId;
+      assert.equal(container.querySelectorAll('.radar-axis').length,expectedAxes[columnKey]);
+      const columns=expectedColumns[columnKey];
+      assert.deepEqual([...container.querySelectorAll('.track-results thead a')].map(anchor=>new URL(anchor.href).searchParams.get('benchmark')),Object.keys(columns));
+      const scoreLinks=[...container.querySelectorAll('.track-results tbody td.numeric a')];
+      const expectedScoreCounts={'browser-use':20,webfetch:10,L1:18,L2:8,L3:2};
+      assert.equal(scoreLinks.length,expectedScoreCounts[columnKey]);
+      for(const anchor of scoreLinks){
+        const target=new URL(anchor.href).searchParams;
+        const expected=columns[target.get('benchmark')];
+        assert.ok(expected,'score links identify a constituent benchmark');
+        assert.equal(target.get('version'),expected[0]);
+        assert.equal(target.get('metric'),expected[1]);
+        assert.ok(anchor.title,'score links identify the measured configuration');
+      }
+      if(trackId==='websearch'){
+        const active=[...container.querySelectorAll('.layer-control button')].find(button=>button.getAttribute('aria-pressed')==='true');
+        assert.ok(active.textContent.startsWith(initialLayer),'the initial URL layer is selected before interaction');
+      }
+      if(trackId==='webfetch'){
+        const moliLinks=[...container.querySelectorAll('.track-results tr[data-provider="moli"] td.numeric a')];
+        assert.deepEqual(moliLinks.map(anchor=>anchor.title),['Moli 1.1.17','Moli 1.1.11']);
+        assert.ok(moliLinks[1].textContent.startsWith('39.27'));
+      }
       const overview=[...container.querySelectorAll('.benchmark-navigation button')].find(b=>b.textContent===(language==='en'?'Overview':'总览'));
       assert.equal(overview.getAttribute('aria-current'),'page');
       const benchmarkButton=[...container.querySelectorAll('.benchmark-navigation button')].find(b=>b!==overview);
@@ -1056,7 +1090,7 @@ test('track overview URLs, individual tabs and search layers retain the correct 
       assert.ok(win.location.search.includes('benchmark='));
       let scroll=500;win.scrollTo=options=>{scroll=options.top;};
       await React.act(async()=>overview.click());
-      assert.equal(scroll,0);assert.equal(win.location.search,'?track='+trackId);
+      assert.equal(scroll,0);assert.equal(win.location.search,initialSearch);
       assert.ok(container.querySelector('.track-results'));
       if(trackId==='websearch'){
         await React.act(async()=>[...container.querySelectorAll('.layer-control button')].find(b=>b.textContent.startsWith('L2')).click());
