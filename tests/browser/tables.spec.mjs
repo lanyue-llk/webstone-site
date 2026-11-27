@@ -39,6 +39,9 @@ async function open(page,url,language) {
 }
 async function inspect(page,rows,columns,sort,direction,alphabetical=false) {
   await page.mouse.move(0,0);
+  await page.locator('.wide-table').evaluate(async table=>{
+    await Promise.all(table.getAnimations({subtree:true}).map(animation=>animation.finished.catch(()=>{})));
+  });
   const state=await page.locator('.wide-table').evaluate(table=>({
     headers:[...table.querySelectorAll('thead [data-column]')].map(cell=>({id:cell.dataset.column,sort:cell.getAttribute('aria-sort'),bg:getComputedStyle(cell).backgroundColor,font:getComputedStyle(cell.querySelector('.sort-button')??cell).fontWeight,color:getComputedStyle(cell.querySelector('.sort-button')??cell).color,position:getComputedStyle(cell).position})),
     rows:[...table.querySelectorAll('tbody tr')].map(row=>({id:row.dataset.provider,cells:[...row.querySelectorAll('td[data-column]')].map(cell=>({id:cell.dataset.column,text:cell.innerText,bg:getComputedStyle(cell).backgroundColor,color:getComputedStyle(cell.querySelector('a')??cell).color,font:getComputedStyle(cell.querySelector('a')??cell).fontWeight,position:getComputedStyle(cell).position,label:cell.querySelector('.sr-only')?.textContent.trim()??''}))})),
