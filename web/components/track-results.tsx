@@ -53,7 +53,11 @@ export default function TrackResults({catalog,snapshots,trackId,layer,onLayer,t,
           <thead><tr><th className="provider-heading method-cell" scope="col">{t('Method')}</th>
             {columns.map(col=><th scope="col" key={col.info.id} className={sortColumn.info.id===col.info.id?'sorted':undefined} aria-sort={sortColumn.info.id===col.info.id?(direction==='asc'?'ascending':'descending'):'none'}>
               <a href={`${benchmarkHref(col.info.id)}${col.snapshot?'&version='+canonicalVersion(col.snapshot.version):''}`}>{col.info.name.replace(/^LexBench /,'')} <ArrowUpRight size={11}/></a>
-              <div className="metric-heading"><button className="sort-button" onClick={()=>setSort({id:col.info.id,direction:sortColumn.info.id===col.info.id?(direction==='desc'?'asc':'desc'):col.metric.direction})}>{t(col.metric.label)}{sortColumn.info.id===col.info.id&&<ArrowDown size={12} style={{transform:direction==='asc'?'rotate(180deg)':undefined}}/>}</button><InfoTooltip label={col.info.name} description={t(col.metric.description??'')} sources={[{label:t('Evaluation report'),url:col.benchmark?.reportUrl??col.info.reportUrl}]} sourcesLabel={t('Reports')} detailsLabel={t('details')}/></div>
+              <div className="metric-heading"><button className="sort-button" onClick={()=>{
+                let nextDirection=col.metric.direction;
+                if(sortColumn.info.id===col.info.id) nextDirection=direction==='desc'?'asc':'desc';
+                setSort({id:col.info.id,direction:nextDirection});
+              }}>{t(col.metric.label)}{sortColumn.info.id===col.info.id&&<ArrowDown size={12} style={{transform:direction==='asc'?'rotate(180deg)':undefined}}/>}</button><InfoTooltip label={col.info.name} description={t(col.metric.description??'')} sources={[{label:t('Evaluation report'),url:col.benchmark?.reportUrl??col.info.reportUrl}]} sourcesLabel={t('Reports')} detailsLabel={t('details')}/></div>
               <small className="overview-edition">{col.snapshot?canonicalVersion(col.snapshot.version):t('No published results')}</small>
             </th>)}
           </tr></thead>

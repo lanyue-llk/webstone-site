@@ -840,11 +840,12 @@ test("all published versions highlight comparable column winners consistently, i
           if (!button) continue;
           const wasSelected=button.closest('th').classList.contains('sorted');
           const before=button.closest('th').getAttribute('aria-sort');
+          const initialDirection=wasSelected?(before==='ascending'?'desc':'asc'):item.direction;
           await React.act(async()=>button.click());
           for(let reverse=0;reverse<2;reverse++) {
             const direction=button.closest('th').getAttribute('aria-sort')==='ascending'?'asc':'desc';
-            if(!wasSelected && reverse===0) assert.equal(direction,item.direction,`${file.file}: new metric starts best first`);
-            if(wasSelected && reverse===0) assert.notEqual(button.closest('th').getAttribute('aria-sort'),before);
+            const expectedDirection=reverse===0?initialDirection:(initialDirection==='asc'?'desc':'asc');
+            assert.equal(direction,expectedDirection,`${file.file}: ${item.id} click ${reverse+1}`);
             const rows=[...win.document.querySelectorAll('.wide-table tbody tr')];
             const values=rows.map(row=>benchmark.providers.find(provider=>provider.id===row.dataset.provider).scores[item.id]);
             let missing=false, prior;
@@ -1404,7 +1405,8 @@ test('every overview column keeps its sort and winner styles through reversal an
             checkTableStyles(win,table,`${trackId}/${layer}/${language}`);
             const header=table.querySelectorAll('thead th')[index+1];
             const direction=header.getAttribute('aria-sort')==='ascending'?'asc':'desc';
-            if(reverse===0) assert.equal(direction,col.metric.direction);
+            const expectedDirection=reverse===0?col.metric.direction:(col.metric.direction==='asc'?'desc':'asc');
+            assert.equal(direction,expectedDirection,`${trackId}/${layer}: ${col.metric.id} click ${reverse+1}`);
             const expected=[...candidates].sort((a,b)=>{
               const x=a.results[col.info.id]?.provider.scores[col.metric.id],y=b.results[col.info.id]?.provider.scores[col.metric.id];
               if(typeof x!=='number')return typeof y!=='number'?a.name.localeCompare(b.name):1;
@@ -1447,11 +1449,13 @@ test('switching overview columns starts lower-is-better metrics ascending', asyn
     const button=win.document.querySelectorAll('.track-results .sort-button')[1];
     await React.act(async()=>button.click());
     assert.equal(button.closest('th').getAttribute('aria-sort'),'ascending');
+    const winners=()=>[...win.document.querySelectorAll('.track-results tbody tr')].map(row=>row.querySelectorAll('td.numeric')[1]).filter(cell=>cell.classList.contains('best-value')).map(cell=>cell.querySelector('a').textContent);
+    assert.deepEqual(winners(),['45.71%']);
     const rows=[...win.document.querySelectorAll('.track-results tbody tr')];
     assert.equal(rows[0].querySelectorAll('td.numeric')[1].querySelector('a').textContent,'45.71%');
     assert.equal(rows.at(-1).querySelectorAll('td.numeric')[1].textContent,'—');
     await React.act(async()=>button.click());
     assert.equal(button.closest('th').getAttribute('aria-sort'),'descending');
-    assert.equal(win.document.querySelector('td.best-value a').textContent,'84.5%','best values keep the metric direction when order reverses');
+    assert.deepEqual(winners(),['45.71%'],'lower-is-better winner remains highlighted when order reverses');
   } finally {await React.act(async()=>root.unmount());await win.happyDOM.close();[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
 });
