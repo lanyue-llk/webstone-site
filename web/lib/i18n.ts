@@ -4,7 +4,21 @@ export type Language = "en" | "zh";
 export const LANGUAGE_KEY = "webstone-language";
 
 const chinese: Record<string, string> = {
+  "Evaluation source": "评测来源",
+  "Published trajectories": "公开评测轨迹",
+  "Report author’s evaluation": "报告作者实测",
+  "Official blog": "官方博客",
+  "Research paper": "研究论文",
+  "Public code and results": "公开代码与结果",
+  "Model card": "模型说明文档",
+  "Source report": "来源报告",
+  "Code and results": "代码与结果",
+  "Benchmark code": "评测代码",
+
+  "Rank by": "按指标排名",
   "Resources": "资源",
+  "Report bugs or request features on GitHub": "在 GitHub 反馈问题或提出需求",
+  "Bugs and feature requests": "问题与需求反馈",
   "Star on GitHub": "在 GitHub 点 Star",
   "Highest reported value": "公开结果中的最高值",
   "Lowest reported value": "公开结果中的最低值",

@@ -41,16 +41,19 @@ a percentage or milliseconds as seconds, but must preserve the underlying value
 and precision. Counts, scores, memory and signed deltas keep their proper units.
 Downloads retain original values, numerators and denominators.
 
-Rank only comparable values. `direction` identifies the best value;
-the active sort direction does not change it. Ties share highlights. Constant or
-insufficiently disclosed columns have no winner. Respect `highlightBest: false`
-and diagnostic `rankable: false` in tables and charts. Source-reported comparisons
-use numeric extrema labeled as highest/lowest reported values and omit ranks;
-these are not controlled evaluation rankings. The same rule applies to individual
-reported timing and point-price columns through metric `comparisonMode: "reported"`.
-They receive table highlights but remain outside comparable efficiency chart axes.
-Output length is descriptive, not a quality score. Never turn a price range or
-unknown model charge into an exact total.
+Rank and highlight results only within a comparable evaluation. Matching benchmark
+names are insufficient: task selection, grading policy and attempt aggregation
+must support the comparison. Preserve source-reported scores from different
+evaluations as a sortable results table with edition-specific attribution. Omit
+ranks, winner highlights and comparison charts for `comparisonMode: "reported"`,
+including when only one metric in an otherwise comparable edition is reported.
+Diagnostic `rankable: false` results also have no ranks or winner claims.
+
+For comparable metrics, the declared direction determines ranks and winners;
+reversing display order changes neither. Ties share competition ranks. Constant or
+insufficiently disclosed columns have no winner. Respect `highlightBest: false`.
+Output length is descriptive, not a quality score. Price ranges and unknown model
+charges never become exact totals.
 
 Keep one measured configuration per browser product in a standard public cohort,
 with its actual version identifiable. Temporary PR builds are not separate
@@ -58,6 +61,12 @@ products. Headless build/layout comparisons and distinct commercial tiers follow
 their declared purposes; see the cohort rules in [AGENTS.md](../AGENTS.md).
 
 ## Reading the leaderboard
+
+Every Benchmark and Overview uses `web/components/results-table.tsx`.
+`web/lib/table-comparison.ts` owns ordering, missing values, competition ranks and
+per-column winners. Adapters supply columns, source values and method details;
+they do not copy table markup or ranking logic. For comparable selected metrics, ranks use the declared direction and stay
+unchanged when display order is reversed. Reported selected metrics have no rank column.
 
 Each benchmark has one shared table. Its definition declares Key metrics in order:
 primary quality first, other essential quality measures, useful reported resources or
@@ -83,16 +92,19 @@ releases while showing the tested configuration beside each result;
 service and model variants remain distinct. Table cells link to their exact
 benchmark editions. Every constituent benchmark stays visible, including an empty
 one. Show method coverage and offer a complete-coverage filter. Sort by the first
-primary score with missing values last, without an overall rank. Default charts
-compare primary metrics separately by benchmark; the optional multi-benchmark
+primary score with missing values last. Rank a comparable selected benchmark column without a combined rank. Default charts compare comparable primary metrics separately by benchmark; the optional multi-benchmark
 radar admits only complete profiles. Search overviews retain the L1/L2/L3 distinction.
 Method details show the method ID, product ID, tested configurations and current
 published results. A shared URL never establishes method equivalence.
 
 Keep auxiliary sidebar resources behind a compact footer menu beside the language
 switch, opening above it. The footer has no separate GitHub Star link; evaluation
-and submission links already lead to the repositories. Track cards share a compact two-row viewport for wrapping benchmark chips,
-with scrolling and a mobile expand action.
+and submission links already lead to the repositories. Track cards share a compact
+two-row viewport for wrapping benchmark chips, with scrolling and a mobile expand
+action.
+Feedback links open GitHub Issues; publish an email address only after its owner
+has designated and verified a public contact address. Keep the Star invitation
+brief and link it to the evaluation repository.
 Report pages contain two rows at the actual grid column count; resize and filtering
 clamp the selected page without omitting reports. Chart method selectors
 have bounded height, search and select/clear controls. Favicons use a transparent
@@ -123,13 +135,21 @@ other's sentence structure. Preserve official names and original evidence. Follo
 the bilingual editorial workflow in [AGENTS.md](../AGENTS.md#website-copy).
 
 Keep **Find the right tools for your agent to browse the web.** as the homepage's
-only descriptive slogan. Place **The touchstone** beside the Webstone name as a
-short brand label. Keep the hero compact with content-driven height, moderate
+only descriptive slogan. Keep the hero compact with content-driven height, moderate
 padding and no second sentence repeating the benefit. The site and evaluation repo
 share the official Webstone logo asset. The image contains the Find sentence only;
-README prose can retain The touchstone as a short brand phrase. Their READMEs explain their respective
-roles; the site's README must not read like the evaluation tool's installation page.
+README prose uses the complete “The touchstone for your agent’s web browsing.”
+line and omits the Find sentence already present in the image. Their READMEs
+explain their respective roles; the site's README must not read like the evaluation tool's installation page.
 Use the stone symbol for the favicon, and the Hugging Face identity for datasets.
+
+Source annotations identify the publisher and source type for the exact result
+edition. Show a short label beside the method and original links in its dialog,
+including results reached from Overview. Distinguish the report author's own
+evaluation, official blogs, papers, public code/results, model cards and trajectory
+archives. These labels describe provenance; they do not certify reproducibility.
+The current Browser Use tables retain their author-compiled public scores without
+combining different task sets, judges or attempt policies into one ranking.
 
 An existing published report is an authored publication. Preserve its framework,
 illustrations and narrative when correcting facts or adding a necessary detail.

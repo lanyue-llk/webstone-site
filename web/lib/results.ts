@@ -104,13 +104,21 @@ export function latestEntry(entries: Entry[], benchmark: string) {
   return benchmarkEntries(entries, benchmark).at(-1) ?? null;
 }
 
+export function comparableMetric(benchmark: {rankable?: boolean; comparisonMode?: string}, metric?: {comparisonMode?: string}) {
+  return benchmark.rankable !== false && benchmark.comparisonMode !== "reported" && metric?.comparisonMode !== "reported";
+}
+
+export function compareValues(left: number | null | undefined, right: number | null | undefined, direction: "asc" | "desc") {
+  if (left === null || left === undefined) {
+    if (right === null || right === undefined) return 0;
+    return 1;
+  }
+  if (right === null || right === undefined) return -1;
+  return direction === "asc" ? left - right : right - left;
+}
+
 export function sortProviders(providers: Provider[], metric: string, direction: "asc" | "desc") {
-  return [...providers].sort((a, b) => {
-    const left = a.scores[metric], right = b.scores[metric];
-    if (left == null) return right == null ? 0 : 1;
-    if (right == null) return -1;
-    return direction === "asc" ? left - right : right - left;
-  });
+  return [...providers].sort((a, b) => compareValues(a.scores[metric], b.scores[metric], direction));
 }
 
 export function bestValue(values: (number | null | undefined)[], direction: "asc" | "desc") {
