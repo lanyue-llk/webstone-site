@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, writeFile, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { releaseFingerprint, prepareData, discoverResults, parseReportFile, validateSnapshot, validateCatalog } from "../scripts/prepare-data.mjs";
+import { releaseFingerprint, prepareData, discoverResults, parseReportFile, validateSnapshot, validateCatalog, validateEvaluationSources } from "../scripts/prepare-data.mjs";
 
 const catalog = JSON.parse(readFileSync(new URL("../benchmarks/catalog.json", import.meta.url), "utf8"));
 const files = await discoverResults(fileURLToPath(new URL("../results/", import.meta.url)), catalog);
@@ -588,4 +588,20 @@ test('reported metric comparisons preserve descriptive exclusions', () => {
   assert.throws(()=>validateCatalog(candidate),/Invalid reported metric comparison/);
   delete metric.highlightBest;metric.comparisonMode='temporary';
   assert.throws(()=>validateCatalog(candidate),/Invalid reported metric comparison/);
+});
+
+
+test('evaluation source annotations bind to an exact published result and method', () => {
+  const metadata=JSON.parse(readFileSync(new URL('../reports/metadata.json',import.meta.url)));
+  assert.doesNotThrow(()=>validateEvaluationSources(metadata.evaluations,files));
+  for(const id of ['bu-bench-v1','online-mind2web','webvoyager','osworld']) {
+    const report=files.find(file=>file.report.id===id+'-v1.0.0').report;
+    assert.deepEqual(Object.keys(metadata.evaluations[report.id]).sort(),report.benchmarks[0].providers.map(provider=>provider.id).sort());
+  }
+  const invalid=structuredClone(metadata.evaluations);
+  invalid['missing-result']={};
+  assert.throws(()=>validateEvaluationSources(invalid,files),/Unknown evaluation result/);
+  const provider=Object.values(invalid['online-mind2web-v1.0.0'])[0];
+  delete invalid['missing-result'];provider.links=[{label:'Source',url:'http://invalid.example.org'}];
+  assert.throws(()=>validateEvaluationSources(invalid,files),/Invalid evaluation source/);
 });

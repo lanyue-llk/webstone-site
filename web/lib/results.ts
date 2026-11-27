@@ -104,6 +104,10 @@ export function latestEntry(entries: Entry[], benchmark: string) {
   return benchmarkEntries(entries, benchmark).at(-1) ?? null;
 }
 
+export function comparableMetric(benchmark: {rankable?: boolean; comparisonMode?: string}, metric?: {comparisonMode?: string}) {
+  return benchmark.rankable !== false && benchmark.comparisonMode !== "reported" && metric?.comparisonMode !== "reported";
+}
+
 export function compareValues(left: number | null | undefined, right: number | null | undefined, direction: "asc" | "desc") {
   if (left === null || left === undefined) {
     if (right === null || right === undefined) return 0;

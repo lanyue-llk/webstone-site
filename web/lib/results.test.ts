@@ -543,3 +543,13 @@ test('selected-metric ranks share ties and survive reverse ordering, zero, negat
   assert.deepEqual([...constant.ranks],[['a',1],['b',1]]);
   assert.ok(rows.slice(0,2).every(row=>!constant.winner(row,columns[0])));
 });
+
+
+test('a non-comparable selected metric cannot acquire ranks or winners through highlight flags', () => {
+  const rows=[{id:'a',value:99},{id:'b',value:98}];
+  const columns=[{id:'reported',direction:'desc' as const,value:(row:typeof rows[number])=>row.value,rankable:false,highlight:true}];
+  const comparison=tableComparison(rows,columns,'reported','desc');
+  assert.equal(comparison.ranks.size,0);
+  assert.ok(rows.every(row=>!comparison.winner(row,columns[0])));
+  assert.deepEqual(comparison.ordered.map(row=>row.id),['a','b']);
+});

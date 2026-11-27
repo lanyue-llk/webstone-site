@@ -14,7 +14,7 @@ export function methodResults(catalog: Catalog, snapshots: Snapshot[], providerI
       .sort((a,b) => compareVersions(a.version,b.version)).at(-1);
     const result = snapshot?.benchmarks.find(b => b.id === benchmark.id);
     return (result?.providers ?? []).filter(provider => method.providerIds.includes(provider.id)).map((provider: Provider) => ({
-      benchmark, provider, version: canonicalVersion(snapshot!.version), reportUrl: result!.reportUrl ?? benchmark.reportUrl,
+      benchmark, provider, resultId: snapshot!.id, version: canonicalVersion(snapshot!.version), reportUrl: result!.reportUrl ?? benchmark.reportUrl,
     }));
   });
 }

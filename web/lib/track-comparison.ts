@@ -33,7 +33,7 @@ export function trackComparison(catalog: Catalog, snapshots: Snapshot[], trackId
     grouped.set(method.id,row);
   }
   const rows = orderComparison([...grouped.values()],columns[0],columns[0].metric.direction);
-  const metrics = columns.map(({info,metric}) => ({...metric,id:`${info.id}:${metric.id}`,label:info.name.replace(/^LexBench /,'')}));
+  const metrics = columns.map(({info,metric,benchmark}) => ({...metric,comparisonMode:benchmark?.comparisonMode ?? metric.comparisonMode,id:`${info.id}:${metric.id}`,label:info.name.replace(/^LexBench /,'')}));
   const providers: Provider[] = rows.map(row => ({
     id:row.id,name:row.name,description:'',mode:'',passed:null,
     scores:Object.fromEntries(columns.map(column => [`${column.info.id}:${column.metric.id}`,row.results[column.info.id]?.provider.scores[column.metric.id] ?? null])),
@@ -42,7 +42,7 @@ export function trackComparison(catalog: Catalog, snapshots: Snapshot[], trackId
   // The empty benchmark still exposes catalog columns; it contains no invented results.
   const profile: Benchmark = {
     ...(first ?? {...columns[0].info,...columns[0].info.definitions.at(-1)!,definitionId:columns[0].info.definitions.at(-1)!.id,taskCount:null,notes:[]}),
-    id:`track:${trackId}`,name:track.name,rankable:false,primaryMetric:metrics[0].id,
+    id:`track:${trackId}`,name:track.name,rankable:true,comparisonMode:undefined,primaryMetric:metrics[0].id,
     metrics,keyMetricIds:metrics.map(metric=>metric.id),categories:[],providers,providerCount:providers.length,
   };
   return {track,columns,rows,profile};

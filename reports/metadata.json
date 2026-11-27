@@ -99,5 +99,243 @@
         "zh": "https://yours.lexmount.cn/artifact-site/s/m7XSPPvew0gv"
       }
     }
+  },
+  "evaluations": {
+    "bu-bench-v1-v1.0.0": {
+      "lexmount-browser-agent": {
+        "origin": "author",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://yours.lexmount.cn/artifact-site/s/m7XSPPvew0gv?version=ver_e46357402ba7440bb0372fa2e0a07d78#cmp-bu"
+          }
+        ],
+        "publisher": "Lexmount"
+      },
+      "cook-browser-desktop": {
+        "origin": "blog",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://trycook.ai/research"
+          }
+        ],
+        "publisher": "Cook"
+      },
+      "aside-gpt-5-5-high": {
+        "origin": "repository",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://github.com/at-inc/aside-benchmarks/blob/main/bu-bench-v1/results/gpt55-20260524/run_summary.json"
+          },
+          {
+            "label": "Code and results",
+            "url": "https://github.com/at-inc/aside-benchmarks"
+          }
+        ],
+        "publisher": "Aside"
+      },
+      "browsercode-claude-opus-4-8": {
+        "origin": "repository",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://github.com/browser-use/benchmark/blob/main/official_plots/browser_harness_by_model_light.png"
+          },
+          {
+            "label": "Benchmark code",
+            "url": "https://github.com/browser-use/benchmark"
+          }
+        ],
+        "publisher": "Browser Use"
+      },
+      "browser-use-oss-claude-fable-5": {
+        "origin": "blog",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://browser-use.com/posts/claude-fable-browser-agent-benchmark"
+          },
+          {
+            "label": "Benchmark code",
+            "url": "https://github.com/browser-use/benchmark"
+          }
+        ],
+        "publisher": "Browser Use"
+      }
+    },
+    "online-mind2web-v1.0.0": {
+      "lexmount-browser-agent": {
+        "origin": "author",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://yours.lexmount.cn/artifact-site/s/m7XSPPvew0gv?version=ver_e46357402ba7440bb0372fa2e0a07d78#cmp-online"
+          }
+        ],
+        "publisher": "Lexmount"
+      },
+      "aside-gpt-5-5-high": {
+        "origin": "repository",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://github.com/at-inc/aside-benchmarks#online-mind2web"
+          },
+          {
+            "label": "Code and results",
+            "url": "https://github.com/at-inc/aside-benchmarks"
+          }
+        ],
+        "publisher": "Aside"
+      },
+      "browser-use-cloud": {
+        "origin": "blog",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://browser-use.com/best-web-agents"
+          }
+        ],
+        "publisher": "Browser Use"
+      },
+      "dassi-gemini-3-8-flash": {
+        "origin": "repository",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://github.com/omnify-labs/dassi-evals#online-mind2web--300-tasks"
+          },
+          {
+            "label": "Code and results",
+            "url": "https://github.com/omnify-labs/dassi-evals"
+          }
+        ],
+        "publisher": "Dassi"
+      },
+      "microsoft-cuawright-gpt-5-5": {
+        "origin": "paper",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://arxiv.org/html/2610.04116v1#S3.SS1"
+          }
+        ],
+        "publisher": "Microsoft Research"
+      }
+    },
+    "webvoyager-v1.0.0": {
+      "lexmount-browser-agent": {
+        "origin": "author",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://yours.lexmount.cn/artifact-site/s/m7XSPPvew0gv?version=ver_e46357402ba7440bb0372fa2e0a07d78#cmp-webvoyager"
+          }
+        ],
+        "publisher": "Lexmount"
+      },
+      "browser-control-claude-fable-5": {
+        "origin": "repository",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://github.com/omxyz/webvoyager#current-results"
+          },
+          {
+            "label": "Code and results",
+            "url": "https://github.com/omxyz/webvoyager"
+          }
+        ],
+        "publisher": "browser-control"
+      },
+      "alumnium-sonnet-4-6-gpt-5-nano": {
+        "origin": "blog",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://alumnium.ai/blog/webvoyager-benchmark/"
+          },
+          {
+            "label": "Code and results",
+            "url": "https://github.com/alumnium-hq/WebVoyager"
+          }
+        ],
+        "publisher": "Alumnium"
+      },
+      "h-company-surfer-2": {
+        "origin": "blog",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://hcompany.ai/newsroom/surfer-2"
+          }
+        ],
+        "publisher": "H Company"
+      },
+      "google-gemini-2-5-computer-use": {
+        "origin": "model-card",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://storage.googleapis.com/deepmind-media/Model-Cards/Gemini-2-5-Computer-Use-Model-Card.pdf"
+          }
+        ],
+        "publisher": "Google DeepMind"
+      }
+    },
+    "osworld-v1.0.0": {
+      "lexmount-browser-agent": {
+        "origin": "author",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://yours.lexmount.cn/artifact-site/s/m7XSPPvew0gv?version=ver_e46357402ba7440bb0372fa2e0a07d78#cmp-osworld"
+          }
+        ],
+        "publisher": "Lexmount"
+      },
+      "ouroboros-claude-opus-5": {
+        "origin": "archive",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://huggingface.co/datasets/razzant/ouroboros-osworld-verified-opus5"
+          }
+        ],
+        "publisher": "razzant (Hugging Face)"
+      },
+      "ouroboros-claude-sonnet-4-6": {
+        "origin": "archive",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://huggingface.co/datasets/razzant/ouroboros-osworld-verified-sonnet46"
+          }
+        ],
+        "publisher": "razzant (Hugging Face)"
+      },
+      "intelligence-indeed-agent": {
+        "origin": "archive",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://huggingface.co/datasets/xlangai/ubuntu_osworld_verified_trajs/blob/main/intelligence-indeed-claude-sonnet-4-6-opus-4-7-nogdrive-100steps.zip"
+          }
+        ],
+        "publisher": "xlangai (Hugging Face)"
+      },
+      "claude-computer-use-fable-5": {
+        "origin": "archive",
+        "links": [
+          {
+            "label": "Source report",
+            "url": "https://huggingface.co/datasets/xlangai/ubuntu_osworld_verified_trajs/blob/main/results_fable5_task218872_osworld1.0_shareable.zip"
+          }
+        ],
+        "publisher": "xlangai (Hugging Face)"
+      }
+    }
   }
 }

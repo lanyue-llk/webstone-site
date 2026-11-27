@@ -23,6 +23,6 @@ export function tableComparison<Row extends {id: string}>(rows: Row[], columns: 
     if (index === 0 || value !== selected.value(ranked[index - 1])) rank = index + 1;
     ranks.set(row.id, rank);
   });
-  const winners = new Map(columns.map(column => [column.id, column.highlight === false ? null : bestValue(rows.map(column.value), column.direction)]));
+  const winners = new Map(columns.map(column => [column.id, column.highlight === false || column.rankable === false ? null : bestValue(rows.map(column.value), column.direction)]));
   return { ordered, ranks, selected, winner: (row: Row, column: NumericColumn<Row>) => isBestValue(column.value(row), winners.get(column.id) ?? null) };
 }

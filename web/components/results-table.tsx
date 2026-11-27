@@ -35,14 +35,15 @@ type Props<Row extends {id: string}> = {
 
 export default function ResultsTable<Row extends {id: string}>({caption, rows, columns, sortId, direction, onSort, method, toolbar, t, identity, overview = false, empty, tie}: Props<Row>) {
   const state = tableComparison(rows, columns, sortId, direction, tie);
-  return <section id="results" className={`leaderboard table-panel${overview ? ' overview-leaderboard' : ''}`} style={{'--data-columns': columns.length} as CSSProperties} aria-label={caption}>
-    {!overview && <h2 className="sr-only">{t('Leaderboard')}</h2>}
+  const showRanks = state.selected.rankable !== false;
+  return <section id="results" className={`leaderboard table-panel${overview ? ' overview-leaderboard' : ''}`} style={{'--data-columns': columns.length, '--rank-width': showRanks ? undefined : '0px'} as CSSProperties} aria-label={caption}>
+    {!overview && <h2 className="sr-only">{t(showRanks ? 'Leaderboard' : 'Published results')}</h2>}
     <div className="table-toolbar">{toolbar}</div>
-    <div key={identity} className={`table-scroll${overview ? ' overview-table-scroll' : ''}`} tabIndex={0} role="region" aria-label={t(overview ? 'Results comparison' : 'Leaderboard')}>
+    <div key={identity} className={`table-scroll${overview ? ' overview-table-scroll' : ''}`} tabIndex={0} role="region" aria-label={t(overview || !showRanks ? 'Results comparison' : 'Leaderboard')}>
       <table className={`wide-table${overview ? ' track-results' : ''}`}>
         <caption className="sr-only">{caption}</caption>
-        <colgroup><col className="rank-column"/><col className="provider-column"/>{columns.map(column => <col key={column.id}/>)}</colgroup>
-        <thead><tr><th className="rank-cell" scope="col" aria-label={`${t('Rank by')} ${columns.find(column => column.id === state.selected.id)!.label}`}>#</th><th className="provider-heading method-cell" scope="col">{t('Method')}</th>
+        <colgroup>{showRanks && <col className="rank-column"/>}<col className="provider-column"/>{columns.map(column => <col key={column.id}/>)}</colgroup>
+        <thead><tr>{showRanks && <th className="rank-cell" scope="col" aria-label={`${t('Rank by')} ${columns.find(column => column.id === state.selected.id)!.label}`}>#</th>}<th className="provider-heading method-cell" scope="col">{t('Method')}</th>
           {columns.map(column => {
             const active = column.id === state.selected.id;
             let ariaSort: 'ascending' | 'descending' | 'none' | undefined;
@@ -58,7 +59,7 @@ export default function ResultsTable<Row extends {id: string}>({caption, rows, c
           })}
         </tr></thead>
         <tbody>{state.ordered.map(row => <tr key={row.id} data-provider={row.id}>
-          <td className="rank-cell">{state.ranks.get(row.id) ?? '—'}</td>
+          {showRanks && <td className="rank-cell">{state.ranks.get(row.id) ?? '—'}</td>}
           <td className="method-cell">{method(row)}</td>
           {columns.map(column => {
             const winner = state.winner(row, column);

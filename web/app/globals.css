@@ -569,7 +569,7 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
 @media (max-width: 760px) {
   .table-controls { justify-content: flex-start; }
   .metric-selector-panel { position: fixed; left: 18px; right: 18px; top: auto; bottom: 18px; width: auto; }
-  .table-scroll { --rank-width: 28px; }
+  .table-panel { --rank-width: 28px; }
 }
 
 .getting-started { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
@@ -730,3 +730,11 @@ a.result-published { display: inline-flex; align-items: center; gap: 4px; }
 
 .overview-hero .overview-feedback { margin: 12px 0 0; max-width: 64ch; font-size: 12px; line-height: 1.6; color: #d4e7d9; }
 .overview-feedback a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+
+.evaluation-source { margin-block: 16px; font-size: 12px; line-height: 1.6; }
+.evaluation-source h3 { font-size: 13px; margin-bottom: 10px; }
+.evaluation-source ul { display: flex; gap: 6px 14px; flex-wrap: wrap; list-style: none; padding: 0; }
+.evaluation-source a { color: #245d43; text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.evaluation-source-label { font-size: 10px; color: #596b60; }
+.method-history > ul > li:has(.evaluation-source) { display: block; }
+.method-history > ul > li > a, .method-history > ul > li > span { margin-right: 10px; }

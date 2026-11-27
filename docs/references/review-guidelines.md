@@ -29,7 +29,7 @@ cleanup outside the PR.
 | Navigation, versions or downloads | New tab/layer resets content scroll; back/forward; direct link to an extra metric; unknown edition and no-result state; selected-edition download including legacy links | `tests/charts.test.mjs`, version tests in `web/lib/results.test.ts`; open direct URLs in the built site and inspect downloaded JSON identity. |
 | Track overviews | Latest edition per constituent including empty benchmarks; global method and product IDs; all methods retained; visible coverage/configurations; absent scores remain missing; per-benchmark charts and complete-only optional radar; default score sort and reversed sort; no combined score or extra dataset; direct links and search layers | Track-comparison and dashboard scenarios in `tests/charts.test.mjs`; open each overview, its configuration details, exact-edition links and one-dimensional charts in both languages. |
 | Examples | Source task is real; input matches it; reference and recorded response are clearly distinguished; a claimed recorded output matches its method/evidence | Catalog/data and dialog tests; follow the task/source link and inspect a real dialog. Do not accept plausible-looking invented output. |
-| Copy, branding or linked reports | Natural EN/ZH labels and scope; no work notes or duplicated summaries; official logo retained; one Find slogan with Touchstone as a short brand label; site and tool repository roles clear; report structure preserved | Read both repository humanizer skills and inspect both rendered languages. Use `tests/published-reports.test.mjs` and `npm run check:reports` for anonymous access; separately check report content against evidence. |
+| Copy, branding or linked reports | Natural EN/ZH labels and scope; no work notes or duplicated summaries; official logo retained; one Find slogan on the homepage and the complete touchstone line in README prose; site and tool repository roles clear; report structure preserved | Read both repository humanizer skills and inspect both rendered languages. Use `tests/published-reports.test.mjs` and `npm run check:reports` for anonymous access; separately check report content against evidence. |
 | Build, cache or deployment | Export routes work; data and manifest are fresh; fingerprinted assets cache; historical URLs and downloads work; deployed identity is the intended commit | Build checks plus `scripts/check-static-preview.mjs` through the production Nginx preview; follow `../deploying-pages.md` for the authorized release and verify the actual public domain. |
 
 Run `npm test`, `npm run build` and `npm run test:browser` for code or catalog changes. Install Chromium once with `npx playwright install chromium`. Set `SITE_ORIGIN` to check an existing preview or the deployed release against the checked-out data. PR and main CI use the production Nginx preview; release CI checks the export before upload and the public domain afterward. Failed browser tests retain screenshots and traces in CI artifacts. Add a regression
@@ -40,8 +40,11 @@ changes need accurate commands, valid local links and a check against their owni
 rules; they do not require a new test that searches for prose keywords.
 
 For published comparisons, derive expected directional extrema independently of
-the catalog's highlight switches. Separately verify whether a value is a comparable
-best or a reported extremum, and keep purely descriptive output length unhighlighted.
+the catalog's highlight switches. Reported or diagnostic values have no rank,
+winner highlight or comparison chart. Verify task scope, grader and attempt
+policy before treating source values as comparable. Keep descriptive output
+length unhighlighted. Check source publisher/type labels and exact-edition original links; a source
+link or repository does not prove a run was reproduced.
 Check toolbar/table edges, primary-column visibility, card separator spacing and
 the upward resource menu by rendered geometry at desktop and phone widths.
 

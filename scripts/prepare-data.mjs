@@ -292,11 +292,27 @@ export async function releaseFingerprint(files, sourceRoot = root) {
   return hash.digest("hex");
 }
 
+export function validateEvaluationSources(evaluations, files) {
+  if (!record(evaluations)) throw new Error("Invalid evaluation sources");
+  for (const [resultId, sources] of Object.entries(evaluations)) {
+    const report = files.find(file => file.report.id === resultId)?.report;
+    if (!report || !record(sources)) throw new Error("Unknown evaluation result");
+    const providerIds = new Set(report.benchmarks.flatMap(benchmark => benchmark.providers.map(provider => provider.id)));
+    for (const [providerId, source] of Object.entries(sources)) {
+      if (!providerIds.has(providerId) || !record(source) || !['author', 'blog', 'paper', 'repository', 'model-card', 'archive'].includes(source.origin)
+        || ![source.publisher].every(value => typeof value === 'string' && value.trim() && !/[\u3400-\u9fff]/.test(value))
+        || !Array.isArray(source.links) || !source.links.length || source.links.some(link => !record(link) || !link.label?.trim() || !publicEvidenceUrl(link.url))) throw new Error("Invalid evaluation source");
+    }
+  }
+}
+
 export async function prepareData({ write = true } = {}) {
   const catalogBytes = await readFile(catalogPath);
   const catalog = JSON.parse(catalogBytes);
   validateCatalog(catalog);
   const files = await discoverResults(resultRoot, catalog);
+  const metadata = JSON.parse(await readFile(path.join(root, "reports/metadata.json"), "utf8"));
+  validateEvaluationSources(metadata.evaluations, files);
   const release = await releaseFingerprint(files);
   if (write) {
     const builtAt = new Date().toISOString();
