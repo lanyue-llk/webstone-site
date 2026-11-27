@@ -61,13 +61,13 @@ export default function TrackResults({catalog,snapshots,trackId,layer,onLayer,t,
             {columns.map(col=>{
               const measured=row.results[col.info.id];
               const value=measured?.provider.scores[col.metric.id];
-              const best=col.benchmark?.rankable===false||col.metric.highlightBest===false?null:bestValue(rows.map(row=>row.results[col.info.id]?.provider.scores[col.metric.id]),col.metric.direction);
+              const best=col.benchmark?.rankable===false||col.metric.highlightBest===false?null:bestValue(ordered.map(row=>row.results[col.info.id]?.provider.scores[col.metric.id]),col.metric.direction);
               const winner=isBestValue(value,best);
               return <td className={`numeric ${winner?'best-value':''}`} key={col.info.id}>{value == null ? '—' :<><a href={`${benchmarkHref(col.info.id)}&version=${canonicalVersion(col.snapshot!.version)}&metric=${col.metric.id}`} title={measured.provider.name}>{formatMetric(value,col.metric.unit,col.metric.decimals)}</a>{measured.provider.name!==row.name&&<small className="measured-configuration">{measured.provider.name}</small>}</>}{winner&&<span className="sr-only"> {t('Best in this column')}</span>}</td>;
             })}
           </tr>)}</tbody>
         </table>
-        {ordered.length===0&&<p className="comparison-empty" role="status">{t('No methods have results for every benchmark.')}</p>}
+        {ordered.length===0&&<p className="comparison-empty" role="status">{t(completeOnly?'No methods have results for every benchmark.':'No published results')}</p>}
       </div>
     </section>
     <section className="overview-comparisons" aria-label={t('Results comparison')}>
@@ -75,7 +75,7 @@ export default function TrackResults({catalog,snapshots,trackId,layer,onLayer,t,
         <button aria-pressed={chartView==='benchmarks'} onClick={()=>setChartView('benchmarks')}>{t('By benchmark')}</button>
         {columns.length>=3&&<button aria-pressed={chartView==='radar'} onClick={()=>setChartView('radar')}>{t('Radar')} · {complete.length} {t('methods')}</button>}
       </div>
-      {chartView==='radar'&&columns.length>=3 ? <>{complete.length===0&&<p className="comparison-empty" role="status">{t('No methods have results for every benchmark.')}</p>}<Insights key={`${trackId}:${layer}:radar`} benchmark={{...profile,providers:complete.map(row=>profile.providers.find(p=>p.id===row.id)!),providerCount:complete.length}} t={t} caption="" preserveOrder coverageTotal={columns.length}/></>
+      {chartView==='radar'&&columns.length>=3 ? <>{complete.length===0&&<p className="comparison-empty" role="status">{t('No methods have results for every benchmark.')}</p>}<Insights key={`${trackId}:${layer}:radar`} benchmark={{...profile,providers:complete.map(row=>profile.providers.find(p=>p.id===row.id)!),providerCount:complete.length}} t={t} caption="" preserveOrder coverageTotal={columns.length} colors={colorMap} hiddenMethods={hidden} onHiddenChange={setHidden}/></>
         : <div className="overview-chart-layout"><MethodSelector providers={ordered} hidden={hidden} onChange={setHidden} t={t} colors={colorMap} coverage={Object.fromEntries(ordered.map(row=>[row.id,`${coverage(row,columns)}/${columns.length}`]))}/><div className="benchmark-comparisons">{columns.map(col=>{
           const providers=chartRows.flatMap(row=>{const measured=row.results[col.info.id];return typeof measured?.provider.scores[col.metric.id]==='number'?[{...measured.provider,id:row.id,name:row.name}]:[];});
           const benchmark={...profile,id:col.info.id,name:col.info.name,metrics:[col.metric],keyMetricIds:[col.metric.id],primaryMetric:col.metric.id,categories:[],providers,providerCount:providers.length};

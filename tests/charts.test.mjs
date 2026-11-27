@@ -1257,6 +1257,7 @@ test('overview controls sort scores, filter measured coverage, inspect identitie
       const filter=container.querySelector('.table-toolbar [role="group"]');
       await React.act(async()=>[...filter.querySelectorAll('button')].find(button=>button.textContent===t('All benchmarks')).click());
       assert.deepEqual(rows().map(row=>row.dataset.provider),['lexmount-browser-agent']);
+      assert.equal(container.querySelectorAll('.track-results .best-value').length,0,'one displayed value cannot establish a column winner');
       assert.ok(rows()[0].querySelector('.method-coverage').textContent.includes('4/4'));
       await React.act(async()=>filter.querySelector('button').click());assert.equal(rows().length,16);
       await React.act(async()=>container.querySelector('.overview-chart-controls button:nth-child(2)').click());
@@ -1268,6 +1269,10 @@ test('overview controls sort scores, filter measured coverage, inspect identitie
       assert.equal(container.querySelectorAll('.method-selector .radar-legend label').length,2);
       const clear=[...container.querySelectorAll('.method-selection-actions button')].find(button=>button.textContent===t('Clear'));
       await React.act(async()=>clear.click());assert.equal(container.querySelectorAll('.quality-series').length,0);
+      assert.ok(container.querySelector('.benchmark-comparisons').textContent.includes(t('Select a method to show its results.')));
+      await React.act(async()=>container.querySelector('.overview-chart-controls button:nth-child(2)').click());
+      assert.equal(container.querySelectorAll('.radar-series').length,0,'chart selection survives a view change');
+      await React.act(async()=>container.querySelector('.overview-chart-controls button').click());
       await React.act(async()=>container.querySelector('.method-selection-actions button').click());assert.equal(container.querySelectorAll('.quality-series').length,20);
       await React.act(async()=>container.querySelector('tr[data-provider="aside-gpt-5-5-high"] .method-open').click());
       assert.ok(container.querySelector('.method-dialog').open);

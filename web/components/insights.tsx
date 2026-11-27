@@ -7,12 +7,14 @@ import { qualityMetrics } from "../lib/comparisons";
 import { radarAxes } from "../lib/radar";
 import { sortProviders, type Benchmark, type Provider } from "../lib/results";
 
-type Props = { benchmark: Benchmark; t: (text: string) => string; caption?: string; heading?: string; preserveOrder?: boolean; hideLegend?: boolean; coverageTotal?: number; colors?: Record<string,string> };
+type Props = { benchmark: Benchmark; t: (text: string) => string; caption?: string; heading?: string; preserveOrder?: boolean; hideLegend?: boolean; coverageTotal?: number; colors?: Record<string,string>; hiddenMethods?: string[]; onHiddenChange?: (ids:string[])=>void };
 const radius = 123;
 
 
-export default function Insights({ benchmark, t, caption, heading, preserveOrder, hideLegend, coverageTotal, colors }: Props) {
-  const [hidden, setHidden] = useState<string[]>([]);
+export default function Insights({ benchmark, t, caption, heading, preserveOrder, hideLegend, coverageTotal, colors, hiddenMethods, onHiddenChange }: Props) {
+  const [localHidden, setLocalHidden] = useState<string[]>([]);
+  const hidden=hiddenMethods??localHidden;
+  const setHidden=onHiddenChange??setLocalHidden;
   const sectionId=useId();
   const [selectedMetrics, setSelectedMetrics] = useState<string[] | null>(null);
   const descriptionId = useId();
