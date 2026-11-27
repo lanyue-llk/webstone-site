@@ -142,7 +142,10 @@ for(const report of reports) {
     const primary=key.find(column=>column.id===`metric:${def.primaryMetric}`);
     await inspect(page,result.providers,key,primary,primary.direction,false,language);
     await expect(page.locator('.insights-section')).toHaveCount(1);
-    if(typeof result.taskCount==='number')await expect(page.locator('.table-summary')).toContainText(result.taskCount.toLocaleString());
+    if(typeof result.taskCount==='number') {
+      const count=await page.evaluate(value=>value.toLocaleString(),result.taskCount);
+      await expect(page.locator('.table-summary')).toContainText(count);
+    }
     const method=await page.locator('thead .method-cell').boundingBox(),score=await page.locator(`thead ${columnSelector(primary.id)}`).boundingBox();
     expect(score.x).toBeGreaterThanOrEqual(method.x+method.width-1);
     expect(score.x).toBeLessThan((await page.locator('.table-scroll').boundingBox()).x+(await page.locator('.table-scroll').boundingBox()).width);
