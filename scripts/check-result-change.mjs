@@ -42,7 +42,8 @@ export function checkResultChange(baseCatalog, catalog, changes, publishedPaths,
   const { providerUrls, methods, ...definitions } = catalog;
   if (!isDeepStrictEqual(originalDefinitions, definitions)) throw new Error("A result submission may only add participant project URLs and new method identities to the catalog. Definition changes need a separate pull request.");
   if (Object.entries(originalUrls).some(([id, url]) => providerUrls?.[id] !== url)) throw new Error("Existing participant URLs cannot be changed by a result submission.");
-  if (originalMethods.some(method => !methods?.some(candidate => isDeepStrictEqual(candidate,method)))) throw new Error("Existing method identities cannot be changed by a result submission.");
+  if (!Array.isArray(methods) || methods.some(method => !method || typeof method !== "object" || Array.isArray(method))) throw new Error("Invalid global method registry");
+  if (originalMethods.some(method => !methods.some(candidate => isDeepStrictEqual(candidate,method)))) throw new Error("Existing method identities cannot be changed by a result submission.");
   for (const method of methods ?? []) {
     if (originalMethods.some(original=>original.id===method.id)) continue;
     if (method.providerIds?.length !== 1 || method.id !== method.providerIds[0] || Object.hasOwn(originalUrls,method.id)) throw new Error("New method identities must register a new participant; aliases require a separate reviewed catalog change.");

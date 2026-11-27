@@ -63,7 +63,7 @@ export default function TrackResults({catalog,snapshots,trackId,layer,onLayer,t,
               const value=measured?.provider.scores[col.metric.id];
               const best=col.benchmark?.rankable===false||col.metric.highlightBest===false?null:bestValue(ordered.map(row=>row.results[col.info.id]?.provider.scores[col.metric.id]),col.metric.direction);
               const winner=isBestValue(value,best);
-              return <td className={`numeric ${winner?'best-value':''}`} key={col.info.id}>{value == null ? '—' :<><a href={`${benchmarkHref(col.info.id)}&version=${canonicalVersion(col.snapshot!.version)}&metric=${col.metric.id}`} title={measured.provider.name}>{formatMetric(value,col.metric.unit,col.metric.decimals)}</a>{measured.provider.name!==row.name&&<small className="measured-configuration">{measured.provider.name}</small>}</>}{winner&&<span className="sr-only"> {t('Best in this column')}</span>}</td>;
+              return <td className={`numeric ${winner?'best-value':''}`} key={col.info.id}>{value === null || value === undefined ? '—' :<><a href={`${benchmarkHref(col.info.id)}&version=${canonicalVersion(col.snapshot!.version)}&metric=${col.metric.id}`} title={measured.provider.name}>{formatMetric(value,col.metric.unit,col.metric.decimals)}</a>{measured.provider.name!==row.name&&<small className="measured-configuration">{measured.provider.name}</small>}</>}{winner&&<span className="sr-only"> {t('Best in this column')}</span>}</td>;
             })}
           </tr>)}</tbody>
         </table>

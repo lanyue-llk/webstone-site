@@ -1303,3 +1303,28 @@ test('overview includes an empty constituent and never fills missing results or 
   bench.providers.push({...structuredClone(bench.providers.find(provider=>provider.id==='moli-1-1-17')),id:'moli-content-fixed'});
   assert.throws(()=>trackComparison(catalog,ambiguous,'webfetch'),/Ambiguous overview method/);
 });
+
+
+test('method search matches displayed Chinese names and bulk actions preserve other subsets',async()=>{
+  const MethodSelector=require('../web/components/method-selector.tsx').default;
+  const win=new Window();const previous=[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT];
+  [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+  const container=win.document.createElement('div');win.document.body.append(container);const root=require('react-dom/client').createRoot(container);
+  const providers=[{id:'stagehand',name:'Stagehand · Open source / DeepSeek'},{id:'cloud',name:'Cloud'}];
+  const t=text=>text==='Open source / DeepSeek'?'开源 / DeepSeek':text;
+  let hidden=['outside'];const change=ids=>{hidden=ids;};
+  try{
+    await React.act(async()=>root.render(React.createElement(MethodSelector,{providers,hidden,onChange:change,t})));
+    const search=container.querySelector('input[type="search"]');
+    await React.act(async()=>{const setter=Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype,'value').set;setter.call(search,'开源');search.dispatchEvent(new win.Event('input',{bubbles:true}));});
+    assert.equal(container.querySelectorAll('.radar-legend label').length,1);
+    assert.ok(container.querySelector('.radar-legend label').textContent.includes('Stagehand'));
+    await React.act(async()=>[...container.querySelectorAll('button')].find(b=>b.textContent==='Clear').click());
+    assert.deepEqual([...hidden].sort(),['cloud','outside','stagehand']);
+    await React.act(async()=>root.render(React.createElement(MethodSelector,{providers:[providers[0]],hidden,onChange:change,t})));
+    await React.act(async()=>[...container.querySelectorAll('button')].find(b=>b.textContent==='Clear').click());
+    assert.deepEqual([...hidden].sort(),['cloud','outside','stagehand'],'clearing a subset cannot restore hidden methods outside it');
+    await React.act(async()=>[...container.querySelectorAll('button')].find(b=>b.textContent==='Select all').click());
+    assert.deepEqual([...hidden].sort(),['cloud','outside'],'selecting a subset changes only its methods');
+  }finally{await React.act(async()=>root.unmount());await win.happyDOM.close();[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
+});

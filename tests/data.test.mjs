@@ -559,3 +559,11 @@ test('every registered participant has exactly one global identity and model var
   const incomplete=structuredClone(catalog);incomplete.methods.shift();
   assert.throws(()=>validateCatalog(incomplete),/Missing global method identity/);
 });
+
+
+test('catalog identity validation handles malformed registry members',()=>{
+  for(const member of [null,undefined,[],false]){
+    const invalid=structuredClone(catalog);invalid.methods.push(member);
+    assert.throws(()=>validateCatalog(invalid),error=>!(error instanceof TypeError)&&/Invalid/.test(error.message));
+  }
+});

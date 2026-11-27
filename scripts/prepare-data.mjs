@@ -18,7 +18,7 @@ function metricMaximum(metric) {
 }
 
 function uniqueIds(items, label) {
-  if (!Array.isArray(items) || !items.length || items.some(item => typeof item.id !== "string" || !item.id)) throw new Error(`Invalid ${label}`);
+  if (!Array.isArray(items) || !items.length || items.some(item => !item || typeof item !== "object" || Array.isArray(item) || typeof item.id !== "string" || !item.id)) throw new Error(`Invalid ${label}`);
   if (new Set(items.map(item => item.id)).size !== items.length) throw new Error(`Duplicate ${label} id`);
 }
 

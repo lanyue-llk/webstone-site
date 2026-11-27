@@ -9,8 +9,8 @@ export function coverage(row: ComparisonRow, columns: ComparisonColumn[]) {
 export function orderComparison(rows: ComparisonRow[], column: ComparisonColumn, direction: 'asc'|'desc') {
   return [...rows].sort((a,b) => {
     const left=a.results[column.info.id]?.provider.scores[column.metric.id],right=b.results[column.info.id]?.provider.scores[column.metric.id];
-    if (left == null) return right == null ? a.name.localeCompare(b.name) : 1;
-    if (right == null) return -1;
+    if (left === null || left === undefined) return right === null || right === undefined ? a.name.localeCompare(b.name) : 1;
+    if (right === null || right === undefined) return -1;
     return (direction === 'asc' ? left-right : right-left) || a.name.localeCompare(b.name);
   });
 }

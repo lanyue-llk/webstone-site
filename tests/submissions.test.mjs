@@ -292,3 +292,11 @@ test('result submissions register new identities without rewriting historical me
   alias.methods.push({id:'alias-method',productId:'moli',name:'Alias',providerIds:['moli']});
   assert.throws(()=>checkResultChange(catalog,alias,[addition(2)],published),/New method identities/);
 });
+
+
+test('malformed global registries produce catalog errors instead of runtime TypeErrors',()=>{
+  for(const methods of [{},null,[...structuredClone(catalog.methods),null],[...structuredClone(catalog.methods),[]]]){
+    const invalid={...structuredClone(catalog),methods};
+    assert.throws(()=>checkResultChange(catalog,invalid,[addition(2)],published),error=>!(error instanceof TypeError)&&/Invalid|Missing/.test(error.message));
+  }
+});

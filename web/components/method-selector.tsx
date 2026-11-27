@@ -12,14 +12,15 @@ export default function MethodSelector({providers,hidden,onChange,t,coverage,col
   coverage?: Record<string,string>;colors?:Record<string,string>;
 }) {
   const [query,setQuery]=useState('');
-  const matches=providers.filter(provider=>provider.name.toLowerCase().includes(query.toLowerCase()));
+  const displayName=(provider: Pick<Provider,'name'>)=>provider.name.split(' · ').map(t).join(' · ');
+  const matches=providers.filter(provider=>[provider.name,displayName(provider)].some(name=>name.toLowerCase().includes(query.toLowerCase())));
   return <div className="method-selector">
     <label className="method-search">{t('Find a method')}<input value={query} onChange={event=>setQuery(event.currentTarget.value)} type="search"/></label>
-    <div className="method-selection-actions"><button onClick={()=>onChange([])}>{t('Select all')}</button><button onClick={()=>onChange(providers.map(provider=>provider.id))}>{t('Clear')}</button></div>
+    <div className="method-selection-actions"><button onClick={()=>onChange(hidden.filter(id=>!providers.some(provider=>provider.id===id)))}>{t('Select all')}</button><button onClick={()=>onChange([...new Set([...hidden,...providers.map(provider=>provider.id)])])}>{t('Clear')}</button></div>
     <div className="radar-legend" role="group" aria-label={t('Methods to compare')}>
       {matches.map(provider=><label key={provider.id} style={{color:colorMap?.[provider.id]??methodColor(providers.findIndex(item=>item.id===provider.id))}}>
         <input type="checkbox" checked={!hidden.includes(provider.id)} onChange={event=>onChange(event.currentTarget.checked?hidden.filter(id=>id!==provider.id):[...hidden,provider.id])}/>
-        <span>{provider.name.split(' · ').map(t).join(' · ')}{coverage?.[provider.id]&&<small> · {coverage[provider.id]}</small>}</span>
+        <span>{displayName(provider)}{coverage?.[provider.id]&&<small> · {coverage[provider.id]}</small>}</span>
       </label>)}
       {matches.length===0&&<p role="status">{t('No matching methods')}</p>}
     </div>
