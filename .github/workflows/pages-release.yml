@@ -38,6 +38,10 @@ jobs:
       - run: npm test
       - run: npm run check:reports
       - run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Check every rendered table before publishing
+        run: npm run test:browser
       - name: Publish the static export
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -48,3 +52,15 @@ jobs:
         env:
           SITE_ORIGIN: ${{ vars.CLOUDFLARE_PAGES_URL }}
         run: node scripts/verify-public-site.mjs
+      - name: Check published tables in Chromium
+        env:
+          SITE_ORIGIN: ${{ vars.CLOUDFLARE_PAGES_URL }}
+        run: npm run test:browser -- --project=desktop-en
+      - name: Save browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: browser-release-regressions
+          path: |
+            test-results/
+          retention-days: 14

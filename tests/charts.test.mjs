@@ -198,7 +198,7 @@ test("published evaluation scopes have concise Chinese and English population co
   }
 });
 
-test("report pagination keeps a growing archive to six cards and exposes every report", async (t) => {
+test("report pagination exposes the complete archive without duplicates or skipped entries", async (t) => {
   const overview = require("../web/lib/overview.ts");
   const { snapshot } = load("lexbench-swde");
   const template = overview.evaluationReports(catalog, [snapshot])[0];
@@ -215,18 +215,18 @@ test("report pagination keeps a growing archive to six cards and exposes every r
     await React.act(async () => root.render(React.createElement(EvaluationReports, { catalog, snapshots: [], t: text => text })));
     const buttons = () => [...container.querySelectorAll(".report-pagination button")];
     const titles = () => [...container.querySelectorAll("h3")].map(el => el.textContent);
-    assert.equal(titles().length, 6);
+    const first=titles();
     assert.ok(buttons()[0].disabled);
-    assert.match(titles()[0], /Report 1\s/);
-    await React.act(async () => buttons()[1].click());
-    assert.equal(titles().length, 6);
-    assert.match(titles()[0], /Report 7\s/);
-    await React.act(async () => buttons()[1].click());
-    assert.equal(titles().length, 3);
-    assert.match(titles()[2], /Report 15\s/);
-    assert.ok(buttons()[1].disabled);
-    await React.act(async () => buttons()[0].click());
-    assert.match(titles()[0], /Report 7\s/);
+    const seen=[...first];
+    while(!buttons()[1].disabled){
+      await React.act(async()=>buttons()[1].click());
+      seen.push(...titles());
+    }
+    assert.equal(seen.length,15);
+    assert.equal(new Set(seen).size,15);
+    reports.forEach((report,index)=>assert.ok(seen[index].startsWith(report.title)));
+    while(!buttons()[0].disabled)await React.act(async()=>buttons()[0].click());
+    assert.deepEqual(titles(),first);
   } finally {
     await React.act(async () => root.unmount());
     await win.happyDOM.close();
@@ -1015,9 +1015,9 @@ test("Online-Mind2Web retains reported scores without ranking different judging 
       {id: 'reported-b', name: 'Agent B', passed: null, scores: {successRate: 98, costPerTask: null}},
     ],
   });
-  assert.equal(benchmark.rankable, false);
+  assert.equal(benchmark.comparisonMode, "reported");
   assert.equal(benchmark.providers[1].scores.successRate, 98);
-  assert.match(render(benchmark), /class="quality-comparison"/, 'Display source scores without adding ranks, winners or artificial dimensions');
+  assert.match(render(benchmark), /class="quality-comparison"/, 'Display source scores without adding a controlled ranking or artificial dimensions');
   assert.doesNotMatch(render(benchmark), /best-value|radar-shape/);
 });
 

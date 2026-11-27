@@ -46,6 +46,8 @@ the active sort direction does not change it. Ties share highlights. Constant or
 insufficiently disclosed columns have no winner. Respect `highlightBest: false`
 and diagnostic `rankable: false` in tables and charts: neither inconsistent test
 conditions nor different billing bases become comparable because values are numeric.
+Source-reported comparisons use numeric extrema labeled as highest/lowest reported
+values and omit ranks; these are not controlled evaluation rankings.
 Output length is descriptive, not a quality score. Never turn a price range or
 unknown model charge into an exact total.
 
@@ -87,8 +89,10 @@ Method details show the method ID, product ID, tested configurations and current
 published results. A shared URL never establishes method equivalence.
 
 Keep auxiliary sidebar resources behind a compact footer menu so they do not
-squeeze out primary navigation. Track cards share a compact two-item benchmark
-list viewport with scrolling and a mobile expand action. Chart method selectors
+squeeze out primary navigation. Track cards share a compact two-row viewport for wrapping benchmark chips,
+with scrolling and a mobile expand action.
+Report pages contain two rows at the actual grid column count; resize and filtering
+clamp the selected page without omitting reports. Chart method selectors
 have bounded height, search and select/clear controls. Favicons use a transparent
 stone cutout without the logo's white page background.
 

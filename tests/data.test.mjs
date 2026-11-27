@@ -567,3 +567,15 @@ test('catalog identity validation handles malformed registry members',()=>{
     assert.throws(()=>validateCatalog(invalid),error=>!(error instanceof TypeError)&&/Invalid/.test(error.message));
   }
 });
+
+test('source-reported comparisons are distinct from diagnostic editions', () => {
+  const candidate=structuredClone(catalog);
+  const definition=candidate.benchmarks[0].definitions[0];
+  definition.comparisonMode='reported';
+  assert.doesNotThrow(()=>validateCatalog(candidate));
+  definition.rankable=false;
+  assert.throws(()=>validateCatalog(candidate),/Invalid reported-value comparison/);
+  delete definition.rankable;
+  definition.comparisonMode='temporary';
+  assert.throws(()=>validateCatalog(candidate),/Invalid reported-value comparison/);
+});

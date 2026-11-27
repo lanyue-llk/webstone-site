@@ -5,6 +5,9 @@ export const LANGUAGE_KEY = "webstone-language";
 
 const chinese: Record<string, string> = {
   "Resources": "资源",
+  "Star on GitHub": "在 GitHub 点 Star",
+  "Highest reported value": "公开结果中的最高值",
+  "Lowest reported value": "公开结果中的最低值",
   "Included benchmarks": "包含的评测基准",
   "Result coverage": "结果覆盖范围",
   "All methods": "全部方案",
