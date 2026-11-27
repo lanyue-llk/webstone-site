@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight, BookOpenText, Bot, CircleDashed, Clipboard, FileJson2, Globe2, Layers3, MousePointerClick, Search, Star } from "lucide-react";
 import { trackHref, benchmarkHref, evaluationReports, DATASETS_URL, EVALUATION_URL, EVALUATION_SKILL, SUBMISSION_SKILL, SUBMISSION_URL, WEBSTONE_REPOSITORY_URL, navigationGroups, trackOverview } from "../lib/overview";
 import ExampleDialog from "./example-dialog";
@@ -13,14 +13,30 @@ export const TRACK_ICONS: Record<string, typeof Globe2> = { webfetch: Globe2, we
 export function EvaluationReports({ catalog, snapshots, t, current, language = "en" }: Props & { current?: BenchmarkInfo }) {
   const reports = evaluationReports(catalog, snapshots, current, language);
   const [page, setPage] = useState(0);
-  const pageCount = Math.ceil(reports.length / 6);
+  const grid = useRef<HTMLDivElement>(null);
+  const [pageSize, setPageSize] = useState(6);
+  useEffect(() => {
+    const node=grid.current;
+    if (!node) return;
+    const measure = () => {
+      const columns = window.getComputedStyle(node).gridTemplateColumns.split(" ").filter(Boolean).length;
+      const size=Math.max(1,columns)*2;
+      setPageSize(size);
+      setPage(current=>Math.min(current,Math.max(0,Math.ceil(reports.length/size)-1)));
+    };
+    measure();
+    const observer = new window.ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [reports.length]);
+  const pageCount = Math.ceil(reports.length / pageSize);
   const selectedPage = Math.min(page, Math.max(0, pageCount - 1));
   if (reports.length === 0) return null;
   return <section className="evaluation-articles" id="reports" aria-labelledby="reports-heading">
     <h2 id="reports-heading">{t("Reports")}</h2>
-    <div className="article-grid">{reports.slice(selectedPage * 6, (selectedPage + 1) * 6).map(article => {
+    <div className="article-grid" ref={grid} data-page-size={pageSize}>{reports.slice(selectedPage * pageSize, (selectedPage + 1) * pageSize).map(article => {
       const Icon = TRACK_ICONS[article.track.id] ?? BookOpenText;
-      return <article key={article.source} className="article-card" data-track={article.track.id}>
+      return <article key={article.source} className="article-card" data-report={article.source} data-track={article.track.id}>
         <div className="article-topic"><Icon size={18} aria-hidden="true" /><span>{t(article.track.name)}</span></div>
         <h3><a href={article.href} hrefLang={article.language} target="_blank" rel="noreferrer">{t(article.title)}{"\u00a0"}<ArrowUpRight size={15} aria-hidden="true" /><span className="sr-only"> ({t("opens in a new tab")})</span></a></h3>
         <p>{t(article.summary)}</p>
@@ -56,7 +72,7 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
         <p>{t("Find the right tools for your agent to browse the web.")}</p>
         <div className="overview-actions">
           {firstBenchmark && <a href={benchmarkHref(firstBenchmark.id)} className="overview-primary">{t("Explore leaderboards")} <ArrowRight size={17} aria-hidden="true" /></a>}
-          <a className="overview-star" href={WEBSTONE_REPOSITORY_URL} target="_blank" rel="noreferrer"><Star size={16} aria-hidden="true" />{t("Star Webstone")} <ArrowUpRight size={14} aria-hidden="true" /></a>
+          <a className="overview-star" href={WEBSTONE_REPOSITORY_URL} target="_blank" rel="noreferrer"><Star size={16} aria-hidden="true" />{t("Star on GitHub")} <ArrowUpRight size={14} aria-hidden="true" /></a>
         </div>
       </div>
       <dl className="overview-stats">
@@ -101,8 +117,8 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
             {Array.from({ length: maxBenchmarks }, (_, index) => <span key={index} className={index < track.benchmarks.length ? "filled" : ""} aria-hidden="true" />)}
           </div>
           <p className="track-volume-label">{track.benchmarks.length} {t("benchmarks")}</p>
-          <ul className="track-benchmark-list" tabIndex={0} aria-label={`${track.name} ${t("Benchmarks")}`}>{track.benchmarks.map(benchmark => <li key={benchmark.id}><a href={benchmarkHref(benchmark.id)}>{t(benchmark.name)}</a></li>)}</ul>
-          {track.benchmarks.length>2&&<details className="track-list-expand"><summary>{t("Show all benchmarks")}</summary><ul>{track.benchmarks.map(benchmark=><li key={benchmark.id}><a href={benchmarkHref(benchmark.id)}>{t(benchmark.name)}</a></li>)}</ul></details>}
+          <ul className="track-benchmark-list" tabIndex={0} aria-label={`${track.name} ${t("Benchmarks")}`}>{track.benchmarks.map(benchmark => <li key={benchmark.id}><a href={benchmarkHref(benchmark.id)}>{t(benchmark.name)} <ArrowRight size={12} aria-hidden="true" /></a></li>)}</ul>
+          {track.benchmarks.length>2&&<details className="track-list-expand"><summary>{t("Show all benchmarks")}</summary><ul>{track.benchmarks.map(benchmark=><li key={benchmark.id}><a href={benchmarkHref(benchmark.id)}>{t(benchmark.name)} <ArrowRight size={12} aria-hidden="true" /></a></li>)}</ul></details>}
         </div>;
       })}
       {navigationGroups(catalog).filter(group => group.upcoming.length > 0).map(group => <div key={group.id} className="track-card upcoming-track"><span className="track-group-label">{t(group.name)}</span><h3><CircleDashed size={18} aria-hidden="true" />{group.upcoming.map(item => t(item.name)).join(" · ")}</h3><span className="upcoming-badge">{t("Coming soon")}</span><p>{t("Benchmarks are in development. Stay tuned.")}</p></div>)}

@@ -44,3 +44,6 @@ web/lib/release.generated.ts
 
 # Local Cloudflare runtime and authentication state
 .wrangler/
+
+# Browser regression artifacts
+/test-results/

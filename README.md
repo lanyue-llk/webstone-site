@@ -246,6 +246,9 @@ Result contributors also follow the [submission guide](docs/submitting-results.m
 ```sh
 npm test
 npm run prepare:data
+npm run build
+npx playwright install chromium
+npm run test:browser
 ```
 
 To add a version for an existing definition:

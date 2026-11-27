@@ -1887,7 +1887,7 @@
             "successRate",
             "costPerTask"
           ],
-          "rankable": false
+          "comparisonMode": "reported"
         }
       ]
     },

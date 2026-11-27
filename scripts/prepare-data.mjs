@@ -110,6 +110,7 @@ export function validateCatalog(catalog) {
     }
     uniqueIds(benchmark.definitions, "definition");
     for (const definition of benchmark.definitions) {
+      if (definition.comparisonMode !== undefined && (definition.comparisonMode !== "reported" || definition.rankable === false)) throw new Error("Invalid reported-value comparison");
       if (definition.rankable !== undefined && typeof definition.rankable !== "boolean") throw new Error("Invalid ranking presentation");
       uniqueIds(definition.metrics, "metric");
       if (!definition.metrics.some(metric => metric.id === definition.primaryMetric)) throw new Error("Unknown primary metric");

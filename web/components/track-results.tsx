@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ArrowDown, ArrowUpRight } from 'lucide-react';
-import { bestValue, canonicalVersion, formatMetric, isBestValue, type Catalog, type Snapshot } from '../lib/results';
+import { bestValue, bestValueLabel, canonicalVersion, formatMetric, isBestValue, type Catalog, type Snapshot } from '../lib/results';
 import { coverage, orderComparison, trackComparison, type ComparisonRow } from '../lib/track-comparison';
 import { benchmarkHref } from '../lib/overview';
 import { providerColors } from '../lib/presentation';
@@ -11,6 +11,7 @@ import Insights from './insights';
 import MethodSelector, {methodColor} from './method-selector';
 import InfoTooltip from './info-tooltip';
 import MethodDetails from './method-details';
+import MethodLabel from './method-label';
 import { EvaluationReports } from './home';
 
 type Props = {catalog:Catalog; snapshots:Snapshot[]; trackId:string; layer:string; onLayer:(layer:string)=>void; t:(text:string)=>string; language:Language};
@@ -51,8 +52,8 @@ export default function TrackResults({catalog,snapshots,trackId,layer,onLayer,t,
           <caption className="sr-only">{comparison.track.name} {t('Overview')}</caption>
           <colgroup><col className="provider-column"/>{columns.map(col=><col key={col.info.id}/>)}</colgroup>
           <thead><tr><th className="provider-heading method-cell" scope="col">{t('Method')}</th>
-            {columns.map(col=><th scope="col" key={col.info.id} className={sortColumn.info.id===col.info.id?'sorted':undefined} aria-sort={sortColumn.info.id===col.info.id?(direction==='asc'?'ascending':'descending'):'none'}>
-              <a href={`${benchmarkHref(col.info.id)}${col.snapshot?'&version='+canonicalVersion(col.snapshot.version):''}`}>{col.info.name.replace(/^LexBench /,'')} <ArrowUpRight size={11}/></a>
+            {columns.map(col=><th scope="col" key={col.info.id} data-column={`benchmark:${col.info.id}`} className={sortColumn.info.id===col.info.id?'sorted':undefined} aria-sort={sortColumn.info.id===col.info.id?(direction==='asc'?'ascending':'descending'):'none'}>
+              <a className="overview-benchmark-link" href={`${benchmarkHref(col.info.id)}${col.snapshot?'&version='+canonicalVersion(col.snapshot.version):''}`}><span>{col.info.name.replace(/^LexBench /,'')}</span><ArrowUpRight size={11} aria-hidden="true"/></a>
               <div className="metric-heading"><button className="sort-button" onClick={()=>{
                 let nextDirection=col.metric.direction;
                 if(sortColumn.info.id===col.info.id) nextDirection=direction==='desc'?'asc':'desc';
@@ -61,13 +62,13 @@ export default function TrackResults({catalog,snapshots,trackId,layer,onLayer,t,
               <small className="overview-edition">{col.snapshot?canonicalVersion(col.snapshot.version):t('No published results')}</small>
             </th>)}
           </tr></thead>
-          <tbody>{ordered.map(row=><tr key={row.id} data-provider={row.id}><td className="method-cell"><div className="provider-cell"><a className="provider-name provider-link" href={catalog.providerUrls[Object.values(row.results)[0].provider.id]} target="_blank" rel="noopener noreferrer" aria-label={`${row.name} ${t('project')} (${t('opens in a new tab')})`}><span className="provider-mark" style={{'--provider-color':providerColors[row.id]??'#64748b'} as React.CSSProperties} aria-hidden="true">{row.name[0]}</span><span className="provider-label"><strong>{row.name}</strong><small className="method-coverage">{coverage(row,columns)}/{columns.length} {t('benchmarks')}</small></span><ArrowUpRight className="provider-external" size={12}/></a><button className="method-open" aria-label={`${row.name} · ${t('Method details')}`} aria-haspopup="dialog" onClick={()=>setSelected(row)}>···</button></div></td>
+          <tbody>{ordered.map(row=><tr key={row.id} data-provider={row.id}><td className="method-cell"><div className="provider-cell"><a className="provider-name provider-link" href={catalog.providerUrls[Object.values(row.results)[0].provider.id]} target="_blank" rel="noopener noreferrer" aria-label={`${row.name} ${t('project')} (${t('opens in a new tab')})`}><span className="provider-mark" style={{'--provider-color':providerColors[row.id]??'#64748b'} as React.CSSProperties} aria-hidden="true">{row.name[0]}</span><MethodLabel name={row.name} t={t}><small className="method-coverage">{coverage(row,columns)}/{columns.length} {t('benchmarks')}</small></MethodLabel><ArrowUpRight className="provider-external" size={12}/></a><button className="method-open" aria-label={`${row.name} · ${t('Method details')}`} aria-haspopup="dialog" onClick={()=>setSelected(row)}>···</button></div></td>
             {columns.map(col=>{
               const measured=row.results[col.info.id];
               const value=measured?.provider.scores[col.metric.id];
               const best=col.benchmark?.rankable===false||col.metric.highlightBest===false?null:bestValue(ordered.map(row=>row.results[col.info.id]?.provider.scores[col.metric.id]),col.metric.direction);
               const winner=isBestValue(value,best);
-              return <td className={`numeric ${winner?'best-value':''}`} key={col.info.id}>{value === null || value === undefined ? '—' :<><a href={`${benchmarkHref(col.info.id)}&version=${canonicalVersion(col.snapshot!.version)}&metric=${col.metric.id}`} title={measured.provider.name}>{formatMetric(value,col.metric.unit,col.metric.decimals)}</a>{measured.provider.name!==row.name&&<small className="measured-configuration">{measured.provider.name}</small>}</>}{winner&&<span className="sr-only"> {t('Best in this column')}</span>}</td>;
+              return <td data-column={`benchmark:${col.info.id}`} className={`numeric ${winner?'best-value':''}`} key={col.info.id}>{value === null || value === undefined ? '—' :<><a href={`${benchmarkHref(col.info.id)}&version=${canonicalVersion(col.snapshot!.version)}&metric=${col.metric.id}`} title={measured.provider.name}>{formatMetric(value,col.metric.unit,col.metric.decimals)}</a>{measured.provider.name!==row.name&&<small className="measured-configuration">{measured.provider.name}</small>}</>}{winner&&<span className="sr-only"> {t(bestValueLabel(col.benchmark??{},col.metric.direction))}</span>}</td>;
             })}
           </tr>)}</tbody>
         </table>
