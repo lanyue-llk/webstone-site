@@ -198,7 +198,7 @@ test("published evaluation scopes have concise Chinese and English population co
   }
 });
 
-test("report pagination exposes the complete archive without duplicates or skipped entries", async (t) => {
+test("report pagination exposes the complete archive without duplicates or skipped entries", {timeout:10000}, async (t) => {
   const overview = require("../web/lib/overview.ts");
   const { snapshot } = load("lexbench-swde");
   const template = overview.evaluationReports(catalog, [snapshot])[0];
@@ -218,14 +218,22 @@ test("report pagination exposes the complete archive without duplicates or skipp
     const first=titles();
     assert.ok(buttons()[0].disabled);
     const seen=[...first];
-    while(!buttons()[1].disabled){
+    for(let step=0;step<reports.length&&!buttons()[1].disabled;step++){
+      const before=titles();
       await React.act(async()=>buttons()[1].click());
+      assert.notDeepEqual(titles(),before,'Next advances the report page');
       seen.push(...titles());
     }
+    assert.ok(buttons()[1].disabled,'Next terminates at the archive end');
     assert.equal(seen.length,15);
     assert.equal(new Set(seen).size,15);
     reports.forEach((report,index)=>assert.ok(seen[index].startsWith(report.title)));
-    while(!buttons()[0].disabled)await React.act(async()=>buttons()[0].click());
+    for(let step=0;step<reports.length&&!buttons()[0].disabled;step++){
+      const before=titles();
+      await React.act(async()=>buttons()[0].click());
+      assert.notDeepEqual(titles(),before,'Previous moves to the preceding page');
+    }
+    assert.ok(buttons()[0].disabled,'Previous terminates at the archive start');
     assert.deepEqual(titles(),first);
   } finally {
     await React.act(async () => root.unmount());

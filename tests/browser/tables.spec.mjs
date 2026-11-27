@@ -184,22 +184,31 @@ test('reports fill two grid rows before paging, retain every report and clamp af
   const language=testInfo.project.metadata.language;
   await page.addInitScript(language=>localStorage.setItem('webstone-language',language),language);
   await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('lang',language);
+  await expect(page.locator('.track-card[data-track="browser-use"]')).toBeVisible();
   const metadata=JSON.parse(readFileSync('reports/metadata.json','utf8')).reports;
   const ids=Object.entries(metadata).filter(([id])=>reports.some(report=>report.id===id)).sort((a,b)=>b[1].publishedAt.localeCompare(a[1].publishedAt)).map(([id])=>id);
   const grid=page.locator('#reports .article-grid');
-  for(const width of [390,1000,1600,3840]) {
+  let selectedPage=0;
+  for(const width of [390,1000,1600,3840,390]) {
     await page.setViewportSize({width,height:1000});
     const columns=await grid.evaluate(node=>getComputedStyle(node).gridTemplateColumns.split(' ').length);
     const size=columns*2;
     await expect(grid).toHaveAttribute('data-page-size',String(size));
+    const pages=Math.ceil(ids.length/size);
+    selectedPage=Math.min(selectedPage,pages-1);
+    const currentIds=()=>grid.locator('article').evaluateAll(nodes=>nodes.map(node=>node.dataset.report));
+    expect(await currentIds()).toEqual(ids.slice(selectedPage*size,(selectedPage+1)*size));
     const previous=page.locator('.report-pagination button').first(),next=page.locator('.report-pagination button').last();
-    if(await previous.count())while(await previous.isEnabled())await previous.click();
+    if(pages>1)await expect(page.locator('.report-pagination [role="status"]')).toHaveText(`${selectedPage+1} / ${pages}`);
+    for(let back=0;back<selectedPage;back++)await previous.click();
+    selectedPage=0;
     const seen=[];
     for(let pageNumber=0;pageNumber<Math.ceil(ids.length/size);pageNumber++) {
       const shown=await grid.locator('article').evaluateAll(nodes=>nodes.map(node=>node.dataset.report));
       expect(shown).toEqual(ids.slice(pageNumber*size,(pageNumber+1)*size));
       expect(shown.length).toBe(Math.min(size,ids.length-pageNumber*size));
-      seen.push(...shown);
+      seen.push(...shown);selectedPage=pageNumber;
       if(pageNumber+1<Math.ceil(ids.length/size))await next.click();
     }
     expect(seen).toEqual(ids);
@@ -212,6 +221,8 @@ test('GitHub Star is visible and track benchmark chips stay scrollable',async({p
   const language=testInfo.project.metadata.language;
   await page.addInitScript(language=>localStorage.setItem('webstone-language',language),language);
   await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('lang',language);
+  await expect(page.locator('.track-card[data-track="browser-use"]')).toBeVisible();
   const menu=page.getByRole('button',{name:language==='en'?'Open navigation':'打开导航',exact:true});
   if(await menu.isVisible())await menu.click();
   const star=page.locator('.nav-star');

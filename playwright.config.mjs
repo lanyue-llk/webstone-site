@@ -10,7 +10,7 @@ export default defineConfig({
   retries:0,
   reporter:'list',
   use:{baseURL:origin??'http://127.0.0.1:4173',trace:'retain-on-failure',screenshot:'only-on-failure'},
-  webServer:origin?undefined:{command:'python3 -m http.server 4173 --bind 127.0.0.1 --directory web/out',url:'http://127.0.0.1:4173',reuseExistingServer:!process.env.CI,stderr:'ignore'},
+  webServer:origin?undefined:{command:'node scripts/serve-browser-tests.mjs',url:'http://127.0.0.1:4173',stderr:'ignore'},
   projects:['en','zh'].flatMap(language=>[
     {name:`desktop-${language}`,use:{viewport:{width:1600,height:1000}},metadata:{language}},
     {name:`phone-${language}`,use:{viewport:{width:390,height:900}},metadata:{language}},

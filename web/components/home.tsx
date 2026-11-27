@@ -16,14 +16,17 @@ export function EvaluationReports({ catalog, snapshots, t, current, language = "
   const grid = useRef<HTMLDivElement>(null);
   const [pageSize, setPageSize] = useState(6);
   useEffect(() => {
-    if (!grid.current) return;
+    const node=grid.current;
+    if (!node) return;
     const measure = () => {
-      const columns = window.getComputedStyle(grid.current!).gridTemplateColumns.split(" ").filter(Boolean).length;
-      setPageSize(Math.max(1, columns) * 2);
+      const columns = window.getComputedStyle(node).gridTemplateColumns.split(" ").filter(Boolean).length;
+      const size=Math.max(1,columns)*2;
+      setPageSize(size);
+      setPage(current=>Math.min(current,Math.max(0,Math.ceil(reports.length/size)-1)));
     };
     measure();
     const observer = new window.ResizeObserver(measure);
-    observer.observe(grid.current);
+    observer.observe(node);
     return () => observer.disconnect();
   }, [reports.length]);
   const pageCount = Math.ceil(reports.length / pageSize);
