@@ -37,7 +37,8 @@ async function open(page,url,language) {
   await expect(page.locator('html')).toHaveAttribute('lang',language);
   await expect(page.locator('.wide-table')).toBeVisible();
 }
-async function inspect(page,rows,columns,sort,direction,alphabetical=false) {
+async function inspect(page,rows,columns,sort,direction,alphabetical,language) {
+  assert(['en','zh'].includes(language),'project language is required');
   await page.mouse.move(0,0);
   await page.locator('.wide-table').evaluate(async table=>{
     await Promise.all(table.getAnimations({subtree:true}).map(animation=>animation.finished.catch(()=>{})));
@@ -78,20 +79,20 @@ async function inspect(page,rows,columns,sort,direction,alphabetical=false) {
         assert.equal(cell.color,winnerText,`${context}: winner text`);assert(+cell.font>=600);
         const label=column.reported?(column.direction==='asc'?'Lowest reported value':'Highest reported value'):'Best in this column';
         const zh=column.reported?(column.direction==='asc'?'公开结果中的最低值':'公开结果中的最高值'):'本列最佳';
-        assert([label,zh].includes(cell.label),`${context}: ${cell.label}`);
+        assert.equal(cell.label,language==='zh'?zh:label,`${context}: winner accessibility label`);
       } else {assert(![winnerBackground,hoverBackground].includes(cell.bg),context);assert.equal(cell.label,'',context);}
     }
   }
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'page overflows horizontally');
 }
-async function sortEach(page,rows,columns,initial,alphabetical=false) {
+async function sortEach(page,rows,columns,initial,alphabetical,language) {
   let active=initial.id,direction=initial.direction;
   for(const column of columns.filter(column=>column.sortable!==false)) {
     const button=page.locator(`th${columnSelector(column.id)} button.sort-button`);
     for(let click=0;click<2;click++) {
       direction=active===column.id?opposite(direction):column.direction;active=column.id;
       await button.click();
-      await inspect(page,rows,columns,column,direction,alphabetical);
+      await inspect(page,rows,columns,column,direction,alphabetical,language);
     }
   }
   return {column:columns.find(column=>column.id===active),direction};
@@ -114,14 +115,14 @@ for(const report of reports) {
     await open(page,`/?benchmark=${result.id}&version=${report.version}`,language);
     const key=benchmarkColumns(info,result,false);
     const primary=key.find(column=>column.id===`metric:${def.primaryMetric}`);
-    await inspect(page,result.providers,key,primary,primary.direction);
+    await inspect(page,result.providers,key,primary,primary.direction,false,language);
     const more=page.locator('.table-controls button').filter({hasText:language==='en'?'More metrics':'更多指标'});
     if(await more.count())await more.click();
     const columns=benchmarkColumns(info,result,true);
-    const final=await sortEach(page,result.providers,columns,primary);
+    const final=await sortEach(page,result.providers,columns,primary,false,language);
     if((def.categories??[]).length) {
       await page.locator('.table-controls button').filter({hasText:language==='en'?'Category breakdown':'分类结果'}).click();
-      await inspect(page,result.providers,benchmarkColumns(info,result,true,false),final.column,final.direction);
+      await inspect(page,result.providers,benchmarkColumns(info,result,true,false),final.column,final.direction,false,language);
     }
     // Winners keep their own direction even while another metric is sorted in reverse.
     const bestColumn=columns.find(column=>expectedWinner(result.providers,column)!==null);
@@ -156,14 +157,15 @@ function overview(track,layer) {
 }
 for(const track of catalog.tracks.filter(track=>track.overview))for(const layer of(track.id==='websearch'?['L1','L2','L3']:['L1'])) {
   test(`${track.id} ${layer}: all Overview columns and coverage filters`,async({page},testInfo)=>{
-    await open(page,`/?track=${track.id}&layer=${layer}`,testInfo.project.metadata.language);
+    const language=testInfo.project.metadata.language;
+    await open(page,`/?track=${track.id}&layer=${layer}`,language);
     const {columns,rows}=overview(track,layer);
-    await inspect(page,rows,columns,columns[0],columns[0].direction,true);
-    const final=await sortEach(page,rows,columns,columns[0],true);
+    await inspect(page,rows,columns,columns[0],columns[0].direction,true,language);
+    const final=await sortEach(page,rows,columns,columns[0],true,language);
     await page.locator('.table-toolbar .column-views button').nth(1).click();
     const complete=rows.filter(row=>columns.every(column=>numeric(column.value(row))));
-    await inspect(page,complete,columns,final.column,final.direction,true);
-    await sortEach(page,complete,columns,{...final.column,direction:final.direction},true);
+    await inspect(page,complete,columns,final.column,final.direction,true,language);
+    await sortEach(page,complete,columns,{...final.column,direction:final.direction},true,language);
     for(const column of columns) {
       const link=page.locator(`th${columnSelector(column.id)} .overview-benchmark-link`);
       const geometry=await link.evaluate(link=>{const icon=link.querySelector('svg').getBoundingClientRect(),text=link.querySelector('span').getBoundingClientRect();return {icon:{x:icon.x,y:icon.y,width:icon.width,height:icon.height},text:{x:text.x,y:text.y,width:text.width,height:text.height}};});
@@ -173,8 +175,8 @@ for(const track of catalog.tracks.filter(track=>track.overview))for(const layer 
   });
 }
 
-test('author comparison highlights Online-Mind2Web scores and costs',async({page},testInfo)=>{
-  await open(page,'/?benchmark=online-mind2web',testInfo.project.metadata.language);
+test('author comparison v1.0.0 highlights Online-Mind2Web scores and costs',async({page},testInfo)=>{
+  await open(page,'/?benchmark=online-mind2web&version=v1.0.0',testInfo.project.metadata.language);
   await expect(page.locator('tr[data-provider="aside-gpt-5-5-high"] td[data-column="metric:successRate"]')).toHaveCSS('background-color',winnerBackground);
   await expect(page.locator('tr[data-provider="lexmount-browser-agent"] td[data-column="metric:costPerTask"]')).toHaveCSS('background-color',winnerBackground);
   await expect(page.locator('tbody .rank-cell')).toHaveText(['—','—','—','—','—']);
@@ -230,20 +232,25 @@ test('GitHub Star is visible and track benchmark chips stay scrollable',async({p
   await expect(star).toHaveAttribute('href','https://github.com/lexmount/webstone');
   await expect(page.locator('.overview-star')).toContainText('GitHub');
   const scrim=page.locator('.sidebar-scrim');if(await scrim.count())await scrim.click();
-  const list=page.locator('.track-card[data-track="browser-use"] .track-benchmark-list');
-  await expect(list.locator('li')).toHaveCount(4);
-  expect(await list.evaluate(node=>getComputedStyle(node).overflowY)).toBe('auto');
-  for(const link of await list.locator('a').all()) {await link.focus();await expect(link).toBeInViewport();}
-  // A larger future list must remain reachable rather than expanding the card indefinitely.
-  const height=await list.evaluate(node=>node.clientHeight);
-  await list.evaluate(node=>{for(let i=0;i<6;i++)node.append(node.firstElementChild.cloneNode(true));});
-  expect(await list.evaluate(node=>node.clientHeight)).toBe(height);
-  expect(await list.evaluate(node=>node.scrollHeight>node.clientHeight)).toBe(true);
-  await list.locator('a').last().focus();
-  const reached=await list.evaluate(node=>node.scrollTop>0);expect(reached).toBe(true);
+  for(const track of catalog.tracks.filter(track=>!track.url)) {
+    const benchmarks=catalog.benchmarks.filter(benchmark=>benchmark.trackId===track.id&&(!benchmark.outputLayer||benchmark.outputLayer==='L1'));
+    if(!benchmarks.length)continue;
+    const list=page.locator(`.track-card[data-track="${track.id}"] .track-benchmark-list`);
+    const members=await list.locator('a').evaluateAll(nodes=>nodes.map(node=>new URL(node.href).searchParams.get('benchmark')));
+    expect(members).toEqual(benchmarks.map(benchmark=>benchmark.id));
+    expect(await list.evaluate(node=>getComputedStyle(node).overflowY)).toBe('auto');
+    for(const link of await list.locator('a').all()) {await link.focus();await expect(link).toBeInViewport();}
+    const height=await list.evaluate(node=>node.clientHeight);
+    await list.evaluate(node=>{for(let i=0;i<32&&node.scrollHeight<=node.clientHeight;i++)node.append(node.firstElementChild.cloneNode(true));});
+    expect(await list.evaluate(node=>node.clientHeight)).toBe(height);
+    expect(await list.evaluate(node=>node.scrollHeight>node.clientHeight)).toBe(true);
+    await list.locator('a').last().focus();
+    expect(await list.evaluate(node=>node.scrollTop>0)).toBe(true);
+  }
 });
 
 test('ties, zero, negative deltas, missing values and diagnostic tables render correctly',async({page},testInfo)=>{
+  const language=testInfo.project.metadata.language;
   const fixtureCatalog=structuredClone(catalog),info=fixtureCatalog.benchmarks.find(info=>info.id==='lexbench-webfetch');
   const metrics=[
     {id:'quality',label:'Quality',unit:'score',decimals:1,direction:'desc'},
@@ -268,8 +275,8 @@ test('ties, zero, negative deltas, missing values and diagnostic tables render c
     if(mode==='reported')def.comparisonMode='reported';else delete def.comparisonMode;
     await open(page,`/?benchmark=${info.id}&version=${snapshot.version}`,testInfo.project.metadata.language);
     const columns=benchmarkColumns(info,result,false),primary=columns[0];
-    await inspect(page,providers,columns,primary,primary.direction);
-    await sortEach(page,providers,columns,primary);
+    await inspect(page,providers,columns,primary,primary.direction,false,language);
+    await sortEach(page,providers,columns,primary,false,language);
     if(mode!=='ranked')await expect(page.locator('tbody .rank-cell')).toHaveText(['—','—','—','—']);
   }
 });
