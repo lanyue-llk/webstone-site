@@ -31,6 +31,12 @@ function publishedColumns(info,result,...options) {
     allowed:def.rankable!==false && !column.pricing,
   }));
 }
+function expectedExtremumLabel(column,language) {
+  let labels=['Best in this column','本列最佳'];
+  if(column.descriptive)labels=column.direction==='asc'?['Lowest value','本列最低值']:['Highest value','本列最高值'];
+  else if(column.reported)labels=column.direction==='asc'?['Lowest reported value','公开结果中的最低值']:['Highest reported value','公开结果中的最高值'];
+  return labels[language==='zh'?1:0];
+}
 function expectedOrder(rows,column,direction,alphabetical=false) {
   return [...rows].sort((a,b)=>{
     const left=column.value(a),right=column.value(b);
@@ -94,10 +100,9 @@ async function inspect(page,rows,columns,sort,direction,alphabetical,language) {
       if(wins) {
         assert.equal(cell.bg,winnerBackground,`${context}: winner background`);
         assert.equal(cell.color,winnerText,`${context}: winner text`);assert(+cell.font>=600);
-        const label=column.descriptive?(column.direction==='asc'?'Lowest value':'Highest value'):column.reported?(column.direction==='asc'?'Lowest reported value':'Highest reported value'):'Best in this column';
-        const zh=column.descriptive?(column.direction==='asc'?'本列最低值':'本列最高值'):column.reported?(column.direction==='asc'?'公开结果中的最低值':'公开结果中的最高值'):'本列最佳';
-        assert.equal(cell.label,language==='zh'?zh:label,`${context}: winner accessibility label`);
-        assert(cell.title?.includes(language==='zh'?zh:label),`${context}: winner hover explanation survives custom count and method details`);
+        const label=expectedExtremumLabel(column,language);
+        assert.equal(cell.label,label,`${context}: winner accessibility label`);
+        assert(cell.title?.includes(label),`${context}: winner hover explanation survives custom count and method details`);
         const counts=source.counts?.[column.id.replace(/^metric:/,'')];
         if(counts)assert(cell.title.includes(`${counts.count} / ${counts.total}`),`${context}: hover retains source counts`);
       } else {assert(![winnerBackground,hoverBackground].includes(cell.bg),context);assert.equal(cell.label,'',context);}
@@ -205,11 +210,16 @@ test('source labels and original links retain numeric ranks, extrema and quality
   const language=testInfo.project.metadata.language;
   for(const id of crossSourceBenches) {
     await open(page,`/?benchmark=${id}&version=v1.0.0`,language);
-    await expect(page.locator('tbody .rank-cell')).toHaveCount(5);
-    await expect(page.locator('.best-value')).not.toHaveCount(0);
+    const report=reports.find(report=>report.benchmarks[0].id===id&&reportVersion(report.version)==='v1.0.0');
+    const result=report.benchmarks[0],info=catalog.benchmarks.find(info=>info.id===id);
+    const extrema=publishedColumns(info,result,false).reduce((count,column)=>{
+      const winner=expectedWinner(result.providers,column);
+      return count+(winner===null?0:result.providers.filter(row=>column.value(row)===winner).length);
+    },0);
+    await expect(page.locator('tbody .rank-cell')).toHaveCount(result.providers.length);
+    await expect(page.locator('.best-value')).toHaveCount(extrema);
     await expect(page.locator('.insights-section')).toHaveCount(1);
-    await expect(page.locator('.evaluation-source-label')).toHaveCount(5);
-    const report=reports.find(report=>report.benchmarks[0].id===id);
+    await expect(page.locator('.evaluation-source-label')).toHaveCount(result.providers.length);
     expect(await page.locator('tbody tr').count()).toBe(report.benchmarks[0].providers.length);
     for(const row of report.benchmarks[0].providers) {
       await page.locator(`tr[data-provider="${row.id}"] .method-open`).click();
@@ -225,8 +235,9 @@ test('source labels and original links retain numeric ranks, extrema and quality
     }
   }
   await open(page,'/?track=browser-use',language);
-  await expect(page.locator('tbody .rank-cell')).toHaveCount(16);
-  await expect(page.locator('.overview-comparisons .quality-comparison')).toHaveCount(4);
+  const expected=overview(catalog.tracks.find(track=>track.id==='browser-use'),'L1');
+  await expect(page.locator('tbody .rank-cell')).toHaveCount(expected.rows.length);
+  await expect(page.locator('.overview-comparisons .quality-comparison')).toHaveCount(expected.columns.filter(column=>column.rankable!==false&&column.result?.providers.some(row=>numeric(row.scores[column.metric.id]))).length);
 });
 
 test('reports fill two grid rows before paging, retain every report and clamp after resizing',async({page},testInfo)=>{
