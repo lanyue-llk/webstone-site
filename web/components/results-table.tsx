@@ -62,7 +62,8 @@ export default function ResultsTable<Row extends {id: string}>({caption, rows, c
           <td className="method-cell">{method(row)}</td>
           {columns.map(column => {
             const winner = state.winner(row, column);
-            return <td key={column.id} data-column={column.id} className={`numeric ${column.className ?? ''}${column.id === state.selected.id ? ' primary-number' : ''}${winner ? ' best-value' : ''}`} title={column.title?.(row) ?? (winner ? column.winnerLabel : undefined)}>{column.render(row)}{winner && <span className="sr-only"> {column.winnerLabel}</span>}</td>;
+            const title = [column.title?.(row), winner ? column.winnerLabel : undefined].filter(Boolean).join(' · ') || undefined;
+            return <td key={column.id} data-column={column.id} className={`numeric ${column.className ?? ''}${column.id === state.selected.id ? ' primary-number' : ''}${winner ? ' best-value' : ''}`} title={title}>{column.render(row)}{winner && <span className="sr-only"> {column.winnerLabel}</span>}</td>;
           })}
         </tr>)}</tbody>
       </table>

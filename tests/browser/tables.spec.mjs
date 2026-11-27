@@ -54,7 +54,7 @@ async function inspect(page,rows,columns,sort,direction,alphabetical,language) {
   });
   const state=await page.locator('.wide-table').evaluate(table=>({
     headers:[...table.querySelectorAll('thead [data-column]')].map(cell=>({id:cell.dataset.column,sort:cell.getAttribute('aria-sort'),bg:getComputedStyle(cell).backgroundColor,font:getComputedStyle(cell.querySelector('.sort-button')??cell).fontWeight,color:getComputedStyle(cell.querySelector('.sort-button')??cell).color,position:getComputedStyle(cell).position})),
-    rows:[...table.querySelectorAll('tbody tr')].map(row=>({id:row.dataset.provider,rank:row.querySelector('.rank-cell')?.innerText,cells:[...row.querySelectorAll('td[data-column]')].map(cell=>({id:cell.dataset.column,text:cell.innerText,bg:getComputedStyle(cell).backgroundColor,color:getComputedStyle(cell.querySelector('a')??cell).color,font:getComputedStyle(cell.querySelector('a')??cell).fontWeight,position:getComputedStyle(cell).position,label:cell.querySelector('.sr-only')?.textContent.trim()??''}))})),
+    rows:[...table.querySelectorAll('tbody tr')].map(row=>({id:row.dataset.provider,rank:row.querySelector('.rank-cell')?.innerText,cells:[...row.querySelectorAll('td[data-column]')].map(cell=>({id:cell.dataset.column,text:cell.innerText,title:cell.getAttribute('title'),bg:getComputedStyle(cell).backgroundColor,color:getComputedStyle(cell.querySelector('a')??cell).color,font:getComputedStyle(cell.querySelector('a')??cell).fontWeight,position:getComputedStyle(cell).position,label:cell.querySelector('.sr-only')?.textContent.trim()??''}))})),
   }));
   const toolbar=await page.locator('.table-toolbar').boundingBox(),scroll=await page.locator('.table-scroll').boundingBox();
   assert(Math.abs(toolbar.x-scroll.x)<2,'toolbar and table left edges differ');
@@ -97,6 +97,9 @@ async function inspect(page,rows,columns,sort,direction,alphabetical,language) {
         const label=column.reported?(column.direction==='asc'?'Lowest reported value':'Highest reported value'):'Best in this column';
         const zh=column.reported?(column.direction==='asc'?'公开结果中的最低值':'公开结果中的最高值'):'本列最佳';
         assert.equal(cell.label,language==='zh'?zh:label,`${context}: winner accessibility label`);
+        assert(cell.title?.includes(language==='zh'?zh:label),`${context}: winner hover explanation survives custom count and method details`);
+        const counts=source.counts?.[column.id.replace(/^metric:/,'')];
+        if(counts)assert(cell.title.includes(`${counts.count} / ${counts.total}`),`${context}: hover retains source counts`);
       } else {assert(![winnerBackground,hoverBackground].includes(cell.bg),context);assert.equal(cell.label,'',context);}
     }
   }
