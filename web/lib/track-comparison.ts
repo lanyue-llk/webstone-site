@@ -1,4 +1,4 @@
-import { compareValues, compareVersions, resolveBenchmark, type Benchmark, type BenchmarkInfo, type Catalog, type Metric, type Provider, type Snapshot } from './results.ts';
+import { comparableMetric, compareValues, compareVersions, resolveBenchmark, type Benchmark, type BenchmarkInfo, type Catalog, type Metric, type Provider, type Snapshot } from './results.ts';
 import { methodIdentity } from './methods.ts';
 
 export type ComparisonColumn = { info: BenchmarkInfo; benchmark: Benchmark | null; metric: Metric; snapshot: Snapshot | null };
@@ -33,7 +33,7 @@ export function trackComparison(catalog: Catalog, snapshots: Snapshot[], trackId
     grouped.set(method.id,row);
   }
   const rows = orderComparison([...grouped.values()],columns[0],columns[0].metric.direction);
-  const metrics = columns.map(({info,metric,benchmark}) => ({...metric,comparisonMode:benchmark?.comparisonMode ?? metric.comparisonMode,id:`${info.id}:${metric.id}`,label:info.name.replace(/^LexBench /,'')}));
+  const metrics = columns.map(({info,metric,benchmark}) => ({...metric,comparisonMode:comparableMetric(benchmark??{},metric) ? undefined : "reported" as const,id:`${info.id}:${metric.id}`,label:info.name.replace(/^LexBench /,'')}));
   const providers: Provider[] = rows.map(row => ({
     id:row.id,name:row.name,description:'',mode:'',passed:null,
     scores:Object.fromEntries(columns.map(column => [`${column.info.id}:${column.metric.id}`,row.results[column.info.id]?.provider.scores[column.metric.id] ?? null])),

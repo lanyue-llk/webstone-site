@@ -604,4 +604,8 @@ test('evaluation source annotations bind to an exact published result and method
   const provider=Object.values(invalid['online-mind2web-v1.0.0'])[0];
   delete invalid['missing-result'];provider.links=[{label:'Source',url:'http://invalid.example.org'}];
   assert.throws(()=>validateEvaluationSources(invalid,files),/Invalid evaluation source/);
+  for(const label of [123,{},null]) {
+    provider.links=[{label,url:'https://example.org/report'}];
+    assert.throws(()=>validateEvaluationSources(invalid,files),/Invalid evaluation source/);
+  }
 });

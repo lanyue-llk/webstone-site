@@ -301,7 +301,7 @@ export function validateEvaluationSources(evaluations, files) {
     for (const [providerId, source] of Object.entries(sources)) {
       if (!providerIds.has(providerId) || !record(source) || !['author', 'blog', 'paper', 'repository', 'model-card', 'archive'].includes(source.origin)
         || ![source.publisher].every(value => typeof value === 'string' && value.trim() && !/[\u3400-\u9fff]/.test(value))
-        || !Array.isArray(source.links) || !source.links.length || source.links.some(link => !record(link) || !link.label?.trim() || !publicEvidenceUrl(link.url))) throw new Error("Invalid evaluation source");
+        || !Array.isArray(source.links) || !source.links.length || source.links.some(link => !record(link) || typeof link.label !== 'string' || !link.label.trim() || !publicEvidenceUrl(link.url))) throw new Error("Invalid evaluation source");
     }
   }
 }

@@ -1473,3 +1473,34 @@ test('switching overview columns starts lower-is-better metrics ascending', asyn
     assert.deepEqual(winners(),['45.71%'],'lower-is-better winner remains highlighted when order reverses');
   } finally {await React.act(async()=>root.unmount());await win.happyDOM.close();[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
 });
+
+test('mixed overview radar uses only comparable axes and their coverage',async()=>{
+  const {trackComparison}=require('../web/lib/track-comparison.ts');
+  const TrackResults=require('../web/components/track-results.tsx').default;
+  const previous=[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT];
+  try{for(const excluded of ['reported','diagnostic']){
+    const fixture=structuredClone(catalog);
+    fixture.benchmarks.filter(info=>info.trackId==='browser-use').forEach(info=>info.definitions.forEach(definition=>{
+      delete definition.comparisonMode;
+      if(info.id==='osworld') {if(excluded==='reported')definition.comparisonMode='reported';else definition.rankable=false;}
+    }));
+    const snapshots=['bu-bench-v1','online-mind2web','webvoyager','osworld'].map(id=>load(id,'v1.0.0').snapshot);
+    snapshots.at(-1).benchmarks[0].providers=snapshots.at(-1).benchmarks[0].providers.filter(provider=>provider.id!=='lexmount-browser-agent');
+    const comparison=trackComparison(fixture,snapshots,'browser-use');
+    assert.equal(radarAxes(comparison.profile).length,3,`${excluded}: only comparable axes`);
+    const win=new Window();
+    [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+    const container=win.document.createElement('div');win.document.body.append(container);const root=require('react-dom/client').createRoot(container);
+    try{
+      await React.act(async()=>root.render(React.createElement(TrackResults,{catalog:fixture,snapshots,trackId:'browser-use',layer:'L1',onLayer:()=>{},t:x=>x,language:'en'})));
+      const radar=container.querySelector('.overview-chart-controls button:nth-child(2)');
+      assert.equal(radar.textContent,'Radar · 1 methods',`${excluded}: excluded score is not required`);
+      await React.act(async()=>radar.click());
+      assert.equal(container.querySelectorAll('.radar-shape').length,1);
+      assert.ok(container.querySelector('.insights-section').textContent.includes('3/3'));
+      assert.ok(!container.querySelector('.radar-figure').textContent.includes('OSWorld'));
+      await React.act(async()=>container.querySelector('.table-toolbar .column-views button:nth-child(2)').click());
+      assert.equal(container.querySelectorAll('.track-results tbody tr').length,0,'table complete-coverage filter still requires all four benchmarks');
+    }finally{await React.act(async()=>root.unmount());await win.happyDOM.close();}
+  }}finally{[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
+});
