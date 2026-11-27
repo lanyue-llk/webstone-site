@@ -1493,6 +1493,9 @@ test('mixed overview radar uses only comparable axes and their coverage',async()
     const container=win.document.createElement('div');win.document.body.append(container);const root=require('react-dom/client').createRoot(container);
     try{
       await React.act(async()=>root.render(React.createElement(TrackResults,{catalog:fixture,snapshots,trackId:'browser-use',layer:'L1',onLayer:()=>{},t:x=>x,language:'en'})));
+      const selector=container.querySelector('.method-selector .radar-legend');
+      assert.ok(!selector.textContent.includes('Ouroboros'),'methods with only excluded scores stay out of the chart selector');
+      assert.ok([...selector.querySelectorAll('label')].find(label=>label.textContent.includes('Lexmount Browser Agent')).textContent.includes('3/3'),'selector coverage counts only chart axes');
       const radar=container.querySelector('.overview-chart-controls button:nth-child(2)');
       assert.equal(radar.textContent,'Radar · 1 methods',`${excluded}: excluded score is not required`);
       await React.act(async()=>radar.click());

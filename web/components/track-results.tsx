@@ -32,7 +32,8 @@ export default function TrackResults({catalog,snapshots,trackId,layer,onLayer,t,
   const ordered=orderComparison(rows.filter(row=>!completeOnly||coverage(row,columns)===columns.length),sortColumn,direction);
   const chartColumns = columns.filter(col => comparableMetric(col.benchmark??{},col.metric));
   const complete=ordered.filter(row=>coverage(row,chartColumns)===chartColumns.length);
-  const chartRows=ordered.filter(row=>!hidden.includes(row.id));
+  const comparableRows=ordered.filter(row=>coverage(row,chartColumns)>0);
+  const chartRows=comparableRows.filter(row=>!hidden.includes(row.id));
   const colorMap=Object.fromEntries(rows.map((row,index)=>[row.id,methodColor(index)]));
   const selectedResult=selected && Object.values(selected.results)[0];
   const snapshotsForTrack=snapshots.filter(snapshot=>snapshot.benchmarks.some(b=>columns.some(c=>c.info.id===b.id)));
@@ -71,7 +72,7 @@ export default function TrackResults({catalog,snapshots,trackId,layer,onLayer,t,
         {chartColumns.length>=3&&<button aria-pressed={chartView==='radar'} onClick={()=>setChartView('radar')}>{t('Radar')} · {complete.length} {t('methods')}</button>}
       </div>
       {chartView==='radar'&&chartColumns.length>=3 ? <>{complete.length===0&&<p className="comparison-empty" role="status">{t('No methods have results for every benchmark.')}</p>}<Insights key={`${trackId}:${layer}:radar`} benchmark={{...profile,providers:complete.map(row=>profile.providers.find(p=>p.id===row.id)!),providerCount:complete.length}} t={t} caption="" preserveOrder coverageTotal={chartColumns.length} colors={colorMap} hiddenMethods={hidden} onHiddenChange={setHidden}/></>
-        : <div className="overview-chart-layout"><MethodSelector providers={ordered} hidden={hidden} onChange={setHidden} t={t} colors={colorMap} coverage={Object.fromEntries(ordered.map(row=>[row.id,`${coverage(row,columns)}/${columns.length}`]))}/><div className="benchmark-comparisons">{chartColumns.map(col=>{
+        : <div className="overview-chart-layout"><MethodSelector providers={comparableRows} hidden={hidden} onChange={setHidden} t={t} colors={colorMap} coverage={Object.fromEntries(comparableRows.map(row=>[row.id,`${coverage(row,chartColumns)}/${chartColumns.length}`]))}/><div className="benchmark-comparisons">{chartColumns.map(col=>{
           const providers=chartRows.flatMap(row=>{const measured=row.results[col.info.id];return typeof measured?.provider.scores[col.metric.id]==='number'?[{...measured.provider,id:row.id,name:row.name}]:[];});
           const benchmark={...profile,comparisonMode:col.benchmark?.comparisonMode,rankable:col.benchmark?.rankable,id:col.info.id,name:col.info.name,metrics:[col.metric],keyMetricIds:[col.metric.id],primaryMetric:col.metric.id,categories:[],providers,providerCount:providers.length};
           return <div key={col.info.id}>{providers.length ? <Insights benchmark={benchmark} t={t} heading={col.info.name.replace(/^LexBench /,'')} caption="" preserveOrder hideLegend colors={colorMap}/>:<p>{col.info.name}: {t(col.benchmark?.providers.length ? 'Select a method to show its results.' : 'No published results')}</p>}</div>;
