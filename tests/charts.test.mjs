@@ -27,6 +27,26 @@ function load(id, version = "v1") {
   return { snapshot, benchmark: resolveBenchmark(catalog, snapshot.benchmarks[0]) };
 }
 
+function applyTableStyles(win) {
+  const style = win.document.createElement('style');
+  style.textContent = readFileSync(new URL('../web/app/globals.css', import.meta.url), 'utf8');
+  win.document.head.append(style);
+}
+
+function checkTableStyles(win, table, label) {
+  const sorted = table.querySelector('th.sorted');
+  assert.equal(win.getComputedStyle(sorted).backgroundColor, '#eaf4ee', `${label}: sorted header background`);
+  for (const cell of table.querySelectorAll('td.best-value')) {
+    assert.equal(win.getComputedStyle(cell).backgroundColor, '#eef8f1', `${label}: winner background`);
+    assert.ok(cell.querySelector('.sr-only'), `${label}: accessible winner`);
+  }
+  for (const cell of table.querySelectorAll('.numeric, th[aria-sort]')) {
+    assert.notEqual(win.getComputedStyle(cell).position, 'sticky', `${label}: numeric columns scroll`);
+  }
+  const method = table.querySelector('tbody tr > td:not(.rank-cell)');
+  if (method) assert.equal(win.getComputedStyle(method).position, 'sticky', `${label}: method stays visible`);
+}
+
 const component = (benchmark, t = text => text) => React.createElement(Insights, { benchmark, t });
 const render = (benchmark, t) => renderToStaticMarkup(component(benchmark, t));
 
@@ -770,7 +790,9 @@ test("all published versions highlight comparable column winners consistently, i
       try {
         await React.act(async () => root.render(React.createElement(Dashboard)));
         const more = [...win.document.querySelectorAll('.table-controls button')].find(button => button.textContent === 'More metrics');
+        applyTableStyles(win);
         const check = (expanded) => {
+          checkTableStyles(win, win.document.querySelector(".wide-table"), file.file);
           const headers = [...win.document.querySelectorAll('.wide-table thead th')];
           const rows = [...win.document.querySelectorAll('.wide-table tbody tr')];
           for (const metric of benchmark.metrics) {
@@ -812,6 +834,29 @@ test("all published versions highlight comparable column winners consistently, i
           check(true);
           await React.act(async () => win.document.querySelector('th.sorted .sort-button').click());
           check(true);
+        }
+        for (const item of benchmark.metrics) {
+          const button=[...win.document.querySelectorAll('th .sort-button')].find(button=>button.textContent===item.label);
+          if (!button) continue;
+          const wasSelected=button.closest('th').classList.contains('sorted');
+          const before=button.closest('th').getAttribute('aria-sort');
+          await React.act(async()=>button.click());
+          for(let reverse=0;reverse<2;reverse++) {
+            const direction=button.closest('th').getAttribute('aria-sort')==='ascending'?'asc':'desc';
+            if(!wasSelected && reverse===0) assert.equal(direction,item.direction,`${file.file}: new metric starts best first`);
+            if(wasSelected && reverse===0) assert.notEqual(button.closest('th').getAttribute('aria-sort'),before);
+            const rows=[...win.document.querySelectorAll('.wide-table tbody tr')];
+            const values=rows.map(row=>benchmark.providers.find(provider=>provider.id===row.dataset.provider).scores[item.id]);
+            let missing=false, prior;
+            for(const value of values) {
+              if(value===null||value===undefined){missing=true;continue;}
+              assert.equal(missing,false,`${file.file}: missing values stay last`);
+              if(prior!==undefined) assert.ok(direction==='asc'?prior<=value:prior>=value,`${file.file}: ${item.id} ${direction}`);
+              prior=value;
+            }
+            check(Boolean(more));
+            await React.act(async()=>button.click());
+          }
         }
       } finally { await React.act(async () => root.unmount()); await win.happyDOM.close(); }
     }
@@ -1327,4 +1372,86 @@ test('method search matches displayed Chinese names and bulk actions preserve ot
     await React.act(async()=>[...container.querySelectorAll('button')].find(b=>b.textContent==='Select all').click());
     assert.deepEqual([...hidden].sort(),['cloud','outside'],'selecting a subset changes only its methods');
   }finally{await React.act(async()=>root.unmount());await win.happyDOM.close();[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
+});
+
+
+test('every overview column keeps its sort and winner styles through reversal and coverage filtering', async () => {
+  const {prepareData}=await import('../scripts/prepare-data.mjs'); await prepareData();
+  const snapshots=JSON.parse(readFileSync(new URL('../web/public/results/reports.json',import.meta.url))).map(record=>record.report);
+  const {trackComparison}=require('../web/lib/track-comparison.ts');
+  const TrackResults=require('../web/components/track-results.tsx').default;
+  const previous=[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT];
+  const cases=catalog.tracks.filter(track=>track.overview).flatMap(track=>(track.id==='websearch'?['L1','L2','L3']:['L1']).map(layer=>[track.id,layer]));
+  try { for(const language of ['en','zh']) for(const [trackId,layer] of cases) {
+    const win=new Window(); applyTableStyles(win);
+    [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+    const container=win.document.createElement('div');win.document.body.append(container);
+    const root=require('react-dom/client').createRoot(container);
+    const comparison=trackComparison(catalog,snapshots,trackId,layer);
+    const t=translator(language,catalog);
+    try {
+      await React.act(async()=>root.render(React.createElement(TrackResults,{catalog,snapshots,trackId,layer,onLayer:()=>{},t,language})));
+      for(const completeOnly of [false,true]) {
+        if(completeOnly) await React.act(async()=>container.querySelectorAll('.table-toolbar button')[1].click());
+        const candidates=comparison.rows.filter(row=>!completeOnly||comparison.columns.every(col=>typeof row.results[col.info.id]?.provider.scores[col.metric.id]==='number'));
+        for(const [index,col] of comparison.columns.entries()) {
+          const button=container.querySelectorAll('.track-results .sort-button')[index];
+          // Switch away first so each column starts with its declared best-first direction.
+          if(index===0 && comparison.columns.length>1) await React.act(async()=>container.querySelectorAll('.track-results .sort-button')[1].click());
+          await React.act(async()=>button.click());
+          for(let reverse=0;reverse<2;reverse++) {
+            const table=container.querySelector('.track-results');
+            checkTableStyles(win,table,`${trackId}/${layer}/${language}`);
+            const header=table.querySelectorAll('thead th')[index+1];
+            const direction=header.getAttribute('aria-sort')==='ascending'?'asc':'desc';
+            if(reverse===0) assert.equal(direction,col.metric.direction);
+            const expected=[...candidates].sort((a,b)=>{
+              const x=a.results[col.info.id]?.provider.scores[col.metric.id],y=b.results[col.info.id]?.provider.scores[col.metric.id];
+              if(typeof x!=='number')return typeof y!=='number'?a.name.localeCompare(b.name):1;
+              if(typeof y!=='number')return -1;
+              return (direction==='asc'?x-y:y-x)||a.name.localeCompare(b.name);
+            });
+            const rows=[...table.querySelectorAll('tbody tr')];
+            assert.deepEqual(rows.map(row=>row.dataset.provider),expected.map(row=>row.id));
+            for(const [ci,column] of comparison.columns.entries()) {
+              const values=candidates.map(row=>row.results[column.info.id]?.provider.scores[column.metric.id]).filter(value=>typeof value==='number');
+              const eligible=column.benchmark?.rankable!==false && column.metric.highlightBest!==false && new Set(values).size>1;
+              const best=column.metric.direction==='asc'?Math.min(...values):Math.max(...values);
+              rows.forEach(row=>{
+                const value=candidates.find(item=>item.id===row.dataset.provider).results[column.info.id]?.provider.scores[column.metric.id];
+                assert.equal(row.children[ci+1].classList.contains('best-value'),eligible&&value===best);
+              });
+            }
+            await React.act(async()=>button.click());
+          }
+        }
+      }
+    } finally {await React.act(async()=>root.unmount());await win.happyDOM.close();}
+  }} finally {[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
+});
+
+
+test('switching overview columns starts lower-is-better metrics ascending', async () => {
+  const {prepareData}=await import('../scripts/prepare-data.mjs');await prepareData();
+  const snapshots=JSON.parse(readFileSync(new URL('../web/public/results/reports.json',import.meta.url))).map(record=>record.report);
+  const lowerIsBetter=structuredClone(catalog);
+  const info=lowerIsBetter.benchmarks.find(bench=>bench.id==='lexbench-zyte-product-extraction');
+  for(const definition of info.definitions) definition.metrics.find(metric=>metric.id===definition.primaryMetric).direction='asc';
+  const TrackResults=require('../web/components/track-results.tsx').default;
+  const win=new Window();
+  const previous=[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT];
+  [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+  const root=require('react-dom/client').createRoot(win.document.body);
+  try {
+    await React.act(async()=>root.render(React.createElement(TrackResults,{catalog:lowerIsBetter,snapshots,trackId:'webextract',layer:'L1',onLayer:()=>{},t:x=>x,language:'en'})));
+    const button=win.document.querySelectorAll('.track-results .sort-button')[1];
+    await React.act(async()=>button.click());
+    assert.equal(button.closest('th').getAttribute('aria-sort'),'ascending');
+    const rows=[...win.document.querySelectorAll('.track-results tbody tr')];
+    assert.equal(rows[0].querySelectorAll('td.numeric')[1].querySelector('a').textContent,'45.71%');
+    assert.equal(rows.at(-1).querySelectorAll('td.numeric')[1].textContent,'—');
+    await React.act(async()=>button.click());
+    assert.equal(button.closest('th').getAttribute('aria-sort'),'descending');
+    assert.equal(win.document.querySelector('td.best-value a').textContent,'84.5%','best values keep the metric direction when order reverses');
+  } finally {await React.act(async()=>root.unmount());await win.happyDOM.close();[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
 });
