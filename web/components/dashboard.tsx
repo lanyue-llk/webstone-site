@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowDownToLine, ArrowRight, ArrowUpRight, CircleDashed, Layers3, Menu } from "lucide-react";
+import { ArrowDown, ArrowDownToLine, ArrowRight, ArrowUpRight, BookOpenText, ChevronUp, CircleDashed, Layers3, Menu } from "lucide-react";
 import { canonicalVersion, benchmarkEntries, bestValue, bestValueLabel, formatMetric, formatPricing, isBestValue, latestEntry, reportEntries, resolveBenchmark, selectEntry, sortProviders, type Catalog, type Entry, type Metric, type Provider, type ReportFile, type Snapshot } from "../lib/results";
 import { providerColors } from "../lib/presentation";
 import ExampleDialog from "./example-dialog";
@@ -18,7 +18,7 @@ import { evaluationScopeCopy } from "../lib/result-copy";
 import { decisionMetrics, hasPricingInformation } from "../lib/comparisons";
 
 import Home, { EvaluationReports, TRACK_ICONS } from "./home";
-import { benchmarkHref, DATASETS_URL, EVALUATION_URL, SUBMISSION_URL, WEBSTONE_REPOSITORY_URL, navigationGroups } from "../lib/overview";
+import { benchmarkHref, DATASETS_URL, EVALUATION_URL, SUBMISSION_URL, navigationGroups } from "../lib/overview";
 type Selection = { benchmark: string; version: string; metric: string };
 
 export default function Dashboard() {
@@ -187,7 +187,7 @@ export default function Dashboard() {
   function metricCell(provider: Provider, item: Metric) {
     const value = provider.scores[item.id];
     const isBest = isBestValue(value, metricBest.get(item.id) ?? null);
-    const winnerLabel = t(bestValueLabel(benchmark!, item.direction));
+    const winnerLabel = t(bestValueLabel(benchmark!, item.direction, item));
     return <td key={item.id} data-column={`metric:${item.id}`} className={`numeric ${item.id === metric?.id ? "primary-number" : ""} ${isBest ? "best-value" : ""}`}
       title={[isBest ? winnerLabel : "", value == null ? t("Not disclosed in the source") : "", provider.counts?.[item.id] ? `${provider.counts[item.id].count} / ${provider.counts[item.id].total}` : ""].filter(Boolean).join(" · ") || undefined}
     >{item.unit === "usd" && catalog?.pricingSources?.[provider.id]?.length ? <div className="metric-heading"><span>{formatMetric(value, item.unit, item.decimals, item.signed)}</span><InfoTooltip label={`${provider.name} · ${t("Billing basis")}`} description={t(provider.billingDescription ?? "The table retains the evaluation report’s quoted price. Official rates may change.")} sources={catalog.pricingSources[provider.id]} sourcesLabel={t("Official pricing")} detailsLabel={t("details")} /></div> : formatMetric(value, item.unit, item.decimals, item.signed, provider.counts?.[item.id])}{isBest && <span className="sr-only"> {winnerLabel}</span>}</td>;
@@ -219,7 +219,7 @@ export default function Dashboard() {
             <h2>{t(versions.length > 0 ? "No results for this version" : "No results for this benchmark")}</h2>
             {versions.length > 0 && <button className="text-button" onClick={() => chooseVersion(versions.at(-1)!)}>{t("View latest version")}<ArrowRight size={14} /></button>}
           </div> : <>
-            <section id="results" className="leaderboard" aria-label={`${t(benchmark.name)} ${t("Leaderboard")}`}>
+            <section id="results" className="leaderboard table-panel" style={{ "--data-columns": categories.length + visibleMetrics.length + Number(showPassed) + Number(showPricing) } as React.CSSProperties} aria-label={`${t(benchmark.name)} ${t("Leaderboard")}`}>
               <h2 className="sr-only">{t("Leaderboard")}</h2>
               <div className="table-toolbar"><span className="table-summary">{benchmark.providerCount} {t("methods")}{benchmark.taskCount === null ? "" : <> · {benchmark.taskCount.toLocaleString()} {t("cases")}</>}
                 {evaluationScope && <InfoTooltip label={t("Evaluation scope")} description={evaluationScope} detailsLabel={t("details")} />}
@@ -248,7 +248,7 @@ export default function Dashboard() {
                     {showPassed && <th className="count-cell" data-column="passed" scope="col"><div className="metric-heading"><span>{t("Passed / Total")}</span><InfoTooltip label={t("Passed / Total")} description={`${t("Passed / Total")}: ${benchmark.taskCount}. ${t("Not disclosed in the source")}: —.`} detailsLabel={t("details")} /></div></th>}
                   </tr></thead>
                   <tbody>{providers.map((provider, i) => <tr key={provider.id} data-provider={provider.id}>
-                    <td className="rank-cell">{benchmark.rankable === false || benchmark.comparisonMode === "reported" || provider.scores[metric.id] == null ? "—" : i + 1}</td>
+                    <td className="rank-cell">{benchmark.rankable === false || benchmark.comparisonMode === "reported" || metric.comparisonMode === "reported" || provider.scores[metric.id] == null ? "—" : i + 1}</td>
                     <td className="method-cell"><div className="provider-cell"><a className="provider-name provider-link" href={catalog?.providerUrls[provider.id]} target="_blank" rel="noopener noreferrer" aria-label={`${provider.name} ${t("project")} (${t("opens in a new tab")})`}><span className={`provider-mark ${provider.id}`} style={{ "--provider-color": providerColors[provider.id] ?? "#64748b" } as React.CSSProperties} aria-hidden="true">{provider.name[0]}</span><MethodLabel name={provider.name} t={t} /><ArrowUpRight className="provider-external" size={12} aria-hidden="true" /></a><button className="method-open" aria-label={`${provider.name} · ${t("Method details")}`} aria-haspopup="dialog" onClick={() => setSelectedProvider(provider)}>···</button></div></td>
                     {leadingMetrics.map(item => metricCell(provider, item))}
                     {showPricing && <td data-column="pricing" className="numeric pricing-cell"><div className="metric-heading">{provider.pricing && hasPricingInformation(provider) ? <><span className="pricing-value">{t(formatPricing(provider.pricing))}</span><InfoTooltip label={`${provider.name} · ${t("Billing basis")}`} description={`${t(provider.pricing.description)} ${t("The table retains the evaluation report’s quoted price. Official rates may change.")}`} sources={catalog?.pricingSources?.[provider.id]} sourcesLabel={t("Official pricing")} detailsLabel={t("details")} /></> : "—"}</div></td>}
@@ -302,7 +302,7 @@ export default function Dashboard() {
       </div>)}</section>)}</nav>
       <div className="sidebar-footer">
         <div className="language-control" role="group" aria-label="Language / 语言"><button lang="en" aria-pressed={language === "en"} onClick={() => chooseLanguage("en")}>EN</button><button lang="zh" aria-pressed={language === "zh"} onClick={() => chooseLanguage("zh")}>中文</button></div>
-        <details className="sidebar-resources"><summary>{t("Resources")}</summary><div className="sidebar-guides">
+        <details className="sidebar-resources"><summary><BookOpenText size={14} aria-hidden="true" /><span>{t("Resources")}</span><ChevronUp size={12} aria-hidden="true" /></summary><div className="sidebar-guides">
         <a href={EVALUATION_URL} target="_blank" rel="noreferrer" aria-label={`${t("Run an evaluation")} · lexmount/webstone`}>
           <Github /><span>{t("Run an evaluation")}<small>webstone</small></span><ArrowUpRight size={13} aria-hidden="true" />
         </a>
@@ -313,7 +313,6 @@ export default function Dashboard() {
           <img src="/huggingface.svg" width="16" height="16" alt="" aria-hidden="true" /><span>{t("Datasets")}</span><ArrowUpRight size={13} aria-hidden="true" />
         </a>
       </div></details>
-        <a className="nav-star" href={WEBSTONE_REPOSITORY_URL} target="_blank" rel="noreferrer" aria-label={t("Star Webstone on GitHub")}><Github /><span>{t("Star on GitHub")}</span></a>
       </div>
     </aside>
 

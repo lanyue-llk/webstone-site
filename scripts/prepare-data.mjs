@@ -123,6 +123,7 @@ export function validateCatalog(catalog) {
         if (!["percent", "score", "seconds", "usd", "ratio", "ms", "mib", "points", "count", "characters"].includes(metric.unit)) throw new Error("Invalid metric unit");
         if (!["asc", "desc"].includes(metric.direction)) throw new Error("Invalid metric direction");
         if (metric.highlightBest !== undefined && typeof metric.highlightBest !== "boolean") throw new Error("Invalid metric highlight rule");
+        if (metric.comparisonMode !== undefined && (metric.comparisonMode !== "reported" || metric.highlightBest === false)) throw new Error("Invalid reported metric comparison");
         if (metric.chartRange !== undefined && (!Array.isArray(metric.chartRange) || metric.chartRange.length !== 2 || metric.chartRange[0] !== 0 || !Number.isFinite(metric.chartRange[1]) || metric.chartRange[1] <= 0)) throw new Error("Invalid metric chart range");
         if (metric.signed !== undefined && typeof metric.signed !== "boolean") throw new Error("Invalid metric sign");
         if (metric.decimals !== undefined && (!Number.isInteger(metric.decimals) || metric.decimals < 0 || metric.decimals > 6)) throw new Error("Invalid metric display precision");

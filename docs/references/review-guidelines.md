@@ -39,6 +39,12 @@ repeats implementation constants does not prove the behavior. Documentation-only
 changes need accurate commands, valid local links and a check against their owning
 rules; they do not require a new test that searches for prose keywords.
 
+For published comparisons, derive expected directional extrema independently of
+the catalog's highlight switches. Separately verify whether a value is a comparable
+best or a reported extremum, and keep purely descriptive output length unhighlighted.
+Check toolbar/table edges, primary-column visibility, card separator spacing and
+the upward resource menu by rendered geometry at desktop and phone widths.
+
 Use representative data for edge cases: tied winners, true zero, negative deltas,
 partially and wholly missing metrics, differing denominators, ranges and
 diagnostic editions. Preserve valid existing regression assertions. A shared

@@ -40,7 +40,7 @@ export default function TrackResults({catalog,snapshots,trackId,layer,onLayer,t,
     <nav className="overview-benchmarks" aria-label={t('Included benchmarks')}>
       <span>{t('Included benchmarks')}</span>{columns.map(col=><a key={col.info.id} href={benchmarkHref(col.info.id)}>{col.info.name.replace(/^LexBench /,'')}</a>)}
     </nav>
-    <section id="results" className="leaderboard" aria-label={`${comparison.track.name} ${t('Overview')}`}>
+    <section id="results" className="leaderboard table-panel overview-leaderboard" style={{'--data-columns':columns.length} as React.CSSProperties} aria-label={`${comparison.track.name} ${t('Overview')}`}>
       <div className="table-toolbar"><span className="table-summary">{ordered.length} {t('methods')} · {columns.length} {t('benchmarks')}</span>
         <div className="column-views" role="group" aria-label={t('Result coverage')}>
           <button aria-pressed={!completeOnly} onClick={()=>setCompleteOnly(false)}>{t('All methods')}</button>

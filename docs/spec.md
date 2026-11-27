@@ -41,13 +41,14 @@ a percentage or milliseconds as seconds, but must preserve the underlying value
 and precision. Counts, scores, memory and signed deltas keep their proper units.
 Downloads retain original values, numerators and denominators.
 
-Rank and highlight only comparable values. `direction` identifies the best value;
+Rank only comparable values. `direction` identifies the best value;
 the active sort direction does not change it. Ties share highlights. Constant or
 insufficiently disclosed columns have no winner. Respect `highlightBest: false`
-and diagnostic `rankable: false` in tables and charts: neither inconsistent test
-conditions nor different billing bases become comparable because values are numeric.
-Source-reported comparisons use numeric extrema labeled as highest/lowest reported
-values and omit ranks; these are not controlled evaluation rankings.
+and diagnostic `rankable: false` in tables and charts. Source-reported comparisons
+use numeric extrema labeled as highest/lowest reported values and omit ranks;
+these are not controlled evaluation rankings. The same rule applies to individual
+reported timing and point-price columns through metric `comparisonMode: "reported"`.
+They receive table highlights but remain outside comparable efficiency chart axes.
 Output length is descriptive, not a quality score. Never turn a price range or
 unknown model charge into an exact total.
 
@@ -88,8 +89,9 @@ radar admits only complete profiles. Search overviews retain the L1/L2/L3 distin
 Method details show the method ID, product ID, tested configurations and current
 published results. A shared URL never establishes method equivalence.
 
-Keep auxiliary sidebar resources behind a compact footer menu so they do not
-squeeze out primary navigation. Track cards share a compact two-row viewport for wrapping benchmark chips,
+Keep auxiliary sidebar resources behind a compact footer menu beside the language
+switch, opening above it. The footer has no separate GitHub Star link; evaluation
+and submission links already lead to the repositories. Track cards share a compact two-row viewport for wrapping benchmark chips,
 with scrolling and a mobile expand action.
 Report pages contain two rows at the actual grid column count; resize and filtering
 clamp the selected page without omitting reports. Chart method selectors
@@ -124,7 +126,8 @@ Keep **Find the right tools for your agent to browse the web.** as the homepage'
 only descriptive slogan. Place **The touchstone** beside the Webstone name as a
 short brand label. Keep the hero compact with content-driven height, moderate
 padding and no second sentence repeating the benefit. The site and evaluation repo
-share the official Webstone logo asset. Their READMEs explain their respective
+share the official Webstone logo asset. The image contains the Find sentence only;
+README prose can retain The touchstone as a short brand phrase. Their READMEs explain their respective
 roles; the site's README must not read like the evaluation tool's installation page.
 Use the stone symbol for the favicon, and the Hugging Face identity for datasets.
 

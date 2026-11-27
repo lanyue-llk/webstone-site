@@ -579,3 +579,13 @@ test('source-reported comparisons are distinct from diagnostic editions', () => 
   definition.comparisonMode='temporary';
   assert.throws(()=>validateCatalog(candidate),/Invalid reported-value comparison/);
 });
+
+test('reported metric comparisons preserve descriptive exclusions', () => {
+  const candidate=structuredClone(catalog),metric=candidate.benchmarks[0].definitions[0].metrics[0];
+  metric.comparisonMode='reported';
+  assert.doesNotThrow(()=>validateCatalog(candidate));
+  metric.highlightBest=false;
+  assert.throws(()=>validateCatalog(candidate),/Invalid reported metric comparison/);
+  delete metric.highlightBest;metric.comparisonMode='temporary';
+  assert.throws(()=>validateCatalog(candidate),/Invalid reported metric comparison/);
+});
