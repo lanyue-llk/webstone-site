@@ -4,7 +4,7 @@
 
 [![Leaderboard](https://img.shields.io/badge/Leaderboard-webstone.lexmount.io-527e68)](https://webstone.lexmount.io) [![Datasets](https://img.shields.io/badge/%F0%9F%A4%97-Datasets-ffd21e)](https://huggingface.co/Lexmount)
 
-The website for [Webstone](https://github.com/lexmount/webstone), the touchstone for your agent’s web browsing. Use the [leaderboard](https://webstone.lexmount.io) to compare methods and read published evaluation reports. It covers sixteen benchmark views across five Tracks and links to the independently hosted BrowserArena.
+The companion website for [Webstone](https://github.com/lexmount/webstone), **the touchstone**. Use the [leaderboard](https://webstone.lexmount.io) to compare web tools, browsers and browser agents and read published evaluation reports. It covers sixteen benchmark views across five Tracks and links to the independently hosted BrowserArena.
 
 Run evaluations with [Webstone](https://github.com/lexmount/webstone); submit measured results and public evidence to this repository.
 

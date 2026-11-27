@@ -377,12 +377,12 @@
               "criterion": "The downloaded media file matches the original."
             }
           ],
-          "rankable": false,
           "keyMetricIds": [
             "passRate",
             "requestRate",
             "totalMean"
-          ]
+          ],
+          "comparisonMode": "reported"
         }
       ],
       "example": {
@@ -528,8 +528,8 @@
               "unit": "ms",
               "direction": "asc",
               "decimals": 0,
-              "highlightBest": false,
-              "description": "Final logical-call duration over all 545 pages, including failures. Methods were collected in different batches; these timings are not a controlled same-window speed comparison."
+              "description": "Final logical-call duration over all 545 pages, including failures. Methods were collected in different batches; these timings are not a controlled same-window speed comparison.",
+              "comparisonMode": "reported"
             },
             {
               "id": "p50Time",
@@ -537,8 +537,8 @@
               "unit": "ms",
               "direction": "asc",
               "decimals": 0,
-              "highlightBest": false,
-              "description": "Final logical-call duration over all 545 pages, including failures. Methods were collected in different batches; these timings are not a controlled same-window speed comparison."
+              "description": "Final logical-call duration over all 545 pages, including failures. Methods were collected in different batches; these timings are not a controlled same-window speed comparison.",
+              "comparisonMode": "reported"
             },
             {
               "id": "p95Time",
@@ -546,8 +546,8 @@
               "unit": "ms",
               "direction": "asc",
               "decimals": 0,
-              "highlightBest": false,
-              "description": "Final logical-call duration over all 545 pages, including failures. Methods were collected in different batches; these timings are not a controlled same-window speed comparison."
+              "description": "Final logical-call duration over all 545 pages, including failures. Methods were collected in different batches; these timings are not a controlled same-window speed comparison.",
+              "comparisonMode": "reported"
             }
           ],
           "keyMetricIds": [
@@ -681,7 +681,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Mean elapsed time in the recorded collection batch. Methods were collected on different dates and may use different concurrency; this is not a controlled same-window speed comparison.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "p50Time",
@@ -690,7 +690,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Median elapsed time in the recorded collection batch. Lower is better within comparable collection conditions.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "p95Time",
@@ -699,7 +699,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "95th-percentile elapsed time in the recorded collection batch. Lower is better within comparable collection conditions.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "pricePerThousand",
@@ -708,7 +708,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Quoted USD per 1,000 requests or successful searches, according to each method's billing unit. Prices are transcribed from the report, not verified current plans. Open method details for the billing basis.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             }
           ],
           "keyMetricIds": [
@@ -848,7 +848,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Mean elapsed time in the recorded collection batch. Methods were collected on different dates and may use different concurrency; this is not a controlled same-window speed comparison.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "p50Time",
@@ -857,7 +857,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Median elapsed time in the recorded collection batch. Lower is better within comparable collection conditions.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "p95Time",
@@ -866,7 +866,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "95th-percentile elapsed time in the recorded collection batch. Lower is better within comparable collection conditions.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "pricePerThousand",
@@ -875,7 +875,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Quoted USD per 1,000 requests or successful searches, according to each method's billing unit. Prices are transcribed from the report, not verified current plans. Open method details for the billing basis.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             }
           ],
           "keyMetricIds": [
@@ -956,7 +956,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Mean elapsed time in the recorded collection batch. Methods were collected on different dates and may use different concurrency; this is not a controlled same-window speed comparison.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "p50Time",
@@ -965,7 +965,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Median elapsed time in the recorded collection batch. Lower is better within comparable collection conditions.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "p95Time",
@@ -974,7 +974,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "95th-percentile elapsed time in the recorded collection batch. Lower is better within comparable collection conditions.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "pricePerThousand",
@@ -983,7 +983,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Quoted USD per 1,000 requests or successful searches, according to each method's billing unit. Prices are transcribed from the report, not verified current plans. Open method details for the billing basis.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             }
           ],
           "keyMetricIds": [
@@ -1048,7 +1048,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Mean elapsed time in the recorded collection batch. Methods were collected on different dates and may use different concurrency; this is not a controlled same-window speed comparison.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "p50Time",
@@ -1057,7 +1057,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Median elapsed time in the recorded collection batch. Lower is better within comparable collection conditions.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "p95Time",
@@ -1066,7 +1066,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "95th-percentile elapsed time in the recorded collection batch. Lower is better within comparable collection conditions.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "pricePerThousand",
@@ -1075,7 +1075,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Quoted USD per 1,000 requests or successful searches, according to each method's billing unit. Prices are transcribed from the report, not verified current plans. Open method details for the billing basis.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             }
           ],
           "keyMetricIds": [
@@ -1149,7 +1149,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Mean elapsed time in the recorded collection batch. Methods were collected on different dates and may use different concurrency; this is not a controlled same-window speed comparison.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "p50Time",
@@ -1158,7 +1158,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Median elapsed time in the recorded collection batch. Lower is better within comparable collection conditions.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "p95Time",
@@ -1167,7 +1167,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "95th-percentile elapsed time in the recorded collection batch. Lower is better within comparable collection conditions.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "pricePerThousand",
@@ -1176,7 +1176,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Quoted USD per 1,000 requests or successful searches, according to each method's billing unit. Prices are transcribed from the report, not verified current plans. Open method details for the billing basis.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             }
           ],
           "keyMetricIds": [
@@ -1248,7 +1248,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Mean elapsed time in the recorded collection batch. Methods were collected on different dates and may use different concurrency; this is not a controlled same-window speed comparison.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "p50Time",
@@ -1257,7 +1257,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Median elapsed time in the recorded collection batch. Lower is better within comparable collection conditions.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "p95Time",
@@ -1266,7 +1266,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "95th-percentile elapsed time in the recorded collection batch. Lower is better within comparable collection conditions.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             },
             {
               "id": "pricePerThousand",
@@ -1275,7 +1275,7 @@
               "direction": "asc",
               "decimals": 2,
               "description": "Quoted USD per 1,000 requests or successful searches, according to each method's billing unit. Prices are transcribed from the report, not verified current plans. Open method details for the billing basis.",
-              "highlightBest": false
+              "comparisonMode": "reported"
             }
           ],
           "keyMetricIds": [

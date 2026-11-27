@@ -46,7 +46,7 @@ function resourceAxis(axis: Axis, providers: Provider[]): Axis | null {
 
 export function radarAxes(benchmark: Benchmark): Axis[] {
   const keyIds = new Set(benchmark.keyMetricIds ?? [benchmark.primaryMetric]);
-  const comparable = (metric: Metric) => benchmark.rankable !== false && metric.highlightBest !== false;
+  const comparable = (metric: Metric) => benchmark.rankable !== false && metric.highlightBest !== false && metric.comparisonMode !== "reported" && benchmark.comparisonMode !== "reported";
   const categories: Axis[] = benchmark.categories.filter(category => category.total > 0 &&
     benchmark.providers.some(provider => typeof provider.categoryPassed?.[category.id] === "number")).map(category => ({
     defaultSelected: false,

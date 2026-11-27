@@ -110,7 +110,8 @@ test("radars include latency and memory while keeping quoted prices out of capab
   for (const benchmark of [load("lexbench-websearch", "v2").benchmark,
     load("lexbench-swde").benchmark, load("lexbench-zyte-product-extraction").benchmark]) {
     const axes = radarAxes(benchmark);
-    assert.equal(axes.some(axis => axis.id === "meanTime"), benchmark.metrics.find(metric => metric.id === "meanTime")?.highlightBest !== false);
+    const timing=benchmark.metrics.find(metric => metric.id === "meanTime");
+    assert.equal(axes.some(axis => axis.id === "meanTime"), timing?.comparisonMode !== 'reported' && timing?.highlightBest !== false);
     assert.ok(!axes.some(axis => ["pricePerThousand", "quoted-price"].includes(axis.id)));
     assert.equal((render(benchmark).match(/class="radar-series"/g) ?? []).length, benchmark.providers.length);
   }
@@ -291,11 +292,8 @@ test("the dashboard exposes two repository guides and preserves each pricing val
     const links = [...container.querySelectorAll(".sidebar-guides a")];
     assert.deepEqual(links.map(link => link.getAttribute("href")), [EVALUATION_URL, SUBMISSION_URL, "https://huggingface.co/datasets?author=Lexmount"]);
     assert.ok(links.every(link => link.querySelector("svg") && link.textContent.trim()));
-    const star = container.querySelector(".sidebar-footer .nav-star");
-    assert.ok(star);
-    assert.equal(star.href, "https://github.com/lexmount/webstone");
+    assert.equal(container.querySelectorAll(".sidebar-footer > a").length, 0);
     assert.equal(container.querySelector(".brand img").getAttribute("src"), "/brand/webstone.png");
-    assert.match(star.getAttribute("aria-label"), /Star Webstone/);
     const groups = [...container.querySelectorAll(".grouped-navigation > .nav-group")];
     assert.deepEqual(groups.map(group => group.querySelector("h2").textContent), ["Web Tools", "Browser Capabilities", "Browser Automation"]);
     assert.deepEqual(groups.map(group => group.querySelectorAll(".nav-track").length), [2, 2, 1]);
@@ -649,6 +647,8 @@ test("diagnostic comparisons never imply a rank or best value in either language
   diagnostic.benchmarks[0].definitionId='reviewed-diagnostic';
   const diagnosticCatalog=structuredClone(catalog);
   const diagnosticDefinition=diagnosticCatalog.benchmarks.find(b=>b.id==='lexbench-webfetch').definitions.find(d=>d.id==='reviewed-diagnostic');
+  diagnosticDefinition.rankable=false;
+  delete diagnosticDefinition.comparisonMode;
   diagnosticDefinition.metrics.forEach(metric=>{ metric.highlightBest=true; });
   const win=new Window({url:'https://webstone.test/?benchmark=lexbench-webfetch'});
   const prior=[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT];
@@ -939,7 +939,7 @@ test("capability profiles do not turn non-comparable timing into an efficiency a
   for (const id of ['webmainbench', 'lexbench-websearch']) {
     const { benchmark } = load(id, id === 'webmainbench' ? 'v2.1.0' : 'v2');
     const axes = radarAxes(benchmark);
-    for (const metric of benchmark.metrics.filter(item => ['ms', 'seconds', 'mib', 'usd'].includes(item.unit) && item.highlightBest === false)) {
+    for (const metric of benchmark.metrics.filter(item => ['ms', 'seconds', 'mib', 'usd'].includes(item.unit) && (item.highlightBest === false || item.comparisonMode === 'reported'))) {
       assert.ok(!axes.some(axis => axis.id === metric.id), `${id}: ${metric.id} is not a comparable efficiency axis`);
     }
   }

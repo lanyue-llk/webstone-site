@@ -1,7 +1,7 @@
 import { canonicalVersion, compareVersions, releaseDate } from "./result-version.mjs";
 export { canonicalVersion, compareVersions } from "./result-version.mjs";
 
-export type Metric = { id: string; label: string; unit: string; direction: "asc" | "desc"; decimals?: number; description?: string; signed?: boolean; highlightBest?: boolean; chartRange?: [number, number] };
+export type Metric = { id: string; label: string; unit: string; direction: "asc" | "desc"; decimals?: number; description?: string; signed?: boolean; highlightBest?: boolean; comparisonMode?: "reported"; chartRange?: [number, number] };
 export type CategoryDefinition = { id: string; name: string; criterion: string };
 export type Category = CategoryDefinition & { total: number };
 export type Provider = {
@@ -121,8 +121,8 @@ export function bestValue(values: (number | null | undefined)[], direction: "asc
   return best;
 }
 
-export function bestValueLabel(definition: {comparisonMode?: "reported"}, direction: "asc" | "desc") {
-  if (definition.comparisonMode === "reported") return direction === "asc" ? "Lowest reported value" : "Highest reported value";
+export function bestValueLabel(definition: {comparisonMode?: "reported"}, direction: "asc" | "desc", metric?: Metric) {
+  if (definition.comparisonMode === "reported" || metric?.comparisonMode === "reported") return direction === "asc" ? "Lowest reported value" : "Highest reported value";
   return "Best in this column";
 }
 

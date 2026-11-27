@@ -22,6 +22,15 @@ function expectedWinner(rows,column) {
   if(column.allowed===false||new Set(values).size<2)return null;
   return column.direction==='asc'?Math.min(...values):Math.max(...values);
 }
+// Published comparisons show directional extrema, even for source-reported timings
+// and quotes. Output length and non-point billing do not imply a better result.
+// This contract deliberately does not read rankable/highlightBest switches.
+function publishedColumns(info,result,...options) {
+  const def=definition(info,result);
+  return benchmarkColumns(info,result,...options).map(column=>({...column,
+    allowed:!column.pricing && def.metrics.find(metric=>`metric:${metric.id}`===column.id)?.unit!=='characters',
+  }));
+}
 function expectedOrder(rows,column,direction,alphabetical=false) {
   return [...rows].sort((a,b)=>{
     const left=column.value(a),right=column.value(b);
@@ -47,6 +56,9 @@ async function inspect(page,rows,columns,sort,direction,alphabetical,language) {
     headers:[...table.querySelectorAll('thead [data-column]')].map(cell=>({id:cell.dataset.column,sort:cell.getAttribute('aria-sort'),bg:getComputedStyle(cell).backgroundColor,font:getComputedStyle(cell.querySelector('.sort-button')??cell).fontWeight,color:getComputedStyle(cell.querySelector('.sort-button')??cell).color,position:getComputedStyle(cell).position})),
     rows:[...table.querySelectorAll('tbody tr')].map(row=>({id:row.dataset.provider,cells:[...row.querySelectorAll('td[data-column]')].map(cell=>({id:cell.dataset.column,text:cell.innerText,bg:getComputedStyle(cell).backgroundColor,color:getComputedStyle(cell.querySelector('a')??cell).color,font:getComputedStyle(cell.querySelector('a')??cell).fontWeight,position:getComputedStyle(cell).position,label:cell.querySelector('.sr-only')?.textContent.trim()??''}))})),
   }));
+  const toolbar=await page.locator('.table-toolbar').boundingBox(),scroll=await page.locator('.table-scroll').boundingBox();
+  assert(Math.abs(toolbar.x-scroll.x)<2,'toolbar and table left edges differ');
+  assert(Math.abs(toolbar.x+toolbar.width-scroll.x-scroll.width)<2,'toolbar and table right edges differ');
   // Bulk assertions avoid recording hundreds of thousands of duplicate trace steps.
   assert.deepEqual(state.rows.map(row=>row.id),expectedOrder(rows,sort,direction,alphabetical));
   assert.deepEqual(state.headers.filter(header=>header.sort==='ascending'||header.sort==='descending').map(header=>header.id),[sort.id]);
@@ -102,7 +114,7 @@ function benchmarkColumns(info,result,expanded,categories=true) {
   const def=definition(info,result);
   const metrics=def.metrics.filter(metric=>metric.id===def.primaryMetric||result.providers.some(provider=>numeric(provider.scores[metric.id]))).filter(metric=>expanded||def.keyMetricIds.includes(metric.id));
   return [
-    ...metrics.map(metric=>({id:`metric:${metric.id}`,direction:metric.direction,value:provider=>provider.scores[metric.id],allowed:def.rankable!==false&&metric.highlightBest!==false,reported:def.comparisonMode==='reported',scale:metric.unit==='ratio'?100:metric.unit==='ms'?0.001:1,precision:metric.unit==='ratio'?Math.max(0,metric.decimals-2):metric.unit==='ms'?Math.min(6,metric.decimals+3):metric.unit==='seconds'?Math.max(3,metric.decimals):metric.decimals})),
+    ...metrics.map(metric=>({id:`metric:${metric.id}`,direction:metric.direction,value:provider=>provider.scores[metric.id],allowed:def.rankable!==false&&metric.highlightBest!==false,reported:def.comparisonMode==='reported'||metric.comparisonMode==='reported',scale:metric.unit==='ratio'?100:metric.unit==='ms'?0.001:1,precision:metric.unit==='ratio'?Math.max(0,metric.decimals-2):metric.unit==='ms'?Math.min(6,metric.decimals+3):metric.unit==='seconds'?Math.max(3,metric.decimals):metric.decimals})),
     ...(categories?(def.categories??[]).map(category=>({id:`category:${category.id}`,direction:'desc',value:provider=>provider.categoryPassed?.[category.id],displayValue:provider=>provider.categoryPassed[category.id]/result.categoryTotals[category.id]*100,precision:1,reported:def.comparisonMode==='reported',allowed:def.rankable!==false,sortable:false})):[]),
     ...(result.providers.some(provider=>provider.pricing&&(numeric(provider.pricing.min)&&numeric(provider.pricing.max)||numeric(provider.pricing.softwareCost)))?[{id:'pricing',pricing:true,sortable:false,allowed:false,value:()=>null}]:[]),
     ...(categories&&result.providers.some(provider=>numeric(provider.passed))?[{id:'passed',direction:'desc',value:provider=>provider.passed,reported:def.comparisonMode==='reported',allowed:def.rankable!==false,sortable:false}]:[]),
@@ -113,16 +125,19 @@ for(const report of reports) {
   test(`${result.id} ${report.version}: every metric and visible column`,async({page},testInfo)=>{
     const language=testInfo.project.metadata.language;
     await open(page,`/?benchmark=${result.id}&version=${report.version}`,language);
-    const key=benchmarkColumns(info,result,false);
+    const key=publishedColumns(info,result,false);
     const primary=key.find(column=>column.id===`metric:${def.primaryMetric}`);
     await inspect(page,result.providers,key,primary,primary.direction,false,language);
+    const method=await page.locator('thead .method-cell').boundingBox(),score=await page.locator(`thead ${columnSelector(primary.id)}`).boundingBox();
+    expect(score.x).toBeGreaterThanOrEqual(method.x+method.width-1);
+    expect(score.x).toBeLessThan((await page.locator('.table-scroll').boundingBox()).x+(await page.locator('.table-scroll').boundingBox()).width);
     const more=page.locator('.table-controls button').filter({hasText:language==='en'?'More metrics':'更多指标'});
     if(await more.count())await more.click();
-    const columns=benchmarkColumns(info,result,true);
+    const columns=publishedColumns(info,result,true);
     const final=await sortEach(page,result.providers,columns,primary,false,language);
     if((def.categories??[]).length) {
       await page.locator('.table-controls button').filter({hasText:language==='en'?'Category breakdown':'分类结果'}).click();
-      await inspect(page,result.providers,benchmarkColumns(info,result,true,false),final.column,final.direction,false,language);
+      await inspect(page,result.providers,publishedColumns(info,result,true,false),final.column,final.direction,false,language);
     }
     // Winners keep their own direction even while another metric is sorted in reverse.
     const bestColumn=columns.find(column=>expectedWinner(result.providers,column)!==null);
@@ -144,7 +159,7 @@ function overview(track,layer) {
   const columns=catalog.benchmarks.filter(info=>info.trackId===track.id&&(!info.outputLayer||info.outputLayer===layer)).map(info=>{
     const report=reports.filter(report=>report.benchmarks[0].id===info.id).sort(editionOrder).at(-1),result=report?.benchmarks[0];
     const def=result?definition(info,result):info.definitions.at(-1),metric=def.metrics.find(metric=>metric.id===def.primaryMetric);
-    return {id:`benchmark:${info.id}`,info,report,result,metric,direction:metric.direction,allowed:def.rankable!==false&&metric.highlightBest!==false,reported:def.comparisonMode==='reported',scale:metric.unit==='ratio'?100:metric.unit==='ms'?0.001:1,precision:metric.unit==='ratio'?Math.max(0,metric.decimals-2):metric.decimals,value:row=>row.values[info.id]};
+    return {id:`benchmark:${info.id}`,info,report,result,metric,direction:metric.direction,allowed:true,reported:def.comparisonMode==='reported',scale:metric.unit==='ratio'?100:metric.unit==='ms'?0.001:1,precision:metric.unit==='ratio'?Math.max(0,metric.decimals-2):metric.decimals,value:row=>row.values[info.id]};
   });
   const rows=new Map();
   for(const column of columns)for(const provider of column.result?.providers??[]){
@@ -219,7 +234,7 @@ test('reports fill two grid rows before paging, retain every report and clamp af
   }
 });
 
-test('GitHub Star is visible and track benchmark chips stay scrollable',async({page},testInfo)=>{
+test('Resources opens upward beside language controls and track chips stay spaced and scrollable',async({page},testInfo)=>{
   const language=testInfo.project.metadata.language;
   await page.addInitScript(language=>localStorage.setItem('webstone-language',language),language);
   await page.goto('/');
@@ -227,11 +242,18 @@ test('GitHub Star is visible and track benchmark chips stay scrollable',async({p
   await expect(page.locator('.track-card[data-track="browser-use"]')).toBeVisible();
   const menu=page.getByRole('button',{name:language==='en'?'Open navigation':'打开导航',exact:true});
   if(await menu.isVisible())await menu.click();
-  const star=page.locator('.nav-star');
-  await expect(star).toBeVisible();await expect(star).toContainText('GitHub');
-  await expect(star).toHaveAttribute('href','https://github.com/lexmount/webstone');
+  await expect(page.locator('.sidebar-footer > a')).toHaveCount(0);
+  const resources=page.locator('.sidebar-resources summary'),languages=page.locator('.language-control');
+  await expect(resources).toBeVisible();
+  const rb=await resources.boundingBox(),lb=await languages.boundingBox();
+  expect(Math.abs(rb.y+rb.height/2-lb.y-lb.height/2)).toBeLessThan(5);
+  await resources.click();
+  const panel=page.locator('.sidebar-guides');await expect(panel).toBeVisible();
+  expect((await panel.boundingBox()).y+(await panel.boundingBox()).height).toBeLessThanOrEqual(rb.y-4);
+  await expect(panel.locator('a')).toHaveCount(3);
+  await resources.click();await expect(panel).toBeHidden();
   await expect(page.locator('.overview-star')).toContainText('GitHub');
-  const scrim=page.locator('.sidebar-scrim');if(await scrim.count())await scrim.click();
+  const scrim=page.locator('.sidebar-scrim');if(await scrim.count())await scrim.press('Enter');
   for(const track of catalog.tracks.filter(track=>!track.url)) {
     const benchmarks=catalog.benchmarks.filter(benchmark=>benchmark.trackId===track.id&&(!benchmark.outputLayer||benchmark.outputLayer==='L1'));
     if(!benchmarks.length)continue;
@@ -239,6 +261,8 @@ test('GitHub Star is visible and track benchmark chips stay scrollable',async({p
     const members=await list.locator('a').evaluateAll(nodes=>nodes.map(node=>new URL(node.href).searchParams.get('benchmark')));
     expect(members).toEqual(benchmarks.map(benchmark=>benchmark.id));
     expect(await list.evaluate(node=>getComputedStyle(node).overflowY)).toBe('auto');
+    const spacing=await list.evaluate(node=>node.firstElementChild.getBoundingClientRect().top-node.getBoundingClientRect().top);
+    expect(spacing).toBeGreaterThanOrEqual(8);
     for(const link of await list.locator('a').all()) {await link.focus();await expect(link).toBeInViewport();}
     const height=await list.evaluate(node=>node.clientHeight);
     await list.evaluate(node=>{for(let i=0;i<32&&node.scrollHeight<=node.clientHeight;i++)node.append(node.firstElementChild.cloneNode(true));});
