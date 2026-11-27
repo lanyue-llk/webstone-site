@@ -105,8 +105,11 @@ export function latestEntry(entries: Entry[], benchmark: string) {
 }
 
 export function compareValues(left: number | null | undefined, right: number | null | undefined, direction: "asc" | "desc") {
-  if (left == null) return right == null ? 0 : 1;
-  if (right == null) return -1;
+  if (left === null || left === undefined) {
+    if (right === null || right === undefined) return 0;
+    return 1;
+  }
+  if (right === null || right === undefined) return -1;
   return direction === "asc" ? left - right : right - left;
 }
 

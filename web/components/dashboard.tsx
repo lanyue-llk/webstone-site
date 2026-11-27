@@ -176,7 +176,13 @@ export default function Dashboard() {
       highlight: benchmark.rankable !== false && item.highlightBest !== false,
       winnerLabel: t(bestValueLabel(benchmark, item.direction, item)),
       details: item.description && <InfoTooltip label={t(item.label)} description={metricDescription(item)} detailsLabel={t("details")} />,
-      title: provider => [provider.scores[item.id] == null ? t("Not disclosed in the source") : "", provider.counts?.[item.id] ? `${provider.counts[item.id].count} / ${provider.counts[item.id].total}` : ""].filter(Boolean).join(" · ") || undefined,
+      title: provider => {
+        const value = provider.scores[item.id], counts = provider.counts?.[item.id];
+        const details: string[] = [];
+        if (value === null || value === undefined) details.push(t("Not disclosed in the source"));
+        if (counts) details.push(`${counts.count} / ${counts.total}`);
+        return details.join(" · ") || undefined;
+      },
       render: provider => item.unit === "usd" && catalog?.pricingSources?.[provider.id]?.length ? <div className="metric-heading"><span>{formatMetric(provider.scores[item.id], item.unit, item.decimals, item.signed)}</span><InfoTooltip label={`${provider.name} · ${t("Billing basis")}`} description={t(provider.billingDescription ?? "The table retains the evaluation report’s quoted price. Official rates may change.")} sources={catalog.pricingSources[provider.id]} sourcesLabel={t("Official pricing")} detailsLabel={t("details")} /></div> : formatMetric(provider.scores[item.id], item.unit, item.decimals, item.signed, provider.counts?.[item.id]),
     });
     return [
@@ -188,13 +194,21 @@ export default function Dashboard() {
       ...categories.map(category => ({id:`category:${category.id}`,label:t(category.name),direction:"desc" as const,sortable:false,value:(provider:Provider)=>provider.categoryPassed?.[category.id],highlight:benchmark.rankable!==false,winnerLabel:t(bestValueLabel(benchmark,"desc")),className:"category-value",headerClassName:"category-head",
         details:<InfoTooltip label={t(category.name)} description={`${category.total} ${t("cases")}. ${t("Pass criteria")}: ${t(category.criterion)}`} detailsLabel={t("details")} />,
         title:(provider:Provider)=>`${provider.categoryPassed?.[category.id] ?? "—"} / ${category.total}`,
-        render:(provider:Provider)=>provider.categoryPassed?.[category.id] == null ? "—" : `${(provider.categoryPassed[category.id] / category.total * 100).toFixed(1)}%`,
+        render:(provider:Provider)=>{
+          const passed = provider.categoryPassed?.[category.id];
+          if (passed === null || passed === undefined) return "—";
+          return `${(passed / category.total * 100).toFixed(1)}%`;
+        },
       })),
       ...trailingMetrics.map(metricColumn),
       ...(showPassed ? [{id:"passed",label:t("Passed / Total"),direction:"desc" as const,sortable:false,value:(provider:Provider)=>provider.passed,highlight:benchmark.rankable!==false,winnerLabel:t(bestValueLabel(benchmark,"desc")),className:"count-cell",
         details:<InfoTooltip label={t("Passed / Total")} description={`${t("Passed / Total")}: ${benchmark.taskCount}. ${t("Not disclosed in the source")}: —.`} detailsLabel={t("details")} />,
-        title:(provider:Provider)=>provider.passed == null ? t("Not disclosed in the source") : provider.passedDerivation ? t(provider.passedDerivation) : undefined,
-        render:(provider:Provider)=>provider.passed == null ? "—" : <>{provider.passed}<span> / {benchmark.taskCount}</span></>,
+        title:(provider:Provider)=>{
+          if (provider.passed === null || provider.passed === undefined) return t("Not disclosed in the source");
+          if (provider.passedDerivation) return t(provider.passedDerivation);
+          return undefined;
+        },
+        render:(provider:Provider)=>provider.passed === null || provider.passed === undefined ? "—" : <>{provider.passed}<span> / {benchmark.taskCount}</span></>,
       }] : []),
     ];
   }

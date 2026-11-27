@@ -19,7 +19,7 @@ export function tableComparison<Row extends {id: string}>(rows: Row[], columns: 
   let rank = 0;
   ranked.forEach((row, index) => {
     const value = selected.value(row);
-    if (value == null || selected.rankable === false) return;
+    if (value === null || value === undefined || selected.rankable === false) return;
     if (index === 0 || value !== selected.value(ranked[index - 1])) rank = index + 1;
     ranks.set(row.id, rank);
   });

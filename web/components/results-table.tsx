@@ -45,8 +45,15 @@ export default function ResultsTable<Row extends {id: string}>({caption, rows, c
         <thead><tr><th className="rank-cell" scope="col" aria-label={`${t('Rank by')} ${columns.find(column => column.id === state.selected.id)!.label}`}>#</th><th className="provider-heading method-cell" scope="col">{t('Method')}</th>
           {columns.map(column => {
             const active = column.id === state.selected.id;
-            return <th key={column.id} data-column={column.id} scope="col" className={`${active ? 'sorted ' : ''}${column.headerClassName ?? column.className ?? ''}`} aria-sort={column.sortable === false ? undefined : active ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              {column.before}<div className="metric-heading">{column.sortable === false ? <span>{column.label}</span> : <button className={`sort-button${active ? ' selected' : ''}`} onClick={() => onSort(column.id, active ? (direction === 'desc' ? 'asc' : 'desc') : column.direction)}>{column.label}{active && <ArrowDown size={13} style={{transform: direction === 'asc' ? 'rotate(180deg)' : undefined}}/>}</button>}{column.details}</div>{column.after}
+            let ariaSort: 'ascending' | 'descending' | 'none' | undefined;
+            if (column.sortable !== false) {
+              ariaSort = 'none';
+              if (active) ariaSort = direction === 'asc' ? 'ascending' : 'descending';
+            }
+            let nextDirection = column.direction;
+            if (active) nextDirection = direction === 'desc' ? 'asc' : 'desc';
+            return <th key={column.id} data-column={column.id} scope="col" className={`${active ? 'sorted ' : ''}${column.headerClassName ?? column.className ?? ''}`} aria-sort={ariaSort}>
+              {column.before}<div className="metric-heading">{column.sortable === false ? <span>{column.label}</span> : <button className={`sort-button${active ? ' selected' : ''}`} onClick={() => onSort(column.id, nextDirection)}>{column.label}{active && <ArrowDown size={13} style={{transform: direction === 'asc' ? 'rotate(180deg)' : undefined}}/>}</button>}{column.details}</div>{column.after}
             </th>;
           })}
         </tr></thead>
