@@ -27,13 +27,15 @@ export type BenchmarkInfo = {
   searchGroup?: "scenarios" | "facts"; outputLayer?: "L1" | "L2" | "L3";
   definitions: Definition[];
 };
+export type MethodIdentity = { id: string; productId: string; name: string; providerIds: string[] };
 export type Catalog = {
+  methods: MethodIdentity[];
   schemaVersion: number;
   translations?: { zh: Record<string, string>; en?: Record<string, string> };
   providerUrls: Record<string, string>;
   pricingSources?: Record<string, { label: string; url: string }[]>;
   navigationGroups?: { id: string; name: string; description: string; upcoming?: { id: string; name: string; description: string }[] }[];
-  tracks: { id: string; name: string; description: string; url?: string; groupId?: string; overview?: { methodGroups?: { id: string; name: string; providerIds: string[] }[] } }[];
+  tracks: { id: string; name: string; description: string; url?: string; groupId?: string; overview?: Record<string, never> }[];
   benchmarks: BenchmarkInfo[];
 };
 export type BenchmarkResult = {

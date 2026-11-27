@@ -1,18 +1,19 @@
 "use client";
 
 import { useId, useState } from "react";
+import MethodSelector, { methodColor } from "./method-selector";
 import MetricSelector from "./metric-selector";
 import { qualityMetrics } from "../lib/comparisons";
 import { radarAxes } from "../lib/radar";
 import { sortProviders, type Benchmark, type Provider } from "../lib/results";
 
-type Props = { benchmark: Benchmark; t: (text: string) => string; caption?: string };
+type Props = { benchmark: Benchmark; t: (text: string) => string; caption?: string; heading?: string; preserveOrder?: boolean; hideLegend?: boolean; coverageTotal?: number; colors?: Record<string,string> };
 const radius = 123;
-const colors = ["#007d64", "#5163a8", "#ad5229", "#925c95", "#247a9c", "#926b18",
-  "#ac4e67", "#507d35", "#674bc1", "#4d7373", "#aa4944", "#4e5c70"];
 
-export default function Insights({ benchmark, t, caption }: Props) {
+
+export default function Insights({ benchmark, t, caption, heading, preserveOrder, hideLegend, coverageTotal, colors }: Props) {
   const [hidden, setHidden] = useState<string[]>([]);
+  const sectionId=useId();
   const [selectedMetrics, setSelectedMetrics] = useState<string[] | null>(null);
   const descriptionId = useId();
   const allAxes = radarAxes(benchmark);
@@ -25,7 +26,7 @@ export default function Insights({ benchmark, t, caption }: Props) {
   const primary = benchmark.metrics.find(metric => metric.id === benchmark.primaryMetric);
   if (!primary || !benchmark.providers.length || availableAxes.length === 0) return null;
 
-  const providers = sortProviders(benchmark.providers, primary.id, primary.direction)
+  const providers = (preserveOrder ? benchmark.providers : sortProviders(benchmark.providers, primary.id, primary.direction))
     .map(provider => ({ provider, values: axes.map(axis => axis.value(provider)) }));
 
   function point(index: number, distance: number) {
@@ -35,6 +36,7 @@ export default function Insights({ benchmark, t, caption }: Props) {
   const ring = (level: number) => axes.map((_, index) => point(index, radius * level).join(",")).join(" ");
   const visible = providers.filter(({ provider }) => !hidden.includes(provider.id));
   const methodName = (provider: Provider) => provider.name.split(" · ").map(t).join(" · ");
+  const color = (index: number) => colors?.[providers[index].provider.id] ?? methodColor(index);
   const profileLabel = (provider: Provider) =>
     [methodName(provider), ...axes.map(axis => `${axis.label}: ${axis.display(provider)}`)].join(" · ");
 
@@ -68,7 +70,7 @@ export default function Insights({ benchmark, t, caption }: Props) {
             const locations = values.map((value, i) => value && point(i, value[0] * radius));
             const isExact = values.map(value => value !== null && value[0] === value[1]);
             const complete = isExact.every(Boolean);
-            return <g key={provider.id} className="radar-series" style={{ color: colors[index % colors.length] }}
+            return <g key={provider.id} className="radar-series" style={{ color: color(index) }}
               tabIndex={0} aria-label={label}>
               <title>{label}</title>
               {complete && values.length >= 3 && <polygon className="radar-shape" points={locations.join(" ")} />}
@@ -97,7 +99,7 @@ export default function Insights({ benchmark, t, caption }: Props) {
             <div className="quality-scale" aria-hidden="true"><span/><span className="quality-ticks"><span>0</span><span>50</span><span>100</span></span><span/></div>
             {visible.map(({provider}) => {
               const value = axis.value(provider);
-              return <div className="quality-series" key={provider.id} style={{color: colors[providers.findIndex(item=>item.provider.id===provider.id) % colors.length]}}>
+              return <div className="quality-series" key={provider.id} style={{color: color(providers.findIndex(item=>item.provider.id===provider.id))}}>
                 <span>{methodName(provider)}</span><div className="quality-bar"><i style={{width: `${Math.max(0,Math.min(1,value?.[0] ?? 0))*100}%`}} /></div><strong>{axis.display(provider)}</strong>
               </div>;
             })}
@@ -106,30 +108,24 @@ export default function Insights({ benchmark, t, caption }: Props) {
     return <p className="chart-empty" role="status">{t("Select at least one metric.")}</p>;
   }
 
-  return <section id="insights" className="insights-section" aria-labelledby="comparison-heading">
+  return <section className="insights-section" aria-labelledby={sectionId}>
     <div className="radar-heading">
-      <h2 id="comparison-heading">{t("Capability profile")}</h2>
-      <MetricSelector label="Chart metrics" options={availableAxes} selectedIds={selectedIds}
-        defaultIds={defaultIds} onChange={setSelectedMetrics} t={t} />
+      <h2 id={sectionId}>{t(heading ?? "Capability profile")}</h2>
+      {!hideLegend && <MetricSelector label="Chart metrics" options={availableAxes} selectedIds={selectedIds}
+        defaultIds={defaultIds} onChange={setSelectedMetrics} t={t} />}
     </div>
-    <div className="radar-layout">
-    <div className="radar-legend" role="group" aria-label={t("Methods to compare")}>
-      {providers.map(({ provider }, index) => <label key={provider.id} style={{ color: colors[index % colors.length] }}>
-        <input type="checkbox" checked={!hidden.includes(provider.id)} onChange={event => {
-          const checked = event.currentTarget.checked;
-          setHidden(current => checked ? current.filter(id => id !== provider.id) : [...current, provider.id]);
-        }} />
-        <span>{methodName(provider)}</span>
-      </label>)}
-    </div>
+    <div className={`radar-layout ${hideLegend ? "without-legend" : ""}`}>
+    {!hideLegend && <MethodSelector providers={providers.map(item=>item.provider)} hidden={hidden} onChange={setHidden} t={t} colors={colors}
+      coverage={coverageTotal?Object.fromEntries(providers.map(({provider})=>[provider.id,`${coverageTotal}/${coverageTotal}`])):undefined}/>}
+
     <figure className="radar-figure">
       <div className="radar-scroll" tabIndex={0} role="region" aria-label={t("Capability profile")}>
         {renderChart()}
       </div>
       {visible.length === 0 && <p role="status">{t("Select a method to show its results.")}</p>}
-      <figcaption>
+      {caption !== "" && <figcaption>
         {t(caption ?? (defaultAxisCount < 3 ? "Quality score (% of maximum)" : "Quality and category axes show a share of the maximum. Lower latency, memory and measured cost plot farther out when reported."))}
-      </figcaption>
+      </figcaption>}
     </figure>
     </div>
   </section>;

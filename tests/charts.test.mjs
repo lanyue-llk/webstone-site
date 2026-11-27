@@ -1001,13 +1001,13 @@ test('track overviews join published methods across the latest benchmark edition
   assert.equal(moli.results.webmainbench.provider.scores.overall,39.27);
   assert.equal(moli.results['lexbench-webfetch'].provider.name,'Moli 1.1.17');
   assert.equal(moli.results.webmainbench.provider.name,'Moli 1.1.11');
-  assert.ok(radarAxes(fetch.profile).length>=3);
+  assert.equal(radarAxes(fetch.profile).length,2);
   const search=trackComparison(catalog,snapshots,'websearch','L1');
   assert.equal(search.columns.length,2);
   assert.equal(search.rows.length,9);
   assert.ok(search.rows.some(row=>row.id==='yuanbao-standard'));
   assert.ok(search.rows.some(row=>row.id==='yuanbao-lite'));
-  assert.equal(radarAxes(search.profile).length,6);
+  assert.equal(radarAxes(search.profile).length,2);
   assert.equal(trackComparison(catalog,snapshots,'browserarena'),null);
   for(const layer of ['L2','L3']){
     const overview=trackComparison(catalog,snapshots,'websearch',layer);
@@ -1079,9 +1079,9 @@ test('track overview URLs, individual tabs and search layers retain the correct 
       await React.act(async()=>root.render(React.createElement(Dashboard)));
       if(language==='zh') await React.act(async()=>[...container.querySelectorAll('.language-control button')].find(button=>button.textContent==='中文').click());
       assert.ok(container.querySelector('.track-results'),trackId);
-      const expectedAxes={'browser-use':4,webfetch:8,L1:6,L2:4,L3:6};
+      const expectedAxes={'browser-use':4,webfetch:2,L1:2,L2:2,L3:2};
       const columnKey=trackId==='websearch'?initialLayer:trackId;
-      assert.equal(container.querySelectorAll('.radar-axis').length,expectedAxes[columnKey]);
+      assert.equal(container.querySelectorAll('.overview-comparisons .quality-comparison').length,expectedAxes[columnKey]);
       const columns=expectedColumns[columnKey];
       assert.deepEqual([...container.querySelectorAll('.track-results thead a')].map(anchor=>new URL(anchor.href).searchParams.get('benchmark')),Object.keys(columns));
       const scoreLinks=[...container.querySelectorAll('.track-results tbody td.numeric a')];
@@ -1135,13 +1135,15 @@ test('clicking an active Track without an overview preserves the selected editio
   const reports=JSON.parse(readFileSync(new URL('../web/public/results/reports.json',import.meta.url)));
   const {RELEASE}=require('../web/lib/release.generated.ts');
   const Dashboard=require('../web/components/dashboard.tsx').default;
+  const withoutOverviews=structuredClone(catalog);
+  for(const track of withoutOverviews.tracks)delete track.overview;
   const previous=[globalThis.window,globalThis.document,globalThis.fetch,globalThis.IS_REACT_ACT_ENVIRONMENT];
   try{for(const [id,metric,track,label,direction] of [['lexbench-swde','valueMicroF1','Web Extract','Value micro F1','descending'],['webarena-verified','actionP95','Trajectory Replay','Action P95','ascending']]){
     const win=new Window({url:`https://webstone.test/?benchmark=${id}&version=v1.0.0&metric=${metric}`});
     [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
     globalThis.fetch=async input=>{
       let data={release:RELEASE};
-      if(String(input).includes('/benchmarks/'))data=catalog;
+      if(String(input).includes('/benchmarks/'))data=withoutOverviews;
       else if(String(input).includes('/results/'))data=reports;
       return new Response(JSON.stringify(data));
     };
@@ -1199,4 +1201,100 @@ test('compact chart Reset restores selected metrics and visible results for one 
       assert.equal(container.querySelectorAll('.quality-series').length,seriesCount);
     }finally{await React.act(async()=>root.unmount());await win.happyDOM.close();}
   }}finally{[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
+});
+
+
+test('overview defaults expose coverage, tested configurations and an actual score sort', async () => {
+  const {trackComparison}=require('../web/lib/track-comparison.ts');
+  const TrackResults=require('../web/components/track-results.tsx').default;
+  const {discoverResults}=await import('../scripts/prepare-data.mjs');
+  const {fileURLToPath}=await import('node:url');
+  const files=await discoverResults(fileURLToPath(new URL('../results',import.meta.url)),catalog);
+  const snapshots=files.map(({file})=>JSON.parse(readFileSync(new URL('../results/'+file,import.meta.url))));
+  for(const trackId of ['browser-use','webfetch','websearch','webextract','trajectory-replay']){
+    const comparison=trackComparison(catalog,snapshots,trackId);
+    assert.ok(comparison,trackId);
+    assert.equal(comparison.profile.metrics.length,comparison.columns.length,'one primary metric per benchmark');
+    const win=new Window();
+    try{
+      win.document.body.innerHTML=renderToStaticMarkup(React.createElement(TrackResults,{catalog,snapshots,trackId,layer:'L1',onLayer:()=>{},t:x=>x,language:'en'}));
+      assert.equal(win.document.querySelector('.track-results col.rank-column'),null,'no empty rank spacer');
+      assert.equal(win.document.querySelector('th[aria-sort="descending"] .sort-button').textContent,comparison.columns[0].metric.label);
+      const rows=[...win.document.querySelectorAll('.track-results tbody tr')];
+      const values=rows.map(row=>row.querySelector('td.numeric a')?.textContent.replace(/Best in this column/g,'').trim()).filter(Boolean);
+      assert.ok(rows.every(row=>row.querySelector('.method-coverage')),'coverage is visible for each method');
+      if(trackId==='webfetch')assert.ok(win.document.querySelector('.track-results').textContent.includes('Moli 1.1.17'));
+      if(trackId==='browser-use'){
+        assert.equal(win.document.querySelectorAll('.overview-comparisons .quality-comparison').length,4);
+        assert.equal(win.document.querySelectorAll('.overview-comparisons .quality-series').length,20,'only measured methods in each benchmark');
+        assert.equal(win.document.querySelectorAll('.overview-comparisons .radar-shape').length,0,'sparse overview starts with per-benchmark comparisons');
+      }
+      assert.ok(values.length);
+    }finally{await win.happyDOM.close();}
+  }
+});
+
+test('overview controls sort scores, filter measured coverage, inspect identities and select chart methods',async()=>{
+  const {prepareData}=await import('../scripts/prepare-data.mjs');await prepareData();
+  const reports=JSON.parse(readFileSync(new URL('../web/public/results/reports.json',import.meta.url))).map(record=>record.report);
+  const TrackResults=require('../web/components/track-results.tsx').default;
+  const previous=[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT];
+  try{for(const language of ['en','zh']){
+    const win=new Window({url:'https://webstone.test/?track=browser-use'});
+    [globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=[win,win.document,true];
+    const container=win.document.createElement('div');win.document.body.append(container);const root=require('react-dom/client').createRoot(container);
+    const t=translator(language,catalog);
+    try{
+      await React.act(async()=>root.render(React.createElement(TrackResults,{catalog,snapshots:reports,trackId:'browser-use',layer:'L1',onLayer:()=>{},t,language})));
+      const rows=()=>[...container.querySelectorAll('.track-results tbody tr')];
+      assert.equal(rows()[0].dataset.provider,'cook-browser-desktop');
+      const sort=container.querySelector('.track-results .sort-button');
+      await React.act(async()=>sort.click());
+      assert.equal(rows()[0].dataset.provider,'browser-use-oss-claude-fable-5');
+      assert.equal(rows().at(-1).querySelector('td.numeric').textContent,'—','missing scores stay last in either direction');
+      await React.act(async()=>sort.click());
+      assert.equal(rows()[0].dataset.provider,'cook-browser-desktop');
+      const filter=container.querySelector('.table-toolbar [role="group"]');
+      await React.act(async()=>[...filter.querySelectorAll('button')].find(button=>button.textContent===t('All benchmarks')).click());
+      assert.deepEqual(rows().map(row=>row.dataset.provider),['lexmount-browser-agent']);
+      assert.ok(rows()[0].querySelector('.method-coverage').textContent.includes('4/4'));
+      await React.act(async()=>filter.querySelector('button').click());assert.equal(rows().length,16);
+      await React.act(async()=>container.querySelector('.overview-chart-controls button:nth-child(2)').click());
+      assert.equal(container.querySelectorAll('.radar-series').length,1,'only complete profiles enter the radar');
+      assert.equal(container.querySelectorAll('.radar-shape').length,1);
+      await React.act(async()=>container.querySelector('.overview-chart-controls button').click());
+      const search=container.querySelector('input[type="search"]');
+      await React.act(async()=>{const setter=Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype,'value').set;setter.call(search,'Ouroboros');search.dispatchEvent(new win.Event('input',{bubbles:true}));});
+      assert.equal(container.querySelectorAll('.method-selector .radar-legend label').length,2);
+      const clear=[...container.querySelectorAll('.method-selection-actions button')].find(button=>button.textContent===t('Clear'));
+      await React.act(async()=>clear.click());assert.equal(container.querySelectorAll('.quality-series').length,0);
+      await React.act(async()=>container.querySelector('.method-selection-actions button').click());assert.equal(container.querySelectorAll('.quality-series').length,20);
+      await React.act(async()=>container.querySelector('tr[data-provider="aside-gpt-5-5-high"] .method-open').click());
+      assert.ok(container.querySelector('.method-dialog').open);
+      assert.ok(container.querySelector('.method-identity').textContent.includes('aside-gpt-5-5-high'));
+      assert.equal(container.querySelectorAll('.method-history li').length,2);
+      assert.ok([...container.querySelectorAll('.method-history li > a:first-child')].every(a=>a.href.includes('version=v1.0.0')));
+    }finally{await React.act(async()=>root.unmount());await win.happyDOM.close();}
+  }}finally{[globalThis.window,globalThis.document,globalThis.IS_REACT_ACT_ENVIRONMENT]=previous;}
+});
+
+test('overview includes an empty constituent and never fills missing results or merges model variants',async()=>{
+  const {trackComparison,coverage}=require('../web/lib/track-comparison.ts');
+  const {prepareData}=await import('../scripts/prepare-data.mjs');await prepareData();
+  const reports=JSON.parse(readFileSync(new URL('../web/public/results/reports.json',import.meta.url))).map(record=>record.report);
+  const missing=reports.filter(snapshot=>!snapshot.benchmarks.some(b=>b.id==='osworld'));
+  const comparison=trackComparison(catalog,missing,'browser-use');
+  assert.equal(comparison.columns.length,4);
+  assert.equal(comparison.columns.at(-1).info.id,'osworld');
+  assert.equal(comparison.columns.at(-1).snapshot,null);
+  assert.ok(comparison.rows.every(row=>coverage(row,comparison.columns)<4));
+  assert.ok(comparison.profile.providers.every(p=>p.scores['osworld:scoreRate']===null));
+  assert.ok(comparison.rows.some(row=>row.id==='browser-use-cloud'));
+  assert.ok(comparison.rows.some(row=>row.id==='browser-use-oss-claude-fable-5'));
+  const empty=trackComparison(catalog,[],'browser-use');
+  assert.equal(empty.columns.length,4);assert.equal(empty.rows.length,0);
+  const ambiguous=structuredClone(reports);
+  const bench=ambiguous.find(snapshot=>snapshot.benchmarks[0].id==='lexbench-webfetch'&&snapshot.version==='v2.1.0').benchmarks[0];
+  bench.providers.push({...structuredClone(bench.providers.find(provider=>provider.id==='moli-1-1-17')),id:'moli-content-fixed'});
+  assert.throws(()=>trackComparison(catalog,ambiguous,'webfetch'),/Ambiguous overview method/);
 });

@@ -101,7 +101,8 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
             {Array.from({ length: maxBenchmarks }, (_, index) => <span key={index} className={index < track.benchmarks.length ? "filled" : ""} aria-hidden="true" />)}
           </div>
           <p className="track-volume-label">{track.benchmarks.length} {t("benchmarks")}</p>
-          <ul>{track.benchmarks.map(benchmark => <li key={benchmark.id}><a href={benchmarkHref(benchmark.id)}>{t(benchmark.name)}</a></li>)}</ul>
+          <ul className="track-benchmark-list" tabIndex={0} aria-label={`${track.name} ${t("Benchmarks")}`}>{track.benchmarks.map(benchmark => <li key={benchmark.id}><a href={benchmarkHref(benchmark.id)}>{t(benchmark.name)}</a></li>)}</ul>
+          {track.benchmarks.length>2&&<details className="track-list-expand"><summary>{t("Show all benchmarks")}</summary><ul>{track.benchmarks.map(benchmark=><li key={benchmark.id}><a href={benchmarkHref(benchmark.id)}>{t(benchmark.name)}</a></li>)}</ul></details>}
         </div>;
       })}
       {navigationGroups(catalog).filter(group => group.upcoming.length > 0).map(group => <div key={group.id} className="track-card upcoming-track"><span className="track-group-label">{t(group.name)}</span><h3><CircleDashed size={18} aria-hidden="true" />{group.upcoming.map(item => t(item.name)).join(" · ")}</h3><span className="upcoming-badge">{t("Coming soon")}</span><p>{t("Benchmarks are in development. Stay tuned.")}</p></div>)}

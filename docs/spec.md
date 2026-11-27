@@ -72,13 +72,25 @@ one from redundant timing percentiles or incomparable costs to fill three axes.
 Preserve absent values and label scales. Readers can select methods and axes.
 Use a horizontal comparison when only one or two dimensions are available.
 
-Browser Use, Web Fetch and Web Search offer a Track Overview before their
+All local Tracks offer a Track Overview before their
 benchmark tabs. It compares current published results across the constituent
 benchmarks without becoming a new benchmark or inventing an overall score.
-Retain all methods and missing cells. Explicit catalog groups can align browser
-versions while keeping the tested configuration available for each result;
+Retain all methods and missing cells. The global method registry aligns browser
+releases while showing the tested configuration beside each result;
 service and model variants remain distinct. Table cells link to their exact
-benchmark editions. Search overviews retain the L1/L2/L3 distinction.
+benchmark editions. Every constituent benchmark stays visible, including an empty
+one. Show method coverage and offer a complete-coverage filter. Sort by the first
+primary score with missing values last, without an overall rank. Default charts
+compare primary metrics separately by benchmark; the optional multi-benchmark
+radar admits only complete profiles. Search overviews retain the L1/L2/L3 distinction.
+Method details show the method ID, product ID, tested configurations and current
+published results. A shared URL never establishes method equivalence.
+
+Keep auxiliary sidebar resources behind a compact footer menu so they do not
+squeeze out primary navigation. Track cards share a compact two-item benchmark
+list viewport with scrolling and a mobile expand action. Chart method selectors
+have bounded height, search and select/clear controls. Favicons use a transparent
+stone cutout without the logo's white page background.
 
 Selecting a benchmark or layer starts its content at the top. Version and metric
 links must identify the intended edition and sorting metric. A missing edition

@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { methodIdentity, methodResults } from "../lib/methods";
+import { benchmarkHref } from "../lib/overview";
 import { X } from "lucide-react";
-import { formatMetric, formatPricing, type Benchmark, type Provider } from "../lib/results";
+import { formatMetric, formatPricing, type Benchmark, type Provider, type Catalog, type Snapshot } from "../lib/results";
 
-export default function MethodDetails({ provider, benchmark, t, onClose }: { provider: Provider | null; benchmark: Benchmark; t: (text: string) => string; onClose: () => void }) {
+export default function MethodDetails({ provider, benchmark, catalog, snapshots = [], showScores = true, t, onClose }: { provider: Provider | null; benchmark: Benchmark; catalog?: Catalog; snapshots?: Snapshot[]; showScores?: boolean; t: (text: string) => string; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const pressedBackdrop = useRef(false);
   function isBackdrop(event: React.MouseEvent<HTMLDialogElement>) {
@@ -17,6 +19,8 @@ export default function MethodDetails({ provider, benchmark, t, onClose }: { pro
     if (provider && !dialog.current?.open) dialog.current?.showModal();
     else if (!provider && dialog.current?.open) dialog.current.close();
   }, [provider]);
+  const identity=provider&&catalog?methodIdentity(catalog,provider.id):null;
+  const history=provider&&catalog?methodResults(catalog,snapshots,provider.id):[];
   const scoredMetrics = benchmark.metrics.filter(metric => {
     const score = provider?.scores[metric.id];
     return score !== null && score !== undefined;
@@ -27,8 +31,10 @@ export default function MethodDetails({ provider, benchmark, t, onClose }: { pro
     {provider && <>
       <div className="dialog-heading"><h2 id="method-dialog-title">{provider.name}</h2><button autoFocus className="icon-button" aria-label={t("Close details")} onClick={() => dialog.current?.close()}><X size={18} /></button></div>
       {provider.description !== provider.name && <p className="method-description">{t(provider.description)}</p>}
+      {identity&&<dl className="method-identity"><div><dt>{t("Method ID")}</dt><dd><code>{identity.id}</code></dd></div><div><dt>{t("Product ID")}</dt><dd><code>{identity.productId}</code></dd></div></dl>}
+      {history.length>0&&<section className="method-history"><h3>{t("Published results")}</h3><ul>{history.map(({benchmark,provider,version,reportUrl})=><li key={`${benchmark.id}:${provider.id}`}><a href={`${benchmarkHref(benchmark.id)}&version=${version}`}>{benchmark.name} · {version}</a><span>{provider.name}</span><a href={reportUrl} target="_blank" rel="noreferrer">{t("Evaluation report")}</a></li>)}</ul></section>}
       <dl className="method-meta">{provider.mode && provider.mode !== "Not specified" && <div><dt>{t("Configuration")}</dt><dd>{t(provider.mode)}</dd></div>}{(provider.pricing || provider.billingDescription) && <div><dt>{t("Billing basis")}</dt><dd>{provider.billingDescription ? t(provider.billingDescription) : provider.pricing ? <>{t(formatPricing(provider.pricing))} · {t(provider.pricing.description)}</> : t("Not supplied")}</dd></div>}</dl>
-      <dl className="method-metrics">{scoredMetrics.map(metric => {
+      {showScores&&<dl className="method-metrics">{scoredMetrics.map(metric => {
         const counts = provider.counts?.[metric.id];
         const interval = provider.confidenceIntervals?.[metric.id];
         const converted = metric.unit === "ms" || metric.unit === "ratio";
@@ -40,7 +46,7 @@ export default function MethodDetails({ provider, benchmark, t, onClose }: { pro
           {metric.unit !== "count" && counts && <small>{t("Count / total")}: {counts.count} / {counts.total}</small>}
           {interval && <small>{t("95% confidence interval")}: {formatMetric(interval.lower, metric.unit, metric.decimals)}–{formatMetric(interval.upper, metric.unit, metric.decimals)}</small>}
         </dd></div>;
-      })}</dl>
+      })}</dl>}
     </>}
   </dialog>;
 }

@@ -263,7 +263,7 @@ export default function Dashboard() {
             </section>
             <Insights key={`${benchmark.id}-${selection.version}`} benchmark={benchmark} t={t} />
             {details && <EvaluationReports key={selection.benchmark} catalog={catalog} snapshots={snapshots} current={details} t={t} language={language} />}
-            <MethodDetails provider={selectedProvider} benchmark={benchmark} t={t} onClose={() => setSelectedProvider(null)} />
+            <MethodDetails provider={selectedProvider} benchmark={benchmark} catalog={catalog} snapshots={snapshots} t={t} onClose={() => setSelectedProvider(null)} />
           </>}
         </>;
   }
@@ -297,7 +297,9 @@ export default function Dashboard() {
       })}{group.upcoming.map(item => <div key={item.id} className="nav-upcoming">
         <CircleDashed size={16} aria-hidden="true" /><span className="track-name">{t(item.name)}<span>{t(item.description)}</span></span><span className="upcoming-badge">{t("Coming soon")}</span>
       </div>)}</section>)}</nav>
-      <div className="sidebar-guides">
+      <div className="sidebar-footer">
+        <div className="language-control" role="group" aria-label="Language / 语言"><button lang="en" aria-pressed={language === "en"} onClick={() => chooseLanguage("en")}>EN</button><button lang="zh" aria-pressed={language === "zh"} onClick={() => chooseLanguage("zh")}>中文</button></div>
+        <details className="sidebar-resources"><summary>{t("Resources")}</summary><div className="sidebar-guides">
         <a href={EVALUATION_URL} target="_blank" rel="noreferrer" aria-label={`${t("Run an evaluation")} · lexmount/webstone`}>
           <Github /><span>{t("Run an evaluation")}<small>webstone</small></span><ArrowUpRight size={13} aria-hidden="true" />
         </a>
@@ -307,9 +309,7 @@ export default function Dashboard() {
         <a href={DATASETS_URL} target="_blank" rel="noreferrer" aria-label={t("Datasets")}>
           <img src="/huggingface.svg" width="16" height="16" alt="" aria-hidden="true" /><span>{t("Datasets")}</span><ArrowUpRight size={13} aria-hidden="true" />
         </a>
-      </div>
-      <div className="sidebar-footer">
-        <div className="language-control" role="group" aria-label="Language / 语言"><button lang="en" aria-pressed={language === "en"} onClick={() => chooseLanguage("en")}>EN</button><button lang="zh" aria-pressed={language === "zh"} onClick={() => chooseLanguage("zh")}>中文</button></div>
+      </div></details>
         <a className="nav-star" href={WEBSTONE_REPOSITORY_URL} target="_blank" rel="noreferrer" aria-label={t("Star Webstone on GitHub")}><Star size={14} aria-hidden="true" />Star<ArrowUpRight size={12} aria-hidden="true" /></a>
       </div>
     </aside>
@@ -328,7 +328,7 @@ export default function Dashboard() {
       {(selection.benchmark || overviewTrack) && <header className="topbar">
         <div className="title-group">
           <div className="benchmark-heading"><h1>{pageTitle()}</h1>
-            {overviewTrack && <p className="benchmark-description">{t("Latest results across benchmarks.")}</p>}
+
             {details && <p className="benchmark-description">{t(details.description)}</p>}
             {details && <div className="benchmark-links">
               <a href={details.datasetUrl} target="_blank" rel="noreferrer" aria-label={`${t("Dataset")}: ${details.datasetName}`}>{new URL(details.datasetUrl).hostname === "github.com" ? <Github /> : <img src="/huggingface.svg" width={16} height={16} alt="" aria-hidden="true" />}{t("Dataset")}<ArrowUpRight size={13} aria-hidden="true" /></a>

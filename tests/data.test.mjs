@@ -526,26 +526,36 @@ test("reported percentages can omit an undisclosed task population without inven
   assert.throws(() => validateSnapshot(report, entry, c), /count breakdown/);
 });
 
-test('overview method groups reject unknown or ambiguous participant aliases', () => {
+test('global method identities reject unknown or ambiguous participant aliases', () => {
   const invalid=structuredClone(catalog);
-  const track=invalid.tracks.find(track=>track.id==='webfetch');
-  track.overview.methodGroups.push({id:'duplicate',name:'Duplicate browser',providerIds:['chromium']});
-  assert.throws(()=>validateCatalog(invalid),/Ambiguous overview method group/);
-  track.overview.methodGroups.at(-1).providerIds=['unregistered-project'];
-  assert.throws(()=>validateCatalog(invalid),/Invalid overview method group/);
+  invalid.methods.push({id:'duplicate',productId:'chromium',name:'Duplicate browser',providerIds:['chromium']});
+  assert.throws(()=>validateCatalog(invalid),/Ambiguous global method identity/);
+  invalid.methods.at(-1).providerIds=['unregistered-project'];
+  assert.throws(()=>validateCatalog(invalid),/Invalid global method identity/);
 });
 
-
-test('overview participant IDs cannot use coercible non-string values',()=>{
+test('global participant IDs cannot use coercible non-string values',()=>{
   for(const ids of [[['chromium']],[['chromium'],'chromium']]){
     const invalid=structuredClone(catalog);
-    invalid.tracks.find(track=>track.id==='webfetch').overview.methodGroups[0].providerIds=ids;
-    assert.throws(()=>validateCatalog(invalid),/Invalid overview method group/);
+    invalid.methods[0].providerIds=ids;
+    assert.throws(()=>validateCatalog(invalid),/Invalid global method identity/);
   }
 });
 
-test('overview group IDs cannot collide with an unrelated registered participant',()=>{
+test('global method IDs cannot collide with an unrelated registered participant',()=>{
   const invalid=structuredClone(catalog);
-  invalid.tracks.find(track=>track.id==='webfetch').overview.methodGroups[0].id='serper';
+  invalid.methods=invalid.methods.filter(method=>method.id!=='serper');
+  invalid.methods[0].id='serper';
   assert.throws(()=>validateCatalog(invalid),/collides/);
+});
+
+test('every registered participant has exactly one global identity and model variants stay distinct',()=>{
+  validateCatalog(catalog);
+  for(const id of Object.keys(catalog.providerUrls))assert.equal(catalog.methods.filter(method=>method.providerIds.includes(id)).length,1,id);
+  const identity=id=>catalog.methods.find(method=>method.providerIds.includes(id));
+  assert.equal(identity('moli-1-1-17').id,identity('moli-content-fixed').id);
+  assert.notEqual(identity('browser-use-cloud').id,identity('browser-use-oss-claude-fable-5').id);
+  assert.notEqual(identity('yuanbao-lite').id,identity('yuanbao-standard').id);
+  const incomplete=structuredClone(catalog);incomplete.methods.shift();
+  assert.throws(()=>validateCatalog(incomplete),/Missing global method identity/);
 });
