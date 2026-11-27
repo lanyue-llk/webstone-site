@@ -270,7 +270,7 @@ test("the dashboard exposes two repository guides and preserves each pricing val
   const { prepareData } = await import("../scripts/prepare-data.mjs");
   await prepareData();
   const Dashboard = require("../web/components/dashboard.tsx").default;
-  const { EVALUATION_URL, SUBMISSION_URL } = require("../web/lib/overview.ts");
+  const { EVALUATION_URL, SUBMISSION_URL, FEEDBACK_URL } = require("../web/lib/overview.ts");
   const { formatPricing } = require("../web/lib/results.ts");
   const { RELEASE } = require("../web/lib/release.generated.ts");
   const { snapshot, benchmark } = load("lexbench-swde");
@@ -290,7 +290,7 @@ test("the dashboard exposes two repository guides and preserves each pricing val
   try {
     await React.act(async () => root.render(React.createElement(Dashboard)));
     const links = [...container.querySelectorAll(".sidebar-guides a")];
-    assert.deepEqual(links.map(link => link.getAttribute("href")), [EVALUATION_URL, SUBMISSION_URL, "https://huggingface.co/datasets?author=Lexmount"]);
+    assert.deepEqual(links.map(link => link.getAttribute("href")), [EVALUATION_URL, SUBMISSION_URL, FEEDBACK_URL, "https://huggingface.co/datasets?author=Lexmount"]);
     assert.ok(links.every(link => link.querySelector("svg") && link.textContent.trim()));
     assert.equal(container.querySelectorAll(".sidebar-footer > a").length, 0);
     assert.equal(container.querySelector(".brand img").getAttribute("src"), "/brand/webstone.png");
@@ -599,10 +599,12 @@ test("homepage counts reports instead of historical result editions and uses the
       win.document.body.innerHTML = renderToStaticMarkup(React.createElement(Home, { catalog, snapshots, t, language }));
       const hero = win.document.querySelector('.overview-hero').textContent;
       assert.ok(hero.includes(t("Find the right tools for your agent to browse the web.")));
-      assert.ok(hero.includes(t("The touchstone")));
+      assert.ok(!hero.includes(t("The touchstone")));
       assert.equal(win.document.querySelector('h1').textContent, 'Webstone');
-      assert.equal(win.document.querySelectorAll('.overview-hero p').length, 1);
-      assert.doesNotMatch(hero, /The touchstone for your agent|give it a star/);
+      assert.ok(hero.includes(t("If Webstone helps, give it a star.")));
+      assert.equal(win.document.querySelector('.overview-feedback a').getAttribute('href'), 'https://github.com/lexmount/webstone-site/issues');
+      assert.equal(win.document.querySelectorAll('a[href^="mailto:"]').length, 0);
+      assert.doesNotMatch(hero, /The touchstone for your agent/);
     }
   } finally {await win.happyDOM.close();}
 });
@@ -1015,7 +1017,7 @@ test("an undisclosed task population renders scores without inventing a case or 
 });
 
 
-test("Online-Mind2Web retains reported scores without ranking different judging protocols", () => {
+test("Online-Mind2Web retains reported scores and source-specific extremum labels", () => {
   const benchmark = resolveBenchmark(catalog, {
     id: 'online-mind2web', definitionId: 'standard', taskCount: 300, notes: [], reportUrl: null,
     providers: [
@@ -1272,7 +1274,9 @@ test('overview defaults expose coverage, tested configurations and an actual sco
     const win=new Window();
     try{
       win.document.body.innerHTML=renderToStaticMarkup(React.createElement(TrackResults,{catalog,snapshots,trackId,layer:'L1',onLayer:()=>{},t:x=>x,language:'en'}));
-      assert.equal(win.document.querySelector('.track-results col.rank-column'),null,'no empty rank spacer');
+      assert.ok(win.document.querySelector('.track-results col.rank-column'),'shared rank column');
+      const firstRank=win.document.querySelector('.track-results tbody .rank-cell');
+      assert.equal(firstRank?.textContent,'1','selected benchmark has a real rank');
       assert.equal(win.document.querySelector('th[aria-sort="descending"] .sort-button').textContent,comparison.columns[0].metric.label);
       const rows=[...win.document.querySelectorAll('.track-results tbody tr')];
       const values=rows.map(row=>row.querySelector('td.numeric a')?.textContent.replace(/Best in this column/g,'').trim()).filter(Boolean);
@@ -1411,7 +1415,7 @@ test('every overview column keeps its sort and winner styles through reversal an
           for(let reverse=0;reverse<2;reverse++) {
             const table=container.querySelector('.track-results');
             checkTableStyles(win,table,`${trackId}/${layer}/${language}`);
-            const header=table.querySelectorAll('thead th')[index+1];
+            const header=table.querySelectorAll('thead th')[index+2];
             const direction=header.getAttribute('aria-sort')==='ascending'?'asc':'desc';
             const expectedDirection=reverse===0?col.metric.direction:(col.metric.direction==='asc'?'desc':'asc');
             assert.equal(direction,expectedDirection,`${trackId}/${layer}: ${col.metric.id} click ${reverse+1}`);
@@ -1429,7 +1433,7 @@ test('every overview column keeps its sort and winner styles through reversal an
               const best=column.metric.direction==='asc'?Math.min(...values):Math.max(...values);
               rows.forEach(row=>{
                 const value=candidates.find(item=>item.id===row.dataset.provider).results[column.info.id]?.provider.scores[column.metric.id];
-                assert.equal(row.children[ci+1].classList.contains('best-value'),eligible&&value===best);
+                assert.equal(row.children[ci+2].classList.contains('best-value'),eligible&&value===best);
               });
             }
             await React.act(async()=>button.click());

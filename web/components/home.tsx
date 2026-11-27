@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight, BookOpenText, Bot, CircleDashed, Clipboard, FileJson2, Globe2, Layers3, MousePointerClick, Search, Star } from "lucide-react";
-import { trackHref, benchmarkHref, evaluationReports, DATASETS_URL, EVALUATION_URL, EVALUATION_SKILL, SUBMISSION_SKILL, SUBMISSION_URL, WEBSTONE_REPOSITORY_URL, navigationGroups, trackOverview } from "../lib/overview";
+import { trackHref, benchmarkHref, evaluationReports, DATASETS_URL, EVALUATION_URL, EVALUATION_SKILL, SUBMISSION_SKILL, SUBMISSION_URL, FEEDBACK_URL, WEBSTONE_REPOSITORY_URL, navigationGroups, trackOverview } from "../lib/overview";
 import ExampleDialog from "./example-dialog";
 import type { Language } from "../lib/i18n";
 import type { BenchmarkInfo, Catalog, Snapshot } from "../lib/results";
@@ -68,12 +68,13 @@ export default function Home({ catalog, snapshots, t, language = "en" }: Props) 
   return <div className="overview">
     <section className="overview-hero">
       <div>
-        <div className="overview-brand"><h1>Webstone</h1><span className="overview-brand-label">{t("The touchstone")}</span></div>
+        <div className="overview-brand"><h1>Webstone</h1></div>
         <p>{t("Find the right tools for your agent to browse the web.")}</p>
         <div className="overview-actions">
           {firstBenchmark && <a href={benchmarkHref(firstBenchmark.id)} className="overview-primary">{t("Explore leaderboards")} <ArrowRight size={17} aria-hidden="true" /></a>}
           <a className="overview-star" href={WEBSTONE_REPOSITORY_URL} target="_blank" rel="noreferrer"><Star size={16} aria-hidden="true" />{t("Star on GitHub")} <ArrowUpRight size={14} aria-hidden="true" /></a>
         </div>
+        <p className="overview-feedback">{t("If Webstone helps, give it a star.")} <a href={FEEDBACK_URL} target="_blank" rel="noreferrer">{t("Report bugs or request features on GitHub")}</a></p>
       </div>
       <dl className="overview-stats">
         <div><dt>{t("Tracks")}</dt><dd>{tracks.length}</dd></div>

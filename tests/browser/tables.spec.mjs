@@ -54,13 +54,18 @@ async function inspect(page,rows,columns,sort,direction,alphabetical,language) {
   });
   const state=await page.locator('.wide-table').evaluate(table=>({
     headers:[...table.querySelectorAll('thead [data-column]')].map(cell=>({id:cell.dataset.column,sort:cell.getAttribute('aria-sort'),bg:getComputedStyle(cell).backgroundColor,font:getComputedStyle(cell.querySelector('.sort-button')??cell).fontWeight,color:getComputedStyle(cell.querySelector('.sort-button')??cell).color,position:getComputedStyle(cell).position})),
-    rows:[...table.querySelectorAll('tbody tr')].map(row=>({id:row.dataset.provider,cells:[...row.querySelectorAll('td[data-column]')].map(cell=>({id:cell.dataset.column,text:cell.innerText,bg:getComputedStyle(cell).backgroundColor,color:getComputedStyle(cell.querySelector('a')??cell).color,font:getComputedStyle(cell.querySelector('a')??cell).fontWeight,position:getComputedStyle(cell).position,label:cell.querySelector('.sr-only')?.textContent.trim()??''}))})),
+    rows:[...table.querySelectorAll('tbody tr')].map(row=>({id:row.dataset.provider,rank:row.querySelector('.rank-cell')?.innerText,cells:[...row.querySelectorAll('td[data-column]')].map(cell=>({id:cell.dataset.column,text:cell.innerText,bg:getComputedStyle(cell).backgroundColor,color:getComputedStyle(cell.querySelector('a')??cell).color,font:getComputedStyle(cell.querySelector('a')??cell).fontWeight,position:getComputedStyle(cell).position,label:cell.querySelector('.sr-only')?.textContent.trim()??''}))})),
   }));
   const toolbar=await page.locator('.table-toolbar').boundingBox(),scroll=await page.locator('.table-scroll').boundingBox();
   assert(Math.abs(toolbar.x-scroll.x)<2,'toolbar and table left edges differ');
   assert(Math.abs(toolbar.x+toolbar.width-scroll.x-scroll.width)<2,'toolbar and table right edges differ');
   // Bulk assertions avoid recording hundreds of thousands of duplicate trace steps.
   assert.deepEqual(state.rows.map(row=>row.id),expectedOrder(rows,sort,direction,alphabetical));
+  for (const actual of state.rows) {
+    const value=sort.value(rows.find(row=>row.id===actual.id));
+    const rank=!numeric(value)||sort.rankable===false?'—':String(1+rows.filter(row=>{const other=sort.value(row);return numeric(other)&&(sort.direction==='asc'?other<value:other>value);}).length);
+    assert.equal(actual.rank,rank,`${actual.id}: rank follows the selected metric, shares ties and survives reverse sorting`);
+  }
   assert.deepEqual(state.headers.filter(header=>header.sort==='ascending'||header.sort==='descending').map(header=>header.id),[sort.id]);
   assert.deepEqual(state.headers.map(header=>header.id).sort(),columns.map(column=>column.id).sort());
   for(const column of columns) {
@@ -114,7 +119,7 @@ function benchmarkColumns(info,result,expanded,categories=true) {
   const def=definition(info,result);
   const metrics=def.metrics.filter(metric=>metric.id===def.primaryMetric||result.providers.some(provider=>numeric(provider.scores[metric.id]))).filter(metric=>expanded||def.keyMetricIds.includes(metric.id));
   return [
-    ...metrics.map(metric=>({id:`metric:${metric.id}`,direction:metric.direction,value:provider=>provider.scores[metric.id],allowed:def.rankable!==false&&metric.highlightBest!==false,reported:def.comparisonMode==='reported'||metric.comparisonMode==='reported',scale:metric.unit==='ratio'?100:metric.unit==='ms'?0.001:1,precision:metric.unit==='ratio'?Math.max(0,metric.decimals-2):metric.unit==='ms'?Math.min(6,metric.decimals+3):metric.unit==='seconds'?Math.max(3,metric.decimals):metric.decimals})),
+    ...metrics.map(metric=>({id:`metric:${metric.id}`,rankable:def.rankable!==false,direction:metric.direction,value:provider=>provider.scores[metric.id],allowed:def.rankable!==false&&metric.highlightBest!==false,reported:def.comparisonMode==='reported'||metric.comparisonMode==='reported',scale:metric.unit==='ratio'?100:metric.unit==='ms'?0.001:1,precision:metric.unit==='ratio'?Math.max(0,metric.decimals-2):metric.unit==='ms'?Math.min(6,metric.decimals+3):metric.unit==='seconds'?Math.max(3,metric.decimals):metric.decimals})),
     ...(categories?(def.categories??[]).map(category=>({id:`category:${category.id}`,direction:'desc',value:provider=>provider.categoryPassed?.[category.id],displayValue:provider=>provider.categoryPassed[category.id]/result.categoryTotals[category.id]*100,precision:1,reported:def.comparisonMode==='reported',allowed:def.rankable!==false,sortable:false})):[]),
     ...(result.providers.some(provider=>provider.pricing&&(numeric(provider.pricing.min)&&numeric(provider.pricing.max)||numeric(provider.pricing.softwareCost)))?[{id:'pricing',pricing:true,sortable:false,allowed:false,value:()=>null}]:[]),
     ...(categories&&result.providers.some(provider=>numeric(provider.passed))?[{id:'passed',direction:'desc',value:provider=>provider.passed,reported:def.comparisonMode==='reported',allowed:def.rankable!==false,sortable:false}]:[]),
@@ -194,7 +199,7 @@ test('author comparison v1.0.0 highlights Online-Mind2Web scores and costs',asyn
   await open(page,'/?benchmark=online-mind2web&version=v1.0.0',testInfo.project.metadata.language);
   await expect(page.locator('tr[data-provider="aside-gpt-5-5-high"] td[data-column="metric:successRate"]')).toHaveCSS('background-color',winnerBackground);
   await expect(page.locator('tr[data-provider="lexmount-browser-agent"] td[data-column="metric:costPerTask"]')).toHaveCSS('background-color',winnerBackground);
-  await expect(page.locator('tbody .rank-cell')).toHaveText(['—','—','—','—','—']);
+  await expect(page.locator('tbody .rank-cell')).toHaveText(['1','2','3','4','5']);
 });
 
 test('reports fill two grid rows before paging, retain every report and clamp after resizing',async({page},testInfo)=>{
@@ -250,9 +255,15 @@ test('Resources opens upward beside language controls and track chips stay space
   await resources.click();
   const panel=page.locator('.sidebar-guides');await expect(panel).toBeVisible();
   expect((await panel.boundingBox()).y+(await panel.boundingBox()).height).toBeLessThanOrEqual(rb.y-4);
-  await expect(panel.locator('a')).toHaveCount(3);
+  await expect(panel.locator('a')).toHaveCount(4);
+  const feedback=panel.getByRole('link',{name:language==='en'?'Bugs and feature requests GitHub Issues':'问题与需求反馈 GitHub Issues'});
+  await expect(feedback).toHaveAttribute('href','https://github.com/lexmount/webstone-site/issues');
+  await expect(feedback).toBeInViewport();
   await resources.click();await expect(panel).toBeHidden();
   await expect(page.locator('.overview-star')).toContainText('GitHub');
+  await expect(page.locator('.overview-star')).toHaveAttribute('href','https://github.com/lexmount/webstone');
+  await expect(page.locator('.overview-feedback a')).toHaveAttribute('href','https://github.com/lexmount/webstone-site/issues');
+  await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
   const scrim=page.locator('.sidebar-scrim');if(await scrim.count())await scrim.press('Enter');
   for(const track of catalog.tracks.filter(track=>!track.url)) {
     const benchmarks=catalog.benchmarks.filter(benchmark=>benchmark.trackId===track.id&&(!benchmark.outputLayer||benchmark.outputLayer==='L1'));
@@ -301,6 +312,6 @@ test('ties, zero, negative deltas, missing values and diagnostic tables render c
     const columns=benchmarkColumns(info,result,false),primary=columns[0];
     await inspect(page,providers,columns,primary,primary.direction,false,language);
     await sortEach(page,providers,columns,primary,false,language);
-    if(mode!=='ranked')await expect(page.locator('tbody .rank-cell')).toHaveText(['—','—','—','—']);
+    if(mode==='diagnostic')await expect(page.locator('tbody .rank-cell')).toHaveText(['—','—','—','—']);
   }
 });

@@ -5,6 +5,7 @@ import type { BenchmarkInfo, Catalog, Snapshot } from "./results.ts";
 export const DATASETS_URL = "https://huggingface.co/datasets?author=Lexmount";
 
 export const WEBSTONE_REPOSITORY_URL = "https://github.com/lexmount/webstone";
+export const FEEDBACK_URL = "https://github.com/lexmount/webstone-site/issues";
 export const EVALUATION_URL = WEBSTONE_REPOSITORY_URL + "#for-agents";
 export const EVALUATION_SKILL = "https://github.com/lexmount/webstone/blob/main/.agents/skills/webstone/SKILL.md";
 

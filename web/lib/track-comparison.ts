@@ -1,4 +1,4 @@
-import { compareVersions, resolveBenchmark, type Benchmark, type BenchmarkInfo, type Catalog, type Metric, type Provider, type Snapshot } from './results.ts';
+import { compareValues, compareVersions, resolveBenchmark, type Benchmark, type BenchmarkInfo, type Catalog, type Metric, type Provider, type Snapshot } from './results.ts';
 import { methodIdentity } from './methods.ts';
 
 export type ComparisonColumn = { info: BenchmarkInfo; benchmark: Benchmark | null; metric: Metric; snapshot: Snapshot | null };
@@ -9,9 +9,7 @@ export function coverage(row: ComparisonRow, columns: ComparisonColumn[]) {
 export function orderComparison(rows: ComparisonRow[], column: ComparisonColumn, direction: 'asc'|'desc') {
   return [...rows].sort((a,b) => {
     const left=a.results[column.info.id]?.provider.scores[column.metric.id],right=b.results[column.info.id]?.provider.scores[column.metric.id];
-    if (left === null || left === undefined) return right === null || right === undefined ? a.name.localeCompare(b.name) : 1;
-    if (right === null || right === undefined) return -1;
-    return (direction === 'asc' ? left-right : right-left) || a.name.localeCompare(b.name);
+    return compareValues(left,right,direction) || a.name.localeCompare(b.name);
   });
 }
 export function trackComparison(catalog: Catalog, snapshots: Snapshot[], trackId: string, layer = 'L1') {

@@ -3,6 +3,7 @@ import { initialLanguage, translator } from "./i18n.ts";
 import { clearLegacyCache, LEGACY_CACHE_RESET_KEY, shouldReloadRelease } from "./release.ts";
 import { categoryRate, costBounds, decisionMetrics, quotedCost, qualityScale } from "./comparisons.ts";
 import assert from "node:assert/strict";
+import { tableComparison } from './table-comparison.ts';
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { benchmarkEntries, bestValue, compareVersions, isBestValue, latestEntry, selectEntry, reportEntries, formatMetric, formatPricing, sumCategoryPasses, resolveBenchmark, sortProviders, type Catalog, type Provider, type Snapshot } from "./results.ts";
 
@@ -522,4 +523,23 @@ test("key views prioritize benchmark quality and expose one representative timin
     assert.ok(visible.filter(metric => ["seconds", "ms"].includes(metric.unit)).length <= 1, `${info.id}: only one timing belongs in the default view`);
     assert.ok(!ids.some(id => /p50|p95|meanChars|Delta|cpuDelta/.test(id)), `${info.id}: distribution tails and diagnostics belong in More metrics`);
   }
+});
+
+test('selected-metric ranks share ties and survive reverse ordering, zero, negatives and missing values', () => {
+  const rows = [{id:'a',quality:0,cost:2},{id:'b',quality:0,cost:3},{id:'c',quality:-2,cost:1},{id:'d',quality:null,cost:null}];
+  const columns = [{id:'quality',direction:'desc' as const,value:(row:typeof rows[number])=>row.quality},{id:'cost',direction:'asc' as const,value:(row:typeof rows[number])=>row.cost}];
+  const normal=tableComparison(rows,columns,'quality','desc');
+  const reversed=tableComparison(rows,columns,'quality','asc');
+  assert.deepEqual(normal.ordered.map(row=>row.id),['a','b','c','d']);
+  assert.deepEqual(reversed.ordered.map(row=>row.id),['c','a','b','d']);
+  assert.deepEqual([...normal.ranks],[['a',1],['b',1],['c',3]]);
+  assert.deepEqual([...reversed.ranks],[...normal.ranks]);
+  assert.deepEqual(rows.filter(row=>reversed.winner(row,columns[0])).map(row=>row.id),['a','b']);
+  const cost=tableComparison(rows,columns,'cost','desc');
+  assert.deepEqual(cost.ordered.map(row=>row.id),['b','a','c','d']);
+  assert.deepEqual([...cost.ranks],[['c',1],['a',2],['b',3]]);
+  assert.deepEqual(rows.filter(row=>cost.winner(row,columns[1])).map(row=>row.id),['c']);
+  const constant=tableComparison(rows.slice(0,2),columns,'quality','desc');
+  assert.deepEqual([...constant.ranks],[['a',1],['b',1]]);
+  assert.ok(rows.slice(0,2).every(row=>!constant.winner(row,columns[0])));
 });
