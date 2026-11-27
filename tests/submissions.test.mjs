@@ -42,6 +42,7 @@ test("external submissions can add their own public project and evidence URLs", 
   registered.browserProjects.external = ["https://example.com/product"];
   const next = structuredClone(registered);
   next.providerUrls["new-method"] = "https://example.com/product";
+  next.methods.push({id:"new-method",productId:"new-method",name:"External method",providerIds:["new-method"]});
   const data = report(2);
   data.source.url = "https://example.com/evaluation";
   data.source.kind = "report-page";
@@ -96,6 +97,7 @@ test("public submissions reject local evidence, escaped credentials and unused i
   for (const key of ["constructor", "toString"]) {
     const extra = structuredClone(catalog);
     extra.providerUrls[key] = "https://example.com/project";
+    extra.methods.push({id:key,productId:key,name:key,providerIds:[key]});
     assert.throws(() => checkResultChange(catalog, extra, [addition(2)], published), /Only add project URLs/);
   }
 });
@@ -250,6 +252,7 @@ test("GitHub repository URL aliases cannot publish duplicate browser builds", ()
   for (const url of ['https://github.com/lexmount/moli.git', 'https://github.com/LEXMOUNT/Moli/', 'https://www.github.com/lexmount/moli/tree/main', 'https://github.com/lexmount/%6doli', 'https://github.com./lexmount/moli', 'https://www.github.com./lexmount/moli']) {
     const updatedCatalog = structuredClone(catalog);
     updatedCatalog.providerUrls['another-moli-build'] = url;
+  updatedCatalog.methods.push({id:"another-moli-build",productId:"another-moli-build",name:"External method",providerIds:["another-moli-build"]});
     const candidate = report(2);
     const first = candidate.benchmarks[0].providers.find(provider => provider.id === 'moli-1-1-17');
     candidate.benchmarks[0].providers.push({ ...structuredClone(first), id: 'another-moli-build', name: 'Moli another build' });
@@ -261,6 +264,7 @@ test("GitHub repository URL aliases cannot publish duplicate browser builds", ()
 test("official-site paths cannot establish a separate browser project", () => {
   const updated = structuredClone(catalog);
   updated.providerUrls['kitesurf-another-build'] = 'https://kitesurf.dev/build-2';
+  updated.methods.push({id:"kitesurf-another-build",productId:"kitesurf-another-build",name:"External method",providerIds:["kitesurf-another-build"]});
   const candidate = report(2);
   const first = candidate.benchmarks[0].providers.find(provider => provider.id === 'kitesurf');
   candidate.benchmarks[0].providers.push({ ...structuredClone(first), id: 'kitesurf-another-build', name: 'Kitesurf another build' });
@@ -270,10 +274,29 @@ test("official-site paths cannot establish a separate browser project", () => {
 test("a result submission cannot register its own browser project identity", () => {
   const updated = structuredClone(catalog);
   updated.providerUrls['unreviewed-browser'] = 'https://example.com/browser';
+  updated.methods.push({id:"unreviewed-browser",productId:"unreviewed-browser",name:"External method",providerIds:["unreviewed-browser"]});
   const candidate = report(2);
   candidate.benchmarks[0].providers[0].id = 'unreviewed-browser';
   const change = { ...addition(2), content: JSON.stringify(candidate) };
   assert.throws(() => checkResultChange(catalog, updated, [change], published), /registered browser project/i);
   updated.browserProjects = { ...updated.browserProjects, unreviewed: ['https://example.com/browser'] };
   assert.throws(() => checkResultChange(catalog, updated, [change], published), /separate pull request/i);
+});
+
+
+test('result submissions register new identities without rewriting historical method mappings',()=>{
+  const modified=structuredClone(catalog);
+  modified.methods[0].name='Renamed method';
+  assert.throws(()=>checkResultChange(catalog,modified,[addition(2)],published),/Existing method identities/);
+  const alias=structuredClone(catalog);
+  alias.methods.push({id:'alias-method',productId:'moli',name:'Alias',providerIds:['moli']});
+  assert.throws(()=>checkResultChange(catalog,alias,[addition(2)],published),/New method identities/);
+});
+
+
+test('malformed global registries produce catalog errors instead of runtime TypeErrors',()=>{
+  for(const methods of [{},null,[...structuredClone(catalog.methods),null],[...structuredClone(catalog.methods),[]]]){
+    const invalid={...structuredClone(catalog),methods};
+    assert.throws(()=>checkResultChange(catalog,invalid,[addition(2)],published),error=>!(error instanceof TypeError)&&/Invalid|Missing/.test(error.message));
+  }
 });

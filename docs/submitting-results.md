@@ -12,7 +12,8 @@ Use the [copyable instruction in the README](../README.md#for-agents). If your a
 gh auth status
 git switch -c results/my-method
 # Add a new JSON file under results/<benchmark>/ using the catalog and version guide.
-# For a new method, add only its official HTTPS URL to catalog.providerUrls.
+# For a new method, add its official HTTPS URL to catalog.providerUrls
+# and a catalog.methods entry: id, productId, name and providerIds: [id].
 npm ci --ignore-scripts
 npm test
 npm run build
@@ -30,7 +31,7 @@ Every new submission needs a public HTTPS `source.url`. Each file contains exact
 
 ## Review and publication
 
-CI uses the trusted base-branch validator to check immutable history, filenames, progression, references, bounds and denominators, then builds the website. Result PRs may add at most 20 regular JSON reports, each at most 1 MiB, and only required new participant URLs. Never overwrite/delete/rename published reports, change existing participant URLs or mix application/definition changes into a result PR.
+CI uses the trusted base-branch validator to check immutable history, filenames, progression, references, bounds and denominators, then builds the website. Result PRs may add at most 20 regular JSON reports, each at most 1 MiB, and only required new participant URLs and matching new method identities. Existing identity mappings and aliases require a separate reviewed catalog PR. Never overwrite/delete/rename published reports, change existing participant URLs or mix application/definition changes into a result PR.
 
 Run `node scripts/check-result-change.mjs origin/main HEAD` after committing, with a freshly fetched `origin/main`. CI remains authoritative. Follow checks with `gh pr checks NUMBER --repo lexmount/webstone-site`; respond to evidence and configuration review. Passing CI checks consistency, not scientific truth. Maintainers decide when to merge. If another PR consumes your version, merge current upstream main into your contributor branch, allocate the next version again, preserve measurements, rerun checks and request review; never force-push.
 

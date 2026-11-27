@@ -18,7 +18,7 @@ function metricMaximum(metric) {
 }
 
 function uniqueIds(items, label) {
-  if (!Array.isArray(items) || !items.length || items.some(item => typeof item.id !== "string" || !item.id)) throw new Error(`Invalid ${label}`);
+  if (!Array.isArray(items) || !items.length || items.some(item => !item || typeof item !== "object" || Array.isArray(item) || typeof item.id !== "string" || !item.id)) throw new Error(`Invalid ${label}`);
   if (new Set(items.map(item => item.id)).size !== items.length) throw new Error(`Duplicate ${label} id`);
 }
 
@@ -51,6 +51,17 @@ export function validateCatalog(catalog) {
   validateTranslations(catalog.translations);
   if (catalog.schemaVersion !== 1) throw new Error("Invalid benchmark catalog");
   if (!catalog.providerUrls || typeof catalog.providerUrls !== "object" || Array.isArray(catalog.providerUrls) || !Object.keys(catalog.providerUrls).length || !Object.values(catalog.providerUrls).every(httpsUrl)) throw new Error("Missing or invalid provider project URL");
+  if (!Array.isArray(catalog.methods) || !catalog.methods.length) throw new Error("Missing global method registry");
+  uniqueIds(catalog.methods, "method");
+  const methodMembers = [];
+  for (const method of catalog.methods) {
+    if (![method.id, method.productId, method.name].every(value => typeof value === "string" && value.trim()) ||
+      !Array.isArray(method.providerIds) || !method.providerIds.length || method.providerIds.some(id => typeof id !== "string" || !Object.hasOwn(catalog.providerUrls, id))) throw new Error("Invalid global method identity");
+    if (Object.hasOwn(catalog.providerUrls, method.id) && !method.providerIds.includes(method.id)) throw new Error("Method ID collides with another participant");
+    methodMembers.push(...method.providerIds);
+  }
+  if (new Set(methodMembers).size !== methodMembers.length) throw new Error("Ambiguous global method identity");
+  if (Object.keys(catalog.providerUrls).some(id => !methodMembers.includes(id))) throw new Error("Missing global method identity");
   if (catalog.pricingSources !== undefined && (!record(catalog.pricingSources) || Object.entries(catalog.pricingSources).some(([id, sources]) =>
     !Object.hasOwn(catalog.providerUrls, id) || !Array.isArray(sources) || sources.length === 0 || sources.some(source =>
       !record(source) || typeof source.label !== "string" || !source.label.trim() || !publicEvidenceUrl(source.url))))) throw new Error("Invalid official pricing sources");
@@ -77,16 +88,7 @@ export function validateCatalog(catalog) {
     if (track.url ? hasBenchmarks : !hasBenchmarks) throw new Error("A track must have either local benchmarks or an external URL");
     if (track.overview !== undefined) {
       if (track.url || !record(track.overview)) throw new Error("Invalid track overview");
-      const groups = track.overview.methodGroups ?? [];
-      if (!Array.isArray(groups)) throw new Error("Invalid overview method groups");
-      const memberIds = [];
-      if (groups.length) uniqueIds(groups,"overview method group");
-      for (const group of groups) {
-        if (typeof group.name !== "string" || !group.name.trim() || !Array.isArray(group.providerIds) || !group.providerIds.length || group.providerIds.some(id=>typeof id !== "string" || !Object.hasOwn(catalog.providerUrls,id))) throw new Error("Invalid overview method group");
-        if (Object.hasOwn(catalog.providerUrls, group.id) && !group.providerIds.includes(group.id)) throw new Error("Overview group ID collides with another participant");
-        memberIds.push(...group.providerIds);
-      }
-      if (new Set(memberIds).size !== memberIds.length) throw new Error("Ambiguous overview method group");
+      if (Object.keys(track.overview).length) throw new Error("Overview identities belong in the global method registry");
     }
   }
   for (const benchmark of catalog.benchmarks) {

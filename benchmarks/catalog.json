@@ -93,47 +93,7 @@
       "name": "Web Fetch",
       "description": "Content retrieval",
       "groupId": "browsers",
-      "overview": {
-        "methodGroups": [
-          {
-            "id": "moli",
-            "name": "Moli",
-            "providerIds": [
-              "moli",
-              "moli-1-1-17",
-              "moli-content-fixed"
-            ]
-          },
-          {
-            "id": "chromium",
-            "name": "Chromium",
-            "providerIds": [
-              "chromium"
-            ]
-          },
-          {
-            "id": "lightpanda",
-            "name": "Lightpanda",
-            "providerIds": [
-              "lightpanda"
-            ]
-          },
-          {
-            "id": "obscura",
-            "name": "Obscura",
-            "providerIds": [
-              "obscura"
-            ]
-          },
-          {
-            "id": "kitesurf",
-            "name": "Kitesurf",
-            "providerIds": [
-              "kitesurf"
-            ]
-          }
-        ]
-      }
+      "overview": {}
     },
     {
       "id": "websearch",
@@ -146,13 +106,15 @@
       "id": "webextract",
       "name": "Web Extract",
       "description": "Structured field extraction",
-      "groupId": "web-tools"
+      "groupId": "web-tools",
+      "overview": {}
     },
     {
       "id": "trajectory-replay",
       "name": "Trajectory Replay",
       "description": "Execute fixed action sequences",
-      "groupId": "browsers"
+      "groupId": "browsers",
+      "overview": {}
     },
     {
       "id": "browserarena",
@@ -2494,5 +2456,446 @@
     "kitesurf": [
       "https://kitesurf.dev/"
     ]
-  }
+  },
+  "methods": [
+    {
+      "id": "moli",
+      "productId": "moli",
+      "name": "Moli",
+      "providerIds": [
+        "moli",
+        "moli-1-1-17",
+        "moli-content-fixed",
+        "moli-v1-1-11"
+      ]
+    },
+    {
+      "id": "chromium",
+      "productId": "chromium",
+      "name": "Chromium",
+      "providerIds": [
+        "chromium",
+        "chromium-153"
+      ]
+    },
+    {
+      "id": "lightpanda",
+      "productId": "lightpanda",
+      "name": "Lightpanda",
+      "providerIds": [
+        "lightpanda",
+        "lightpanda-nightly-9813"
+      ]
+    },
+    {
+      "id": "obscura",
+      "productId": "obscura",
+      "name": "Obscura",
+      "providerIds": [
+        "obscura",
+        "obscura-0-2-3"
+      ]
+    },
+    {
+      "id": "kitesurf",
+      "productId": "kitesurf",
+      "name": "Kitesurf",
+      "providerIds": [
+        "kitesurf",
+        "kitesurf-cloudflare"
+      ]
+    },
+    {
+      "id": "brightdata",
+      "productId": "brightdata",
+      "name": "Bright Data / Google Light JSON",
+      "providerIds": [
+        "brightdata"
+      ]
+    },
+    {
+      "id": "browserbase",
+      "productId": "browserbase",
+      "name": "Browserbase / Parallel Advanced",
+      "providerIds": [
+        "browserbase"
+      ]
+    },
+    {
+      "id": "browserbase-json",
+      "productId": "browserbase",
+      "name": "Browserbase JSON",
+      "providerIds": [
+        "browserbase-json"
+      ]
+    },
+    {
+      "id": "cloudflare-json",
+      "productId": "cloudflare",
+      "name": "Cloudflare JSON",
+      "providerIds": [
+        "cloudflare-json"
+      ]
+    },
+    {
+      "id": "crawl4ai-deepseek",
+      "productId": "crawl4ai",
+      "name": "Crawl4AI · Open source / DeepSeek",
+      "providerIds": [
+        "crawl4ai-deepseek"
+      ]
+    },
+    {
+      "id": "diffbot-product",
+      "productId": "diffbot",
+      "name": "Diffbot Product",
+      "providerIds": [
+        "diffbot-product"
+      ]
+    },
+    {
+      "id": "firecrawl-deepseek",
+      "productId": "firecrawl",
+      "name": "Firecrawl · Open source / DeepSeek",
+      "providerIds": [
+        "firecrawl-deepseek"
+      ]
+    },
+    {
+      "id": "firecrawl-json",
+      "productId": "firecrawl",
+      "name": "Firecrawl JSON",
+      "providerIds": [
+        "firecrawl-json"
+      ]
+    },
+    {
+      "id": "firecrawl-parse-json",
+      "productId": "firecrawl",
+      "name": "Firecrawl Parse JSON",
+      "providerIds": [
+        "firecrawl-parse-json"
+      ]
+    },
+    {
+      "id": "headless-1-1-4-off",
+      "productId": "moli",
+      "name": "Moli 1.1.4 · layout off",
+      "providerIds": [
+        "headless-1-1-4-off"
+      ]
+    },
+    {
+      "id": "headless-1-1-8-off",
+      "productId": "moli",
+      "name": "Moli 1.1.8 · layout off",
+      "providerIds": [
+        "headless-1-1-8-off"
+      ]
+    },
+    {
+      "id": "headless-1-1-8-on",
+      "productId": "moli",
+      "name": "Moli 1.1.8 · layout on",
+      "providerIds": [
+        "headless-1-1-8-on"
+      ]
+    },
+    {
+      "id": "headless-1-1-9-fixed-off",
+      "productId": "moli",
+      "name": "Moli 1.1.9 patched · layout off",
+      "providerIds": [
+        "headless-1-1-9-fixed-off"
+      ]
+    },
+    {
+      "id": "headless-1-1-9-fixed-on",
+      "productId": "moli",
+      "name": "Moli 1.1.9 patched · layout on",
+      "providerIds": [
+        "headless-1-1-9-fixed-on"
+      ]
+    },
+    {
+      "id": "headless-1-1-9-off",
+      "productId": "moli",
+      "name": "Moli 1.1.9 · layout off",
+      "providerIds": [
+        "headless-1-1-9-off"
+      ]
+    },
+    {
+      "id": "headless-1-1-9-on",
+      "productId": "moli",
+      "name": "Moli 1.1.9 · layout on",
+      "providerIds": [
+        "headless-1-1-9-on"
+      ]
+    },
+    {
+      "id": "lexmount",
+      "productId": "lexmount",
+      "name": "Lexmount Search",
+      "providerIds": [
+        "lexmount"
+      ]
+    },
+    {
+      "id": "moli-1-1-15",
+      "productId": "moli",
+      "name": "Moli 1.1.15",
+      "providerIds": [
+        "moli-1-1-15"
+      ]
+    },
+    {
+      "id": "moli-731-853",
+      "productId": "moli",
+      "name": "Moli · #731 + #853",
+      "providerIds": [
+        "moli-731-853"
+      ]
+    },
+    {
+      "id": "oxylabs-json",
+      "productId": "oxylabs",
+      "name": "Oxylabs JSON",
+      "providerIds": [
+        "oxylabs-json"
+      ]
+    },
+    {
+      "id": "scrapegraph-extract",
+      "productId": "scrapegraph",
+      "name": "ScrapeGraph Extract",
+      "providerIds": [
+        "scrapegraph-extract"
+      ]
+    },
+    {
+      "id": "scrapegraphai-deepseek",
+      "productId": "scrapegraph",
+      "name": "ScrapeGraphAI · Open source / DeepSeek",
+      "providerIds": [
+        "scrapegraphai-deepseek"
+      ]
+    },
+    {
+      "id": "scrapfly-product",
+      "productId": "scrapfly",
+      "name": "Scrapfly Product",
+      "providerIds": [
+        "scrapfly-product"
+      ]
+    },
+    {
+      "id": "serper",
+      "productId": "serper",
+      "name": "Serper / Google",
+      "providerIds": [
+        "serper"
+      ]
+    },
+    {
+      "id": "stagehand-deepseek",
+      "productId": "stagehand",
+      "name": "Stagehand · Open source / DeepSeek",
+      "providerIds": [
+        "stagehand-deepseek"
+      ]
+    },
+    {
+      "id": "zyte-custom",
+      "productId": "zyte",
+      "name": "Zyte Custom",
+      "providerIds": [
+        "zyte-custom"
+      ]
+    },
+    {
+      "id": "zyte-product",
+      "productId": "zyte",
+      "name": "Zyte Product",
+      "providerIds": [
+        "zyte-product"
+      ]
+    },
+    {
+      "id": "yuanbao-standard",
+      "productId": "yuanbao-search",
+      "name": "Yuanbao Search · Standard",
+      "providerIds": [
+        "yuanbao-standard"
+      ]
+    },
+    {
+      "id": "yuanbao-lite",
+      "productId": "yuanbao-search",
+      "name": "Yuanbao Search · Lite",
+      "providerIds": [
+        "yuanbao-lite"
+      ]
+    },
+    {
+      "id": "deepseek-content",
+      "productId": "deepseek-content",
+      "name": "DeepSeek Search + content",
+      "providerIds": [
+        "deepseek-content"
+      ]
+    },
+    {
+      "id": "bocha-ai",
+      "productId": "bocha",
+      "name": "Bocha AI Search",
+      "providerIds": [
+        "bocha-ai"
+      ]
+    },
+    {
+      "id": "bocha-summary",
+      "productId": "bocha",
+      "name": "Bocha Web Search + summary",
+      "providerIds": [
+        "bocha-summary"
+      ]
+    },
+    {
+      "id": "moli-pr785-fixed",
+      "productId": "moli",
+      "name": "Moli 1.1.9 · PR785",
+      "providerIds": [
+        "moli-pr785-fixed"
+      ]
+    },
+    {
+      "id": "lexmount-browser-agent",
+      "productId": "lexmount-browser-agent",
+      "name": "Lexmount Browser Agent",
+      "providerIds": [
+        "lexmount-browser-agent"
+      ]
+    },
+    {
+      "id": "cook-browser-desktop",
+      "productId": "cook-browser-desktop",
+      "name": "Cook Browser Desktop",
+      "providerIds": [
+        "cook-browser-desktop"
+      ]
+    },
+    {
+      "id": "aside-gpt-5-5-high",
+      "productId": "aside",
+      "name": "Aside + GPT-5.5 high",
+      "providerIds": [
+        "aside-gpt-5-5-high"
+      ]
+    },
+    {
+      "id": "browsercode-claude-opus-4-8",
+      "productId": "browsercode",
+      "name": "BrowserCode + Claude Opus 4.8",
+      "providerIds": [
+        "browsercode-claude-opus-4-8"
+      ]
+    },
+    {
+      "id": "browser-use-oss-claude-fable-5",
+      "productId": "browser-use",
+      "name": "Browser Use OSS + Claude Fable 5",
+      "providerIds": [
+        "browser-use-oss-claude-fable-5"
+      ]
+    },
+    {
+      "id": "browser-use-cloud",
+      "productId": "browser-use",
+      "name": "Browser Use Cloud",
+      "providerIds": [
+        "browser-use-cloud"
+      ]
+    },
+    {
+      "id": "dassi-gemini-3-8-flash",
+      "productId": "dassi",
+      "name": "Dassi + Gemini 3.8 Flash",
+      "providerIds": [
+        "dassi-gemini-3-8-flash"
+      ]
+    },
+    {
+      "id": "microsoft-cuawright-gpt-5-5",
+      "productId": "microsoft-cuawright",
+      "name": "Microsoft CUAWright + GPT-5.5",
+      "providerIds": [
+        "microsoft-cuawright-gpt-5-5"
+      ]
+    },
+    {
+      "id": "browser-control-claude-fable-5",
+      "productId": "browser-control",
+      "name": "browser-control + Claude Fable 5",
+      "providerIds": [
+        "browser-control-claude-fable-5"
+      ]
+    },
+    {
+      "id": "alumnium-sonnet-4-6-gpt-5-nano",
+      "productId": "alumnium",
+      "name": "Alumnium + Claude Code Sonnet 4.6 + GPT-5 nano",
+      "providerIds": [
+        "alumnium-sonnet-4-6-gpt-5-nano"
+      ]
+    },
+    {
+      "id": "h-company-surfer-2",
+      "productId": "h-company-surfer",
+      "name": "H Company Surfer 2",
+      "providerIds": [
+        "h-company-surfer-2"
+      ]
+    },
+    {
+      "id": "google-gemini-2-5-computer-use",
+      "productId": "google-computer-use",
+      "name": "Google Gemini 2.5 Computer Use",
+      "providerIds": [
+        "google-gemini-2-5-computer-use"
+      ]
+    },
+    {
+      "id": "ouroboros-claude-opus-5",
+      "productId": "ouroboros",
+      "name": "Ouroboros + Claude Opus 5",
+      "providerIds": [
+        "ouroboros-claude-opus-5"
+      ]
+    },
+    {
+      "id": "ouroboros-claude-sonnet-4-6",
+      "productId": "ouroboros",
+      "name": "Ouroboros + Claude Sonnet 4.6",
+      "providerIds": [
+        "ouroboros-claude-sonnet-4-6"
+      ]
+    },
+    {
+      "id": "intelligence-indeed-agent",
+      "productId": "intelligence-indeed-agent",
+      "name": "Intelligence-Indeed Agent",
+      "providerIds": [
+        "intelligence-indeed-agent"
+      ]
+    },
+    {
+      "id": "claude-computer-use-fable-5",
+      "productId": "claude-computer-use",
+      "name": "Claude Computer Use + Claude Fable 5",
+      "providerIds": [
+        "claude-computer-use-fable-5"
+      ]
+    }
+  ]
 }

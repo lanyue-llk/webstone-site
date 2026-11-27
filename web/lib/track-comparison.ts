@@ -1,42 +1,50 @@
-import { compareVersions, resolveBenchmark, type Benchmark, type Catalog, type Metric, type Provider, type Snapshot } from './results.ts';
-import { qualityMetrics } from './comparisons.ts';
+import { compareVersions, resolveBenchmark, type Benchmark, type BenchmarkInfo, type Catalog, type Metric, type Provider, type Snapshot } from './results.ts';
+import { methodIdentity } from './methods.ts';
 
-export type ComparisonColumn = { benchmark: Benchmark; metric: Metric; snapshot: Snapshot };
+export type ComparisonColumn = { info: BenchmarkInfo; benchmark: Benchmark | null; metric: Metric; snapshot: Snapshot | null };
 export type ComparisonRow = { id: string; name: string; results: Record<string, { provider: Provider; column: ComparisonColumn }> };
-
+export function coverage(row: ComparisonRow, columns: ComparisonColumn[]) {
+  return columns.filter(column => typeof row.results[column.info.id]?.provider.scores[column.metric.id] === 'number').length;
+}
+export function orderComparison(rows: ComparisonRow[], column: ComparisonColumn, direction: 'asc'|'desc') {
+  return [...rows].sort((a,b) => {
+    const left=a.results[column.info.id]?.provider.scores[column.metric.id],right=b.results[column.info.id]?.provider.scores[column.metric.id];
+    if (left === null || left === undefined) return right === null || right === undefined ? a.name.localeCompare(b.name) : 1;
+    if (right === null || right === undefined) return -1;
+    return (direction === 'asc' ? left-right : right-left) || a.name.localeCompare(b.name);
+  });
+}
 export function trackComparison(catalog: Catalog, snapshots: Snapshot[], trackId: string, layer = 'L1') {
   const track = catalog.tracks.find(track => track.id === trackId && track.overview);
   if (!track) return null;
-  const columns: ComparisonColumn[] = catalog.benchmarks.filter(bench => bench.trackId === trackId && (!bench.outputLayer || bench.outputLayer === layer)).flatMap(info => {
-    const snapshot = snapshots.filter(s => s.benchmarks.some(b => b.id === info.id)).sort((a,b) => compareVersions(a.version,b.version)).at(-1);
+  const columns: ComparisonColumn[] = catalog.benchmarks.filter(bench => bench.trackId === trackId && (!bench.outputLayer || bench.outputLayer === layer)).map(info => {
+    const snapshot = snapshots.filter(s => s.benchmarks.some(b => b.id === info.id)).sort((a,b) => compareVersions(a.version,b.version)).at(-1) ?? null;
     const result = snapshot?.benchmarks.find(b => b.id === info.id);
-    if (!snapshot || !result) return [];
-    const benchmark = resolveBenchmark(catalog,result);
-    const metric = benchmark.metrics.find(m => m.id === benchmark.primaryMetric)!;
-    return [{benchmark,metric,snapshot}];
+    const benchmark = result ? resolveBenchmark(catalog,result) : null;
+    const definition = benchmark ?? info.definitions.at(-1)!;
+    const metric = definition.metrics.find(m => m.id === definition.primaryMetric)!;
+    return {info,benchmark,metric,snapshot};
   });
   if (!columns.length) return null;
   const grouped = new Map<string,ComparisonRow>();
-  for (const column of columns) for (const provider of column.benchmark.providers) {
-    const group = track.overview?.methodGroups?.find(group => group.providerIds.includes(provider.id));
-    const id = group?.id ?? provider.id;
-    const row = grouped.get(id) ?? {id,name:group?.name ?? provider.name,results:{}};
-    if (row.results[column.benchmark.id]) throw new Error(`Ambiguous overview method: ${trackId}/${id}/${column.benchmark.id}`);
-    row.results[column.benchmark.id] = {provider,column};
-    grouped.set(id,row);
+  for (const column of columns) for (const provider of column.benchmark?.providers ?? []) {
+    const method = methodIdentity(catalog,provider.id);
+    const row = grouped.get(method.id) ?? {id:method.id,name:method.name,results:{}};
+    if (row.results[column.info.id]) throw new Error(`Ambiguous overview method: ${trackId}/${method.id}/${column.info.id}`);
+    row.results[column.info.id] = {provider,column};
+    grouped.set(method.id,row);
   }
-  const rows = [...grouped.values()].sort((a,b) => Object.keys(b.results).length-Object.keys(a.results).length || a.name.localeCompare(b.name));
-  const metrics = columns.flatMap(column => qualityMetrics(column.benchmark).map(metric => ({
-    ...metric,id:`${column.benchmark.id}:${metric.id}`,label:`${column.benchmark.name.replace(/^LexBench /,'')} · ${metric.label}`,
-  })));
+  const rows = orderComparison([...grouped.values()],columns[0],columns[0].metric.direction);
+  const metrics = columns.map(({info,metric}) => ({...metric,id:`${info.id}:${metric.id}`,label:info.name.replace(/^LexBench /,'')}));
   const providers: Provider[] = rows.map(row => ({
     id:row.id,name:row.name,description:'',mode:'',passed:null,
-    scores:Object.fromEntries(columns.flatMap(column => qualityMetrics(column.benchmark).map(metric => [
-      `${column.benchmark.id}:${metric.id}`,row.results[column.benchmark.id]?.provider.scores[metric.id] ?? null,
-    ]))),
+    scores:Object.fromEntries(columns.map(column => [`${column.info.id}:${column.metric.id}`,row.results[column.info.id]?.provider.scores[column.metric.id] ?? null])),
   }));
+  const first = columns.find(column => column.benchmark)?.benchmark;
+  // The empty benchmark still exposes catalog columns; it contains no invented results.
   const profile: Benchmark = {
-    ...columns[0].benchmark,id:`track:${trackId}`,name:track.name,rankable:false,primaryMetric:metrics[0].id,
+    ...(first ?? {...columns[0].info,...columns[0].info.definitions.at(-1)!,definitionId:columns[0].info.definitions.at(-1)!.id,taskCount:null,notes:[]}),
+    id:`track:${trackId}`,name:track.name,rankable:false,primaryMetric:metrics[0].id,
     metrics,keyMetricIds:metrics.map(metric=>metric.id),categories:[],providers,providerCount:providers.length,
   };
   return {track,columns,rows,profile};
